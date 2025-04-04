@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -13,20 +14,19 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Game state interfaces
-interface Player {
-  id: string;
+interface ServerPlayer {
+  id?: string;
   x: number;
   y: number;
-  size?: number;
+  length?: number;
   color?: string;
   direction?: { x: number; y: number };
   segments?: Array<{ x: number; y: number }>;
   boosting?: boolean;
-  length?: number;
 }
 
-interface GameState {
-  players: Record<string, Player>;
+interface ServerGameState {
+  players: Record<string, ServerPlayer>;
   items?: Record<string, any>;
   worldSize?: { width: number; height: number };
 }
@@ -38,7 +38,7 @@ const Index = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [gameState, setGameState] = useState<GameState>({
+  const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
     worldSize: { width: 2000, height: 2000 }
   });
@@ -107,7 +107,7 @@ const Index = () => {
     });
     
     // Players update
-    newSocket.on("update_players", (players: Record<string, Player>) => {
+    newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
       console.log("Players update:", players);
       setGameState(prevState => ({
         ...prevState,
@@ -121,20 +121,13 @@ const Index = () => {
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted) {
       // Adjust to match the server's move event that expects x and y directly
-      socket.emit("move", {
-        x: direction.x,
-        y: direction.y
-      });
+      socket.emit("move", direction);
     }
   };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
-      // If your server has a boost event, uncomment this
-      // socket.emit("boost");
-      
-      // Otherwise just send a move with faster speed
-      // This depends on your server implementation
+      socket.emit("boost");
     }
   };
 
@@ -151,7 +144,7 @@ const Index = () => {
           <Button
             className="px-8 py-6 text-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
             onClick={handlePlay}
-            disabled={connecting || gameStarted}
+            disabled={connecting}
           >
             {connecting ? "Connexion..." : "JOUER"}
           </Button>
@@ -177,7 +170,7 @@ const Index = () => {
       {gameStarted && (
         <>
           <GameCanvas 
-            gameState={gameState} 
+            gameState={gameState as any} 
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
