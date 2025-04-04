@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -18,24 +17,18 @@ interface Player {
   id: string;
   x: number;
   y: number;
-  size: number;
-  color: string;
-  direction: { x: number; y: number };
-  segments: Array<{ x: number; y: number }>;
-  boosting: boolean;
-}
-
-interface GameItem {
-  id: string;
-  x: number;
-  y: number;
-  value: number;
+  size?: number;
+  color?: string;
+  direction?: { x: number; y: number };
+  segments?: Array<{ x: number; y: number }>;
+  boosting?: boolean;
+  length?: number;
 }
 
 interface GameState {
   players: Record<string, Player>;
-  items: Record<string, GameItem>;
-  worldSize: { width: number; height: number };
+  items?: Record<string, any>;
+  worldSize?: { width: number; height: number };
 }
 
 const Index = () => {
@@ -44,140 +37,16 @@ const Index = () => {
   const [connecting, setConnecting] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>({
     players: {},
-    items: {},
     worldSize: { width: 2000, height: 2000 }
   });
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  
   const isMobile = useIsMobile();
 
-  // Créer une salle par défaut si aucune n'existe
-  const createDefaultRoom = async () => {
-    try {
-      const { data: existingRooms, error: roomError } = await supabase
-        .from("rooms")
-        .select("*")
-        .limit(1);
-      
-      if (roomError) {
-        console.error("Error checking for rooms:", roomError);
-        return;
-      }
-      
-      if (!existingRooms || existingRooms.length === 0) {
-        const { data, error } = await supabase
-          .from("rooms")
-          .insert([
-            { 
-              name: "Default Room", 
-              max_players: 25,
-              current_players: 0
-            }
-          ])
-          .select();
-        
-        if (error) {
-          console.error("Error creating default room:", error);
-          return;
-        }
-        
-        console.log("Created default room:", data);
-        return data[0];
-      }
-      
-      return existingRooms[0];
-    } catch (error) {
-      console.error("Error in createDefaultRoom:", error);
-    }
-  };
-
   useEffect(() => {
-    // Fetch rooms from Supabase
-    const fetchRooms = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("rooms")
-          .select("*")
-          .order("created_at", { ascending: false });
-        
-        if (error) {
-          console.error("Error fetching rooms:", error);
-          return;
-        }
-        
-        if (!data || data.length === 0) {
-          // Créer une salle par défaut si aucune n'existe
-          const defaultRoom = await createDefaultRoom();
-          if (defaultRoom) {
-            setRooms([defaultRoom]);
-            setSelectedRoom(defaultRoom.id);
-          }
-        } else {
-          setRooms(data);
-          setSelectedRoom(data[0].id);
-        }
-      } catch (error) {
-        console.error("Error in fetchRooms:", error);
-      }
-    };
-    
-    // Établir la connexion socket une seule fois
-    const setupSocketConnection = () => {
-      if (socket) return; // Ne pas réinitialiser si déjà initialisé
-      
-      const newSocket = io("https://codecrawl-production.up.railway.app", {
-        transports: ["websocket"],
-        upgrade: false,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        timeout: 10000
-      });
-      
-      newSocket.on("connect", () => {
-        console.log("Connected to WebSocket server");
-        setConnected(true);
-        setConnecting(false);
-        toast.success("Connecté au serveur");
-      });
-      
-      newSocket.on("connect_error", (err) => {
-        console.error("Connection error:", err);
-        setConnecting(false);
-        toast.error("Erreur de connexion au serveur");
-      });
-      
-      newSocket.on("disconnect", () => {
-        console.log("Disconnected from WebSocket server");
-        setConnected(false);
-        setGameStarted(false);
-        toast.error("Déconnecté du serveur");
-      });
-      
-      newSocket.on("gameState", (state: GameState) => {
-        setGameState(state);
-      });
-      
-      newSocket.on("joined", (data: { playerId: string }) => {
-        console.log("Joined game as player:", data.playerId);
-        setPlayerId(data.playerId);
-        setGameStarted(true);
-        toast.success("Vous avez rejoint la partie");
-      });
-      
-      newSocket.on("died", () => {
-        console.log("You died!");
-        setGameStarted(false);
-        toast.error("Vous êtes mort!");
-      });
-      
-      setSocket(newSocket);
-    };
-    
-    fetchRooms();
-    setupSocketConnection();
-    
+    // Cleanup function - will be called when component unmounts
     return () => {
       if (socket) {
         socket.disconnect();
@@ -186,64 +55,86 @@ const Index = () => {
   }, [socket]);
   
   const handlePlay = () => {
-    if (!connected) {
-      setConnecting(true);
-      // Tenter de se reconnecter
-      if (socket) {
-        socket.connect();
-      }
-      
-      // Vérifier si nous avons des salles
-      if (rooms.length === 0) {
-        createDefaultRoom().then(fetchRooms);
-      }
-      return;
-    }
+    setConnecting(true);
     
-    if (socket && connected && selectedRoom) {
-      setConnecting(true);
-      const playerName = `Player_${Math.floor(Math.random() * 1000)}`;
-      const playerColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-      
-      socket.emit("joinRoom", {
-        roomId: selectedRoom,
-        playerName,
-        playerColor
-      });
-      
-      // Réinitialiser le statut de connexion après un délai si nous n'avons pas rejoint
-      setTimeout(() => {
-        setConnecting(false);
-      }, 5000);
-    }
-  };
-  
-  const fetchRooms = async () => {
-    const { data, error } = await supabase
-      .from("rooms")
-      .select("*")
-      .order("created_at", { ascending: false });
+    // Create a new socket connection
+    const newSocket = io("https://codecrawl-production.up.railway.app", {
+      transports: ["websocket"],
+      upgrade: false,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000
+    });
     
-    if (error) {
-      console.error("Error fetching rooms:", error);
-      return;
-    }
+    // Connection established
+    newSocket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+      setConnected(true);
+      setConnecting(false);
+      toast.success("Connecté au serveur");
+    });
     
-    setRooms(data || []);
-    if (data && data.length > 0) {
-      setSelectedRoom(data[0].id);
-    }
+    // Connection error
+    newSocket.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+      setConnecting(false);
+      toast.error("Erreur de connexion au serveur");
+    });
+    
+    // Disconnected from server
+    newSocket.on("disconnect", () => {
+      console.log("Disconnected from WebSocket server");
+      setConnected(false);
+      setGameStarted(false);
+      setRoomId(null);
+      toast.error("Déconnecté du serveur");
+    });
+    
+    // Joined a room
+    newSocket.on("joined_room", (data: { roomId: string }) => {
+      console.log("Joined room:", data.roomId);
+      setRoomId(data.roomId);
+      setPlayerId(newSocket.id);
+      setGameStarted(true);
+      toast.success("Vous avez rejoint la partie");
+    });
+    
+    // No rooms available
+    newSocket.on("no_room_available", () => {
+      toast.error("Aucune salle disponible");
+      setConnecting(false);
+      newSocket.disconnect();
+    });
+    
+    // Players update
+    newSocket.on("update_players", (players: Record<string, Player>) => {
+      console.log("Players update:", players);
+      setGameState(prevState => ({
+        ...prevState,
+        players: players
+      }));
+    });
+    
+    setSocket(newSocket);
   };
   
   const handleMove = (direction: { x: number; y: number }) => {
-    if (socket && gameStarted && playerId) {
-      socket.emit("move", { direction });
+    if (socket && gameStarted) {
+      // Adjust to match the server's move event that expects x and y directly
+      socket.emit("move", {
+        x: direction.x,
+        y: direction.y
+      });
     }
   };
   
   const handleBoost = () => {
-    if (socket && gameStarted && playerId) {
-      socket.emit("boost");
+    if (socket && gameStarted) {
+      // If your server has a boost event, uncomment this
+      // socket.emit("boost");
+      
+      // Otherwise just send a move with faster speed
+      // This depends on your server implementation
     }
   };
 
@@ -260,31 +151,10 @@ const Index = () => {
           <Button
             className="px-8 py-6 text-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
             onClick={handlePlay}
-            disabled={connecting || (connected && !selectedRoom)}
+            disabled={connecting || gameStarted}
           >
-            {connecting ? "Connexion..." : connected ? "JOUER" : "SE CONNECTER"}
+            {connecting ? "Connexion..." : "JOUER"}
           </Button>
-          
-          {rooms.length > 0 && (
-            <div className="mt-6">
-              <p className="text-sm text-gray-400 mb-2">Salles disponibles:</p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {rooms.map((room) => (
-                  <button
-                    key={room.id}
-                    className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                      selectedRoom === room.id 
-                        ? "bg-blue-600 text-white" 
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                    onClick={() => setSelectedRoom(room.id)}
-                  >
-                    {room.name} ({room.current_players}/{room.max_players})
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           
           <div className="absolute top-0 left-0 w-full h-full -z-10">
             {Array.from({ length: 50 }).map((_, i) => (
