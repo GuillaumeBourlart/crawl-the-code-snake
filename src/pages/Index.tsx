@@ -35,7 +35,7 @@ interface GameItem {
 
 interface ServerGameState {
   players: Record<string, ServerPlayer>;
-  items?: Record<string, GameItem>;
+  items?: Record<string, GameItem> | GameItem[];
   worldSize?: { width: number; height: number };
 }
 
@@ -321,6 +321,8 @@ const Index = () => {
             gameState={{
               ...gameState,
               players: gameState.players || {},
+              // Convertir l'objet items en tableau pour le passer à GameCanvas
+              items: gameState.items ? Object.values(gameState.items) : [],
               worldSize: gameState.worldSize || { width: 2000, height: 2000 }
             }}
             playerId={playerId} 
