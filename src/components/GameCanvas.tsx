@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -226,7 +225,6 @@ const GameCanvas = ({
         const playerSize = calculatePlayerSize(player);
         const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
-        // Dessiner la queue du joueur si elle existe
         if (player.queue && player.queue.length > 0) {
           ctx.strokeStyle = playerColor;
           ctx.lineWidth = Math.max(3, playerSize / 3);
@@ -242,13 +240,12 @@ const GameCanvas = ({
           
           ctx.stroke();
           
-          // Dessiner chaque segment de la queue
           for (let i = 0; i < player.queue.length; i++) {
             const segment = player.queue[i];
             
             ctx.fillStyle = playerColor;
             ctx.beginPath();
-            ctx.arc(segment.x, segment.y, 8, 0, Math.PI * 2);
+            ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
@@ -258,7 +255,6 @@ const GameCanvas = ({
           }
         }
         
-        // Dessiner la tête du joueur (CPU)
         if (id === playerId || !cpuImageRef.current) {
           const cpuImage = document.createElement('canvas');
           cpuImage.width = 40;
@@ -304,7 +300,6 @@ const GameCanvas = ({
           );
         }
         
-        // Bordure de sélection pour le joueur actuel
         if (id === playerId) {
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 2;
@@ -316,7 +311,6 @@ const GameCanvas = ({
           );
         }
         
-        // Effet de boost
         if (player.boosting) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
           ctx.beginPath();
@@ -324,7 +318,6 @@ const GameCanvas = ({
           ctx.fill();
         }
         
-        // Afficher le texte d'identification et le nombre de segments
         if (id === playerId) {
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
@@ -341,7 +334,6 @@ const GameCanvas = ({
       
       ctx.restore();
       
-      // Interface utilisateur : nombre de joueurs et de segments
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(10, 10, 200, 60);
       
