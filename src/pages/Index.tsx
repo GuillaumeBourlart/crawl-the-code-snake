@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -20,7 +21,7 @@ interface ServerPlayer {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  queue?: Array<{ x: number; y: number }>;  // Nouvelle propriété "queue"
+  queue?: Array<{ x: number; y: number }>;  // Propriété "queue" utilisée par le serveur
   boosting?: boolean;
 }
 
@@ -193,9 +194,14 @@ const Index = () => {
     
     newSocket.on("update_items", (items: Record<string, GameItem> | GameItem[]) => {
       console.log("Items update:", items);
+      // Convertir array en objet si nécessaire
+      const itemsObject = Array.isArray(items) 
+        ? items.reduce((acc, item) => ({ ...acc, [item.id]: item }), {})
+        : items;
+      
       setGameState(prevState => ({
         ...prevState,
-        items
+        items: itemsObject
       }));
     });
     
@@ -217,38 +223,19 @@ const Index = () => {
       const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
       const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
+      
       socket.emit("move", { x: boundedX, y: boundedY });
       
-      // Mise à jour de la queue : décaler chaque élément pour qu'il suive la position du joueur
+      // Le serveur gère maintenant la mise à jour de la queue, donc nous n'avons pas besoin
+      // de mettre à jour la queue localement, juste la position du joueur
       setGameState(prevState => {
-        const currentPlayer = prevState.players[playerId];
-        if (!currentPlayer) return prevState;
-        let newQueue = [...(currentPlayer.queue || [])];
-        if (newQueue.length > 0) {
-          const firstQueuePos = { x: currentPlayer.x, y: currentPlayer.y };
-          for (let i = newQueue.length - 1; i > 0; i--) {
-            newQueue[i] = { ...newQueue[i - 1] };
-          }
-          newQueue[0] = firstQueuePos;
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...currentPlayer,
-                x: boundedX,
-                y: boundedY,
-                queue: newQueue
-              }
-            }
-          };
-        }
+        if (!prevState.players[playerId]) return prevState;
         return {
           ...prevState,
           players: {
             ...prevState.players,
             [playerId]: {
-              ...currentPlayer,
+              ...prevState.players[playerId],
               x: boundedX,
               y: boundedY
             }
@@ -265,50 +252,9 @@ const Index = () => {
   };
   
   const handleCollectItem = (itemId: string) => {
-    if (socket && gameStarted && playerId) {
-      const item = gameState.items?.[itemId];
-      if (!item) return;
-      socket.emit("collect_item", { itemId });
-      setGameState(prevState => {
-        if (!prevState.items) return prevState;
-        const newItems = { ...prevState.items };
-        delete newItems[itemId];
-        const currentPlayer = prevState.players[playerId];
-        if (!currentPlayer) return { ...prevState, items: newItems };
-        let newQueue = [...(currentPlayer.queue || [])];
-        // Ajoute un nouvel élément dans la queue à la position de l'item mangé
-        newQueue.push({ x: item.x, y: item.y });
-        console.log(`Player collected item! New queue length: ${newQueue.length}`);
-        return {
-          ...prevState,
-          items: newItems,
-          players: {
-            ...prevState.players,
-            [playerId]: {
-              ...currentPlayer,
-              queue: newQueue
-            }
-          }
-        };
-      });
-      const worldSize = gameState.worldSize || { width: 2000, height: 2000 };
-      const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
-      const newItemId = `item-${Date.now()}`;
-      const newItem: GameItem = {
-        id: newItemId,
-        x: Math.random() * worldSize.width,
-        y: Math.random() * worldSize.height,
-        value: Math.floor(Math.random() * 5) + 1,
-        color: itemColors[Math.floor(Math.random() * itemColors.length)]
-      };
-      setGameState(prevState => ({
-        ...prevState,
-        items: {
-          ...(prevState.items || {}),
-          [newItemId]: newItem
-        }
-      }));
-    }
+    // Cette fonction n'est plus nécessaire car la collecte d'items
+    // est gérée entièrement côté serveur via le gestionnaire de mouvement
+    console.log("Item collection is now handled server-side");
   };
   
   const handlePlayerCollision = (otherPlayerId: string) => {
@@ -318,8 +264,7 @@ const Index = () => {
       if (!currentPlayer || !otherPlayer) return;
       const currentQueueLength = currentPlayer.queue?.length || 0;
       const otherQueueLength = otherPlayer.queue?.length || 0;
-      const currentSize = 20 * (1 + (currentQueueLength * 0.1));
-      const otherSize = 20 * (1 + (otherQueueLength * 0.1));
+      
       if (currentQueueLength < otherQueueLength) {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé!");
@@ -329,26 +274,7 @@ const Index = () => {
         }, 1500);
       } else if (currentQueueLength > otherQueueLength) {
         socket.emit("eat_player", { eatenPlayer: otherPlayerId });
-        setGameState(prevState => {
-          const currentPlayer = prevState.players[playerId];
-          if (!currentPlayer) return prevState;
-          const growthAmount = otherQueueLength;
-          let newQueue = [...(currentPlayer.queue || [])];
-          for (let i = 0; i < growthAmount; i++) {
-            const lastPos = newQueue.length > 0 ? { ...newQueue[newQueue.length - 1] } : { x: currentPlayer.x, y: currentPlayer.y };
-            newQueue.push(lastPos);
-          }
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...currentPlayer,
-                queue: newQueue
-              }
-            }
-          };
-        });
+        // La croissance sera gérée par le serveur via l'événement player_grew
       }
     }
   };

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -8,7 +9,7 @@ interface Player {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  segments?: Array<{ x: number; y: number }>;
+  queue?: Array<{ x: number; y: number }>; // Renommé de segments à queue pour correspondre à l'API du serveur
   boosting?: boolean;
 }
 
@@ -155,9 +156,9 @@ const GameCanvas = ({
 
   const calculatePlayerSize = (player: Player): number => {
     const baseSize = 20;
-    const segmentCount = player.segments?.length || 0;
+    const queueCount = player.queue?.length || 0;
     
-    return baseSize * (1 + (segmentCount * 0.1));
+    return baseSize * (1 + (queueCount * 0.1));
   };
   
   useEffect(() => {
@@ -225,7 +226,8 @@ const GameCanvas = ({
         const playerSize = calculatePlayerSize(player);
         const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
-        if (player.segments && player.segments.length > 0) {
+        // Dessiner la queue du joueur si elle existe
+        if (player.queue && player.queue.length > 0) {
           ctx.strokeStyle = playerColor;
           ctx.lineWidth = Math.max(3, playerSize / 3);
           ctx.lineCap = 'round';
@@ -234,14 +236,15 @@ const GameCanvas = ({
           ctx.beginPath();
           ctx.moveTo(player.x, player.y);
           
-          for (let i = 0; i < player.segments.length; i++) {
-            ctx.lineTo(player.segments[i].x, player.segments[i].y);
+          for (let i = 0; i < player.queue.length; i++) {
+            ctx.lineTo(player.queue[i].x, player.queue[i].y);
           }
           
           ctx.stroke();
           
-          for (let i = 0; i < player.segments.length; i++) {
-            const segment = player.segments[i];
+          // Dessiner chaque segment de la queue
+          for (let i = 0; i < player.queue.length; i++) {
+            const segment = player.queue[i];
             
             ctx.fillStyle = playerColor;
             ctx.beginPath();
@@ -255,6 +258,7 @@ const GameCanvas = ({
           }
         }
         
+        // Dessiner la tête du joueur (CPU)
         if (id === playerId || !cpuImageRef.current) {
           const cpuImage = document.createElement('canvas');
           cpuImage.width = 40;
@@ -300,6 +304,7 @@ const GameCanvas = ({
           );
         }
         
+        // Bordure de sélection pour le joueur actuel
         if (id === playerId) {
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 2;
@@ -311,6 +316,7 @@ const GameCanvas = ({
           );
         }
         
+        // Effet de boost
         if (player.boosting) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
           ctx.beginPath();
@@ -318,22 +324,24 @@ const GameCanvas = ({
           ctx.fill();
         }
         
+        // Afficher le texte d'identification et le nombre de segments
         if (id === playerId) {
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`You (${player.segments?.length || 0})`, player.x, player.y - playerSize - 15);
+          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
         } else {
-          const segmentCount = player.segments?.length || 0;
+          const queueCount = player.queue?.length || 0;
           ctx.fillStyle = '#FFFFFF';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`${segmentCount}`, player.x, player.y - playerSize - 5);
+          ctx.fillText(`${queueCount}`, player.x, player.y - playerSize - 5);
         }
       });
       
       ctx.restore();
       
+      // Interface utilisateur : nombre de joueurs et de segments
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(10, 10, 200, 60);
       
@@ -345,8 +353,8 @@ const GameCanvas = ({
       
       if (playerId && gameState.players[playerId]) {
         const player = gameState.players[playerId];
-        const segmentCount = player.segments?.length || 0;
-        ctx.fillText(`Segments: ${segmentCount}`, 20, 60);
+        const queueCount = player.queue?.length || 0;
+        ctx.fillText(`Segments: ${queueCount}`, 20, 60);
       }
       
       rafRef.current = requestAnimationFrame(render);
