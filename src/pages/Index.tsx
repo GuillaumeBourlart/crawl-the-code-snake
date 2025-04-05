@@ -171,7 +171,7 @@ const Index = () => {
       const playerSize = 20;
       
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
-      const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, boundedY));
+      const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
       
       // Envoyer la position au serveur
       socket.emit("move", { x: boundedX, y: boundedY });
