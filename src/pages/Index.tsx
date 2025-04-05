@@ -51,6 +51,7 @@ const Index = () => {
     items: [],
     worldSize: { width: 2000, height: 2000 }
   });
+  const [lastPosition, setLastPosition] = useState<{x: number, y: number} | null>(null);
   
   const isMobile = useIsMobile();
   
@@ -62,6 +63,47 @@ const Index = () => {
       }
     };
   }, [socket]);
+  
+  // Effect to update player segments positions to create a snake-like movement
+  useEffect(() => {
+    if (gameStarted && playerId && gameState.players[playerId]) {
+      const player = gameState.players[playerId];
+      const currentPos = { x: player.x, y: player.y };
+      
+      if (lastPosition && (lastPosition.x !== currentPos.x || lastPosition.y !== currentPos.y)) {
+        // Player has moved
+        // We'll send the new position to the server including the updated segments
+        updatePlayerSegments(currentPos);
+      }
+      
+      setLastPosition(currentPos);
+    }
+  }, [gameState.players, playerId, gameStarted]);
+  
+  const updatePlayerSegments = (currentPos: {x: number, y: number}) => {
+    if (!socket || !playerId || !gameState.players[playerId]) return;
+    
+    const player = gameState.players[playerId];
+    const segments = player.segments || [];
+    
+    if (segments.length > 0) {
+      // Calculate new positions for segments to follow the player
+      const newSegments = [...segments];
+      
+      // Move each segment to the position of the segment in front of it
+      for (let i = segments.length - 1; i > 0; i--) {
+        newSegments[i] = {...newSegments[i-1]};
+      }
+      
+      // First segment follows the player position
+      if (newSegments.length > 0) {
+        newSegments[0] = {...lastPosition!};
+      }
+      
+      // Send updated position and segments to server
+      socket.emit("update_segments", { segments: newSegments });
+    }
+  };
   
   const handlePlay = () => {
     setConnecting(true);
