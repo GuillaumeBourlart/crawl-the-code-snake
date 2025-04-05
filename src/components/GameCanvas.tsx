@@ -159,44 +159,11 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
       const distance = Math.sqrt(dx * dx + dy * dy);
       
       // If the player is touching the item, collect it
-      if (distance < playerSize / 2 + 10) {
+      if (distance < playerSize + 10) {
         onCollectItem(itemId);
       }
     });
   }, [gameState, playerId, onCollectItem]);
-  
-  // Check for trail collisions
-  useEffect(() => {
-    if (!playerId || !gameState.players[playerId] || !socket) return;
-    
-    const currentPlayer = gameState.players[playerId];
-    const currentHead = { x: currentPlayer.x, y: currentPlayer.y };
-    
-    // Check collision with other players' segments
-    Object.entries(gameState.players).forEach(([id, player]) => {
-      if (id === playerId || !player.segments) return;
-      
-      // Skip the first segment (head) to prevent immediate collisions
-      for (let i = 1; i < player.segments.length; i++) {
-        const segment = player.segments[i];
-        const dist = Math.sqrt(
-          Math.pow(currentHead.x - segment.x, 2) + 
-          Math.pow(currentHead.y - segment.y, 2)
-        );
-        
-        // If colliding with another player's segment
-        if (dist < (currentPlayer.length || 20) / 2) {
-          socket.emit("player_eliminated", { eliminatedBy: id });
-          toast.error("Vous avez heurté la traînée d'un autre joueur!");
-          setGameStarted(false);
-          setTimeout(() => {
-            handlePlay();
-          }, 1500);
-          break;
-        }
-      }
-    });
-  }, [gameState, playerId]);
   
   // Render game
   useEffect(() => {
@@ -300,21 +267,6 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
           }
           
           ctx.stroke();
-          
-          // Add glow effect to the trail
-          ctx.shadowColor = playerColor;
-          ctx.shadowBlur = 10;
-          ctx.strokeStyle = `${playerColor}80`; // 50% opacity
-          ctx.lineWidth = Math.max(3, playerSize / 3) + 2;
-          ctx.beginPath();
-          ctx.moveTo(player.x, player.y);
-          
-          for (let i = 0; i < player.segments.length; i++) {
-            ctx.lineTo(player.segments[i].x, player.segments[i].y);
-          }
-          
-          ctx.stroke();
-          ctx.shadowBlur = 0;
         }
         
         // Create a processor image for this player if needed
