@@ -268,13 +268,13 @@ const Index = () => {
           const firstSegPos = { x: currentPlayer.x, y: currentPlayer.y };
           
           // Update segment positions - each segment follows the one in front of it
-          for (let i = 0; i < newSegments.length; i++) {
-            const tempPos = { ...newSegments[i] };
-            if (i === 0) {
-              newSegments[i] = firstSegPos;
-            } else {
-              newSegments[i] = { ...newSegments[i - 1] };
-            }
+          for (let i = newSegments.length - 1; i > 0; i--) {
+            newSegments[i] = { ...newSegments[i - 1] };
+          }
+          
+          // First segment follows the player
+          if (newSegments.length > 0) {
+            newSegments[0] = firstSegPos;
           }
           
           return {

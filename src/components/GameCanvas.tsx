@@ -274,8 +274,6 @@ const GameCanvas = ({
           ctx.beginPath();
           ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
           ctx.fill();
-          
-          // Removed the value display under the item as requested
         });
       }
       
