@@ -8,12 +8,12 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
-// Supabase client initialization (utilisé ici pour référence, si nécessaire)
+// Supabase client initialization
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Interfaces pour l'état du jeu
+// Game state interfaces
 interface ServerPlayer {
   id?: string;
   x: number;
@@ -35,7 +35,7 @@ interface GameItem {
 
 interface ServerGameState {
   players: Record<string, ServerPlayer>;
-  items: Record<string, GameItem>;
+  items?: GameItem[]; // Assurez-vous que c'est un tableau et non un Record
   worldSize?: { width: number; height: number };
 }
 
@@ -48,13 +48,14 @@ const Index = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
-    items: {},
+    items: [],
     worldSize: { width: 2000, height: 2000 }
   });
   
   const isMobile = useIsMobile();
   
   useEffect(() => {
+    // Cleanup function - will be called when component unmounts
     return () => {
       if (socket) {
         socket.disconnect();
@@ -62,25 +63,11 @@ const Index = () => {
     };
   }, [socket]);
   
-  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
-    const items: Record<string, GameItem> = {};
-    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
-    for (let i = 0; i < count; i++) {
-      const id = `item-${i}`;
-      items[id] = {
-        id,
-        x: Math.random() * worldSize.width,
-        y: Math.random() * worldSize.height,
-        value: Math.floor(Math.random() * 5) + 1,
-        color: itemColors[Math.floor(Math.random() * itemColors.length)]
-      };
-    }
-    return items;
-  };
-  
   const handlePlay = () => {
     setConnecting(true);
-    const newSocket = io("http://localhost:3000", {
+    
+    // Create a new socket connection
+    const newSocket = io("https://codecrawl-production.up.railway.app", {
       transports: ["websocket"],
       upgrade: false,
       reconnectionAttempts: 5,
@@ -88,6 +75,7 @@ const Index = () => {
       timeout: 10000
     });
     
+    // Connection established
     newSocket.on("connect", () => {
       console.log("Connected to WebSocket server");
       setConnected(true);
@@ -95,12 +83,14 @@ const Index = () => {
       toast.success("Connecté au serveur");
     });
     
+    // Connection error
     newSocket.on("connect_error", (err) => {
       console.error("Connection error:", err);
       setConnecting(false);
       toast.error("Erreur de connexion au serveur");
     });
     
+    // Disconnected from server
     newSocket.on("disconnect", () => {
       console.log("Disconnected from WebSocket server");
       setConnected(false);
@@ -109,209 +99,118 @@ const Index = () => {
       toast.error("Déconnecté du serveur");
     });
     
+    // Joined a room
     newSocket.on("joined_room", (data: { roomId: string }) => {
       console.log("Joined room:", data.roomId);
       setRoomId(data.roomId);
       setPlayerId(newSocket.id);
       setGameStarted(true);
       
-      // Simulation locale des couleurs et des items
+      // Initialize the player with a random color
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
-      const worldSize = { width: 2000, height: 2000 };
-      const randomItems = generateRandomItems(50, worldSize);
       
-      // Mettre à jour l'état local pour notre joueur
+      // Set initial gameState
       setGameState(prevState => ({
         ...prevState,
-        items: randomItems,
-        worldSize
+        players: {},
+        worldSize: { width: 2000, height: 2000 }
       }));
       
       toast.success("Vous avez rejoint la partie");
     });
     
+    // Players update from server
     newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
       console.log("Players update:", players);
       
-      // Combiner les données du serveur avec nos données locales
-      setGameState(prevState => {
-        const updatedPlayers: Record<string, ServerPlayer> = {};
-        
-        // Traiter tous les joueurs du serveur
-        Object.entries(players).forEach(([id, serverPlayer]) => {
-          const existingPlayer = prevState.players[id];
-          
-          // Si c'est notre joueur, conserver les segments locaux
-          if (id === playerId) {
-            updatedPlayers[id] = {
-              ...serverPlayer,
-              segments: existingPlayer?.segments || [],
-              color: existingPlayer?.color || '#FF0000'
-            };
-          } else {
-            // Pour les autres joueurs, conserver leur couleur s'ils en ont une
-            updatedPlayers[id] = {
-              ...serverPlayer,
-              segments: existingPlayer?.segments || [],
-              color: existingPlayer?.color || ('#' + ((Math.random() * 0xffffff) << 0).toString(16).padStart(6, '0'))
-            };
-          }
-        });
-        
-        return {
-          ...prevState,
-          players: updatedPlayers
-        };
-      });
+      setGameState(prevState => ({
+        ...prevState,
+        players: players
+      }));
     });
     
+    // Items update from server
+    newSocket.on("update_items", (items: GameItem[]) => {
+      console.log("Items update:", items);
+      
+      setGameState(prevState => ({
+        ...prevState,
+        items: items // Gardez items comme un tableau
+      }));
+    });
+    
+    // Player eliminated
+    newSocket.on("player_eliminated", () => {
+      console.log("You were eliminated!");
+      toast.error("Vous avez été éliminé!");
+      setGameStarted(false);
+      
+      // Optionally reconnect after a short delay
+      setTimeout(() => {
+        newSocket.emit("join_room");
+      }, 1500);
+    });
+    
+    // No rooms available
+    newSocket.on("no_room_available", () => {
+      toast.error("Aucune salle disponible");
+      setConnecting(false);
+      newSocket.disconnect();
+    });
+    
+    // Join a room to start the game
     newSocket.emit("join_room");
+    
     setSocket(newSocket);
   };
   
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
+      // Get the current player position
       const player = gameState.players[playerId];
       if (!player) return;
-      
-      // Vitesse de base
+
+      // Calculate new position based on current position and direction
       const speed = 5;
       const newX = player.x + direction.x * speed;
       const newY = player.y + direction.y * speed;
-      
-      // Limites du monde
+
+      // Check boundaries to ensure the player stays within the game world
       const worldWidth = gameState.worldSize?.width || 2000;
       const worldHeight = gameState.worldSize?.height || 2000;
-      const playerSize = 20;
+      const playerSegments = player.segments?.length || 0;
+      const playerSize = 20 * (1 + (playerSegments * 0.1)); // Calculate size based on segments
       
+      // Restrict movement to within the boundaries with a small margin
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
       const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
-      
-      // Envoyer la position au serveur
+
+      // Send the new position to the server - this will handle collisions, etc.
       socket.emit("move", { x: boundedX, y: boundedY });
-      
-      // Mise à jour locale pour une réponse immédiate
-      setGameState(prevState => {
-        const currentPlayer = prevState.players[playerId];
-        if (!currentPlayer) return prevState;
-        
-        // Mettre à jour les segments si le joueur en a
-        let newSegments = [...(currentPlayer.segments || [])];
-        if (newSegments.length > 0) {
-          // Déplacer tous les segments
-          const firstSegPos = { x: currentPlayer.x, y: currentPlayer.y };
-          for (let i = newSegments.length - 1; i > 0; i--) {
-            newSegments[i] = { ...newSegments[i - 1] };
-          }
-          // Le premier segment prend la position actuelle du joueur
-          newSegments[0] = firstSegPos;
-        }
-        
-        // Vérifier les collisions avec les items (simulation locale)
-        const itemsToRemove: string[] = [];
-        Object.entries(prevState.items).forEach(([itemId, item]) => {
-          const dx = boundedX - item.x;
-          const dy = boundedY - item.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < playerSize) {
-            // Collecter l'item
-            itemsToRemove.push(itemId);
-            
-            // Ajouter un segment
-            if (newSegments.length === 0) {
-              // Premier segment à la position actuelle
-              newSegments.push({ x: player.x, y: player.y });
-            } else {
-              // Nouveau segment à la position du dernier segment
-              const lastSeg = newSegments[newSegments.length - 1];
-              newSegments.push({ ...lastSeg });
-            }
-            
-            toast.success("Item collecté !");
-          }
-        });
-        
-        // Supprimer les items collectés
-        const updatedItems = { ...prevState.items };
-        itemsToRemove.forEach(id => {
-          delete updatedItems[id];
-        });
-        
-        // Ajouter des nouveaux items si nécessaire
-        if (itemsToRemove.length > 0) {
-          const worldSize = prevState.worldSize || { width: 2000, height: 2000 };
-          const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
-          
-          itemsToRemove.forEach(() => {
-            const newItemId = `item-${Date.now()}-${Math.random()}`;
-            updatedItems[newItemId] = {
-              id: newItemId,
-              x: Math.random() * worldSize.width,
-              y: Math.random() * worldSize.height,
-              value: Math.floor(Math.random() * 5) + 1,
-              color: itemColors[Math.floor(Math.random() * itemColors.length)]
-            };
-          });
-        }
-        
-        return {
-          ...prevState,
-          items: updatedItems,
-          players: {
-            ...prevState.players,
-            [playerId]: {
-              ...currentPlayer,
-              x: boundedX,
-              y: boundedY,
-              segments: newSegments
-            }
-          }
-        };
-      });
     }
   };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
-      // Votre serveur ne gère pas encore le boost
-      // Mais nous pouvons l'ajouter localement
-      if (playerId) {
-        setGameState(prevState => {
-          const player = prevState.players[playerId];
-          if (!player) return prevState;
-          
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...player,
-                boosting: true
-              }
-            }
-          };
-        });
-        
-        // Désactiver le boost après 3 secondes
-        setTimeout(() => {
-          setGameState(prevState => {
-            const player = prevState.players[playerId];
-            if (!player) return prevState;
-            
-            return {
-              ...prevState,
-              players: {
-                ...prevState.players,
-                [playerId]: {
-                  ...player,
-                  boosting: false
-                }
-              }
-            };
-          });
-        }, 3000);
+      socket.emit("boost");
+    }
+  };
+  
+  const handlePlayerCollision = (otherPlayerId: string) => {
+    if (socket && gameStarted && playerId) {
+      const currentPlayer = gameState.players[playerId];
+      const otherPlayer = gameState.players[otherPlayerId];
+      
+      if (!currentPlayer || !otherPlayer) return;
+      
+      // Calculate player sizes based on segments
+      const currentPlayerSegments = currentPlayer.segments?.length || 0;
+      const otherPlayerSegments = otherPlayer.segments?.length || 0;
+      
+      // If the current player is smaller, they get eliminated
+      if (currentPlayerSegments < otherPlayerSegments) {
+        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
       }
     }
   };
@@ -356,13 +255,14 @@ const Index = () => {
         <>
           <GameCanvas 
             gameState={{
-              players: gameState.players,
-              items: gameState.items,
-              worldSize: gameState.worldSize || { width: 2000, height: 2000 }
+              players: gameState.players || {},
+              worldSize: gameState.worldSize || { width: 2000, height: 2000 },
+              items: gameState.items || []
             }}
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
+            onPlayerCollision={handlePlayerCollision}
           />
           
           {isMobile && (

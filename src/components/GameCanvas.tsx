@@ -22,7 +22,7 @@ interface GameItem {
 
 interface GameState {
   players: Record<string, Player>;
-  items: Record<string, GameItem>;
+  items?: GameItem[];
   worldSize: { width: number; height: number };
 }
 
@@ -31,13 +31,15 @@ interface GameCanvasProps {
   playerId: string | null;
   onMove: (direction: { x: number; y: number }) => void;
   onBoost: () => void;
+  onPlayerCollision?: (otherPlayerId: string) => void;
 }
 
 const GameCanvas = ({ 
   gameState, 
   playerId, 
   onMove, 
-  onBoost
+  onBoost, 
+  onPlayerCollision 
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
@@ -131,6 +133,26 @@ const GameCanvas = ({
     }));
   }, [gameState, playerId]);
   
+  useEffect(() => {
+    if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
+    
+    const currentPlayer = gameState.players[playerId];
+    const currentSize = calculatePlayerSize(currentPlayer);
+    
+    Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
+      if (otherId === playerId) return;
+      
+      const otherSize = calculatePlayerSize(otherPlayer);
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < (currentSize + otherSize) / 2) {
+        onPlayerCollision(otherId);
+      }
+    });
+  }, [gameState, playerId, onPlayerCollision]);
+
   const calculatePlayerSize = (player: Player): number => {
     const baseSize = 20;
     const segmentCount = player.segments?.length || 0;
@@ -185,8 +207,8 @@ const GameCanvas = ({
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      if (gameState.items) {
-        Object.values(gameState.items).forEach(item => {
+      if (gameState.items && gameState.items.length > 0) {
+        gameState.items.forEach(item => {
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
           ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
