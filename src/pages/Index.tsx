@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -253,19 +254,37 @@ const Index = () => {
       const currentPlayer = gameState.players[playerId];
       const otherPlayer = gameState.players[otherPlayerId];
       if (!currentPlayer || !otherPlayer) return;
-      const currentQueueLength = currentPlayer.queue?.length || 0;
-      const otherQueueLength = otherPlayer.queue?.length || 0;
       
-      if (currentQueueLength <= otherQueueLength) {
+      // Check if it's a head-to-head collision
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
+      const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
+      
+      // If heads are colliding, compare sizes
+      if (distance < (currentSize + otherSize) / 2) {
+        const currentQueueLength = currentPlayer.queue?.length || 0;
+        const otherQueueLength = otherPlayer.queue?.length || 0;
+        
+        if (currentQueueLength <= otherQueueLength) {
+          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+          toast.error("Vous avez été éliminé!");
+          setGameStarted(false);
+          setTimeout(() => {
+            handlePlay();
+          }, 1500);
+        } else {
+          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+        }
+      } else {
+        // For queue collisions, player dies regardless of size comparison
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-        toast.error("Vous avez été éliminé!");
+        toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
         setGameStarted(false);
         setTimeout(() => {
           handlePlay();
         }, 1500);
-      } else if (currentQueueLength > otherQueueLength) {
-        socket.emit("eat_player", { eatenPlayer: otherPlayerId });
-        // La croissance sera gérée par le serveur via l'événement player_grew
       }
     }
   };
