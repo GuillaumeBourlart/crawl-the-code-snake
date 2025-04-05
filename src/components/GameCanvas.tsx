@@ -60,7 +60,9 @@ const GameCanvas = ({
     items: [] as GameItem[],
     gridNeedsUpdate: true,
     needsFullRedraw: true,
-    lastFrameTime: 0
+    lastFrameTime: 0,
+    isRendering: false, // Flag to prevent multiple render loops
+    pendingRender: false // Flag to indicate a render is needed
   });
   
   // Cache grid rendering
@@ -78,6 +80,7 @@ const GameCanvas = ({
     // Only mark for full redraw if there's a significant change
     if (JSON.stringify(gameStateRef.current.players) !== JSON.stringify(gameState.players)) {
       rendererStateRef.current.needsFullRedraw = true;
+      rendererStateRef.current.pendingRender = true;
     }
     
     gameStateRef.current = {
@@ -270,12 +273,30 @@ const GameCanvas = ({
     // Update renderer state with new data
     rendererStateRef.current.players = { ...gameState.players };
     rendererStateRef.current.items = gameState.items || [];
+    rendererStateRef.current.pendingRender = true;
+    
+    // Request a new frame if the render loop isn't already running
+    if (!rendererStateRef.current.isRendering) {
+      startRenderLoop();
+    }
   }, [gameState, playerId]);
   
+  // Function to start the render loop - defined outside to avoid recreation
+  const startRenderLoop = () => {
+    if (!canvasRef.current) return;
+    if (rendererStateRef.current.isRendering) return;
+    
+    rendererStateRef.current.isRendering = true;
+    requestRef.current = requestAnimationFrame(renderFrame);
+  };
+  
   // Main rendering loop
-  useEffect(() => {
+  const renderFrame = (timestamp: number) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      rendererStateRef.current.isRendering = false;
+      return;
+    }
     
     // Get context with optimization flags
     const ctx = canvas.getContext('2d', { 
@@ -283,12 +304,355 @@ const GameCanvas = ({
       desynchronized: true,  // Allow browser to optimize rendering
       willReadFrequently: false // We don't read pixel data
     });
-    if (!ctx) return;
     
-    // Create grid cache canvas if it doesn't exist
-    if (!gridCacheCanvasRef.current) {
-      gridCacheCanvasRef.current = document.createElement('canvas');
+    if (!ctx) {
+      rendererStateRef.current.isRendering = false;
+      return;
     }
+    
+    // Calculate delta time between frames
+    const deltaTime = timestamp - (rendererStateRef.current.lastFrameTime || timestamp);
+    rendererStateRef.current.lastFrameTime = timestamp;
+    
+    // FPS counter
+    fpsRef.current.frames++;
+    if (timestamp - fpsRef.current.lastFpsUpdate > 1000) {
+      fpsRef.current.fps = fpsRef.current.frames;
+      fpsRef.current.frames = 0;
+      fpsRef.current.lastFpsUpdate = timestamp;
+    }
+    
+    // Only update UI at 60 FPS max
+    const timeSinceLastRender = timestamp - previousTimeRef.current;
+    const shouldRender = timeSinceLastRender >= 16.667 || rendererStateRef.current.needsFullRedraw || rendererStateRef.current.pendingRender;
+    
+    if (shouldRender) {
+      // Create grid cache canvas if it doesn't exist
+      if (!gridCacheCanvasRef.current) {
+        gridCacheCanvasRef.current = document.createElement('canvas');
+        const dpr = window.devicePixelRatio || 1;
+        gridCacheCanvasRef.current.width = canvas.width;
+        gridCacheCanvasRef.current.height = canvas.height;
+      }
+      
+      // Clear the canvas only if needed - IMPORTANT: always clear to prevent artifacts
+      ctx.fillStyle = '#121212';
+      ctx.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+      
+      // Update grid cache if needed
+      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
+        updateGridCache(ctx, canvas);
+      }
+      
+      // Draw grid from cache
+      if (gridCacheCanvasRef.current) {
+        ctx.drawImage(
+          gridCacheCanvasRef.current, 
+          0, 0, 
+          canvas.width, canvas.height,
+          0, 0, 
+          canvas.width / window.devicePixelRatio, 
+          canvas.height / window.devicePixelRatio
+        );
+      }
+      
+      renderGameElements(ctx, canvas);
+      
+      // Reset flags
+      rendererStateRef.current.needsFullRedraw = false;
+      rendererStateRef.current.pendingRender = false;
+      previousTimeRef.current = timestamp;
+    }
+    
+    // Continue the animation loop
+    requestRef.current = requestAnimationFrame(renderFrame);
+  };
+  
+  // Function to update the grid cache
+  const updateGridCache = (mainCtx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    const gridCanvas = gridCacheCanvasRef.current;
+    if (!gridCanvas) return;
+    
+    const gridCtx = gridCanvas.getContext('2d', { 
+      alpha: false, 
+      desynchronized: true 
+    });
+    if (!gridCtx) return;
+    
+    // Clear grid canvas
+    gridCtx.fillStyle = '#121212';
+    gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+    
+    gridCtx.save();
+    
+    // Scale for high-DPI displays
+    const dpr = window.devicePixelRatio || 1;
+    gridCtx.scale(dpr, dpr);
+    
+    gridCtx.translate(canvas.width / window.devicePixelRatio / 2, canvas.height / window.devicePixelRatio / 2);
+    gridCtx.scale(camera.zoom, camera.zoom);
+    gridCtx.translate(-camera.x, -camera.y);
+    
+    // Draw grid
+    const gridSize = 50;
+    const viewWidth = canvas.width / window.devicePixelRatio / camera.zoom;
+    const viewHeight = canvas.height / window.devicePixelRatio / camera.zoom;
+    const startX = Math.floor((camera.x - viewWidth / 2) / gridSize) * gridSize;
+    const endX = Math.ceil((camera.x + viewWidth / 2) / gridSize) * gridSize;
+    const startY = Math.floor((camera.y - viewHeight / 2) / gridSize) * gridSize;
+    const endY = Math.ceil((camera.y + viewHeight / 2) / gridSize) * gridSize;
+    
+    gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
+    gridCtx.lineWidth = 1;
+    
+    // Draw horizontal grid lines
+    gridCtx.beginPath();
+    for (let y = startY; y <= endY; y += gridSize) {
+      gridCtx.moveTo(startX, y);
+      gridCtx.lineTo(endX, y);
+    }
+    gridCtx.stroke();
+    
+    // Draw vertical grid lines
+    gridCtx.beginPath();
+    for (let x = startX; x <= endX; x += gridSize) {
+      gridCtx.moveTo(x, startY);
+      gridCtx.lineTo(x, endY);
+    }
+    gridCtx.stroke();
+    
+    // Draw world boundary
+    gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+    gridCtx.lineWidth = 2;
+    gridCtx.strokeRect(0, 0, gameStateRef.current.worldSize.width, gameStateRef.current.worldSize.height);
+    
+    gridCtx.restore();
+    
+    rendererStateRef.current.gridNeedsUpdate = false;
+  };
+  
+  // Function to render all game elements
+  const renderGameElements = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    ctx.save();
+    
+    ctx.translate(canvas.width / window.devicePixelRatio / 2, canvas.height / window.devicePixelRatio / 2);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
+    
+    // Use viewport culling for efficient rendering
+    const viewWidth = canvas.width / window.devicePixelRatio / camera.zoom;
+    const viewHeight = canvas.height / window.devicePixelRatio / camera.zoom;
+    
+    const viewportLeft = camera.x - viewWidth / 2 - 100;
+    const viewportRight = camera.x + viewWidth / 2 + 100;
+    const viewportTop = camera.y - viewHeight / 2 - 100;
+    const viewportBottom = camera.y + viewHeight / 2 + 100;
+    
+    // Draw items
+    if (rendererStateRef.current.items.length > 0) {
+      const visibleItems = rendererStateRef.current.items.filter(item => 
+        item.x >= viewportLeft && 
+        item.x <= viewportRight && 
+        item.y >= viewportTop && 
+        item.y <= viewportBottom
+      );
+      
+      // Batch items by color for fewer state changes
+      const itemsByColor = visibleItems.reduce((groups, item) => {
+        const color = item.color || '#FFFFFF';
+        if (!groups[color]) {
+          groups[color] = [];
+        }
+        groups[color].push(item);
+        return groups;
+      }, {} as Record<string, GameItem[]>);
+      
+      // Draw items grouped by color
+      Object.entries(itemsByColor).forEach(([color, items]) => {
+        ctx.fillStyle = color;
+        items.forEach(item => {
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        
+        // Draw highlights
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        items.forEach(item => {
+          ctx.beginPath();
+          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+    }
+    
+    // Draw players
+    Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+      // Skip players outside viewport
+      if (
+        player.x < viewportLeft ||
+        player.x > viewportRight ||
+        player.y < viewportTop ||
+        player.y > viewportBottom
+      ) {
+        return;
+      }
+      
+      const playerSize = calculatePlayerSize(player);
+      const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
+      
+      // Draw queue segments
+      if (player.queue && player.queue.length > 0) {
+        ctx.strokeStyle = playerColor;
+        ctx.lineWidth = Math.max(3, playerSize / 3);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // Optimize queue rendering by skipping segments outside viewport
+        // and using segmentation for long queues
+        const skipFactor = player.queue.length > 50 ? Math.floor(player.queue.length / 50) : 1;
+        
+        // Filter visible segments
+        const visibleSegments: {x: number, y: number, index: number}[] = [];
+        player.queue.forEach((segment, index) => {
+          if (index % skipFactor !== 0 && index !== player.queue!.length - 1) return;
+          
+          if (
+            segment.x >= viewportLeft && 
+            segment.x <= viewportRight && 
+            segment.y >= viewportTop && 
+            segment.y <= viewportBottom
+          ) {
+            visibleSegments.push({...segment, index});
+          }
+        });
+        
+        // Draw line connecting segments
+        if (visibleSegments.length > 0 || (
+          player.x >= viewportLeft && 
+          player.x <= viewportRight && 
+          player.y >= viewportTop && 
+          player.y <= viewportBottom
+        )) {
+          ctx.beginPath();
+          ctx.moveTo(player.x, player.y);
+          
+          for (const segment of visibleSegments) {
+            ctx.lineTo(segment.x, segment.y);
+          }
+          
+          ctx.stroke();
+          
+          // Only draw queue nodes for visible segments
+          for (const segment of visibleSegments) {
+            ctx.fillStyle = playerColor;
+            ctx.beginPath();
+            ctx.arc(segment.x, segment.y, playerSize / 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Simple highlight only for nodes that are not too numerous
+            if (skipFactor <= 2) {
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+              ctx.beginPath();
+              ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+      }
+      
+      // Draw player head
+      const drawPlayerHead = () => {
+        ctx.fillStyle = playerColor;
+        
+        // Main processor square
+        const scale = playerSize / 20;
+        const baseX = player.x - 20 * scale / 2;
+        const baseY = player.y - 20 * scale / 2;
+        const size = 20 * scale;
+        
+        ctx.fillRect(baseX, baseY, size, size);
+        
+        // Main processor inner square
+        ctx.fillRect(baseX + size * 0.2, baseY + size * 0.2, size * 0.6, size * 0.6);
+        
+        // Connectors
+        ctx.fillRect(baseX + size * 0.075, baseY + size * 0.375, size * 0.125, size * 0.1); // left
+        ctx.fillRect(baseX + size * 0.8, baseY + size * 0.375, size * 0.125, size * 0.1);   // right
+        ctx.fillRect(baseX + size * 0.375, baseY + size * 0.075, size * 0.1, size * 0.125); // top
+        ctx.fillRect(baseX + size * 0.525, baseY + size * 0.075, size * 0.1, size * 0.125); // top
+        ctx.fillRect(baseX + size * 0.375, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
+        ctx.fillRect(baseX + size * 0.525, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
+        
+        // Inner detail
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(baseX + size * 0.3, baseY + size * 0.3, size * 0.4, size * 0.4);
+        
+        // Highlights
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect(baseX + size * 0.25, baseY + size * 0.25, size * 0.05, size * 0.05);
+        ctx.fillRect(baseX + size * 0.7, baseY + size * 0.7, size * 0.05, size * 0.05);
+      };
+      
+      drawPlayerHead();
+      
+      // Highlight current player
+      if (id === playerId) {
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        const scale = playerSize / 20;
+        ctx.strokeRect(player.x - 20 * scale / 2, player.y - 20 * scale / 2, 20 * scale, 20 * scale);
+      }
+      
+      // Draw boost effect
+      if (player.boosting) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, playerSize * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Draw player label
+      if (id === playerId) {
+        ctx.fillStyle = '#FFFF00';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
+      } else {
+        const queueCount = player.queue?.length || 0;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${queueCount}`, player.x, player.y - playerSize - 5);
+      }
+    });
+    
+    ctx.restore();
+    
+    // Draw UI overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(10, 10, 210, 90);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '16px Arial';
+    
+    const playerCount = Object.keys(rendererStateRef.current.players).length;
+    ctx.fillText(`Players: ${playerCount}`, 20, 30);
+    
+    if (playerId && rendererStateRef.current.players[playerId]) {
+      const player = rendererStateRef.current.players[playerId];
+      const queueCount = player.queue?.length || 0;
+      ctx.fillText(`Segments: ${queueCount}`, 20, 60);
+    }
+    
+    // Display FPS
+    ctx.fillText(`FPS: ${fpsRef.current.fps}`, 20, 90);
+  };
+  
+  // Set up canvas on mount
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
     // Set canvas to match screen resolution
     const resizeCanvas = () => {
@@ -304,365 +668,31 @@ const GameCanvas = ({
         gridCacheCanvasRef.current.height = canvas.height;
       }
       
-      ctx.scale(dpr, dpr);
       rendererStateRef.current.gridNeedsUpdate = true;
       rendererStateRef.current.needsFullRedraw = true;
+      rendererStateRef.current.pendingRender = true;
+      
+      // Force a new render after resize
+      if (!rendererStateRef.current.isRendering) {
+        startRenderLoop();
+      }
     };
     
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Pre-render grid to offscreen canvas
-    const updateGridCache = () => {
-      const gridCanvas = gridCacheCanvasRef.current;
-      if (!gridCanvas) return;
-      
-      const gridCtx = gridCanvas.getContext('2d', { 
-        alpha: false, 
-        desynchronized: true 
-      });
-      if (!gridCtx) return;
-      
-      // Clear grid canvas
-      gridCtx.fillStyle = '#121212';
-      gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
-      
-      gridCtx.save();
-      
-      gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
-      gridCtx.scale(camera.zoom, camera.zoom);
-      gridCtx.translate(-camera.x, -camera.y);
-      
-      // Draw grid
-      const gridSize = 50;
-      const viewWidth = canvas.width / camera.zoom;
-      const viewHeight = canvas.height / camera.zoom;
-      const startX = Math.floor((camera.x - viewWidth / 2) / gridSize) * gridSize;
-      const endX = Math.ceil((camera.x + viewWidth / 2) / gridSize) * gridSize;
-      const startY = Math.floor((camera.y - viewHeight / 2) / gridSize) * gridSize;
-      const endY = Math.ceil((camera.y + viewHeight / 2) / gridSize) * gridSize;
-      
-      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
-      gridCtx.lineWidth = 1;
-      
-      // Draw horizontal grid lines
-      gridCtx.beginPath();
-      for (let y = startY; y <= endY; y += gridSize) {
-        gridCtx.moveTo(startX, y);
-        gridCtx.lineTo(endX, y);
-      }
-      gridCtx.stroke();
-      
-      // Draw vertical grid lines
-      gridCtx.beginPath();
-      for (let x = startX; x <= endX; x += gridSize) {
-        gridCtx.moveTo(x, startY);
-        gridCtx.lineTo(x, endY);
-      }
-      gridCtx.stroke();
-      
-      // Draw world boundary
-      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-      gridCtx.lineWidth = 2;
-      gridCtx.strokeRect(0, 0, gameStateRef.current.worldSize.width, gameStateRef.current.worldSize.height);
-      
-      gridCtx.restore();
-      
-      rendererStateRef.current.gridNeedsUpdate = false;
-    };
-    
-    // Animation frame callback
-    const renderFrame = (timestamp: number) => {
-      if (!canvas) return;
-      
-      // Calculate delta time between frames
-      const deltaTime = timestamp - (rendererStateRef.current.lastFrameTime || timestamp);
-      rendererStateRef.current.lastFrameTime = timestamp;
-      
-      // FPS counter
-      fpsRef.current.frames++;
-      if (timestamp - fpsRef.current.lastFpsUpdate > 1000) {
-        fpsRef.current.fps = fpsRef.current.frames;
-        fpsRef.current.frames = 0;
-        fpsRef.current.lastFpsUpdate = timestamp;
-      }
-      
-      // Only update UI at 60 FPS max
-      const timeSinceLastRender = timestamp - previousTimeRef.current;
-      if (timeSinceLastRender < 16.667 && !rendererStateRef.current.needsFullRedraw) {
-        requestRef.current = requestAnimationFrame(renderFrame);
-        return;
-      }
-      
-      // Clear the canvas only if needed
-      if (rendererStateRef.current.needsFullRedraw) {
-        ctx.fillStyle = '#121212';
-        ctx.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
-      }
-      
-      // Update grid cache if needed
-      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
-        updateGridCache();
-      }
-      
-      // Draw grid from cache
-      if (gridCacheCanvasRef.current) {
-        ctx.drawImage(
-          gridCacheCanvasRef.current, 
-          0, 0, 
-          canvas.width, canvas.height,
-          0, 0, 
-          canvas.width / window.devicePixelRatio, 
-          canvas.height / window.devicePixelRatio
-        );
-      }
-      
-      ctx.save();
-      
-      ctx.translate(canvas.width / window.devicePixelRatio / 2, canvas.height / window.devicePixelRatio / 2);
-      ctx.scale(camera.zoom, camera.zoom);
-      ctx.translate(-camera.x, -camera.y);
-      
-      // Use viewport culling for efficient rendering
-      const viewWidth = canvas.width / window.devicePixelRatio / camera.zoom;
-      const viewHeight = canvas.height / window.devicePixelRatio / camera.zoom;
-      
-      const viewportLeft = camera.x - viewWidth / 2 - 100;
-      const viewportRight = camera.x + viewWidth / 2 + 100;
-      const viewportTop = camera.y - viewHeight / 2 - 100;
-      const viewportBottom = camera.y + viewHeight / 2 + 100;
-      
-      // Draw items
-      if (rendererStateRef.current.items.length > 0) {
-        // Only redraw items when full redraw is needed
-        if (rendererStateRef.current.needsFullRedraw) {
-          const visibleItems = rendererStateRef.current.items.filter(item => 
-            item.x >= viewportLeft && 
-            item.x <= viewportRight && 
-            item.y >= viewportTop && 
-            item.y <= viewportBottom
-          );
-          
-          // Batch items by color for fewer state changes
-          const itemsByColor = visibleItems.reduce((groups, item) => {
-            const color = item.color || '#FFFFFF';
-            if (!groups[color]) {
-              groups[color] = [];
-            }
-            groups[color].push(item);
-            return groups;
-          }, {} as Record<string, GameItem[]>);
-          
-          // Draw items grouped by color
-          Object.entries(itemsByColor).forEach(([color, items]) => {
-            ctx.fillStyle = color;
-            items.forEach(item => {
-              ctx.beginPath();
-              ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
-              ctx.fill();
-            });
-            
-            // Draw highlights
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            items.forEach(item => {
-              ctx.beginPath();
-              ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
-              ctx.fill();
-            });
-          });
-        }
-      }
-      
-      // Draw players
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        // Skip players outside viewport
-        if (
-          player.x < viewportLeft ||
-          player.x > viewportRight ||
-          player.y < viewportTop ||
-          player.y > viewportBottom
-        ) {
-          return;
-        }
-        
-        const playerSize = calculatePlayerSize(player);
-        const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
-        
-        // Draw queue segments
-        if (player.queue && player.queue.length > 0) {
-          ctx.strokeStyle = playerColor;
-          ctx.lineWidth = Math.max(3, playerSize / 3);
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          
-          // Optimize queue rendering by skipping segments outside viewport
-          // and using segmentation for long queues
-          const skipFactor = player.queue.length > 50 ? Math.floor(player.queue.length / 50) : 1;
-          
-          // Filter visible segments
-          const visibleSegments: {x: number, y: number, index: number}[] = [];
-          player.queue.forEach((segment, index) => {
-            if (index % skipFactor !== 0 && index !== player.queue!.length - 1) return;
-            
-            if (
-              segment.x >= viewportLeft && 
-              segment.x <= viewportRight && 
-              segment.y >= viewportTop && 
-              segment.y <= viewportBottom
-            ) {
-              visibleSegments.push({...segment, index});
-            }
-          });
-          
-          // Draw line connecting segments
-          if (visibleSegments.length > 0 || (
-            player.x >= viewportLeft && 
-            player.x <= viewportRight && 
-            player.y >= viewportTop && 
-            player.y <= viewportBottom
-          )) {
-            ctx.beginPath();
-            ctx.moveTo(player.x, player.y);
-            
-            for (const segment of visibleSegments) {
-              ctx.lineTo(segment.x, segment.y);
-            }
-            
-            ctx.stroke();
-            
-            // Only draw queue nodes for visible segments
-            for (const segment of visibleSegments) {
-              ctx.fillStyle = playerColor;
-              ctx.beginPath();
-              ctx.arc(segment.x, segment.y, playerSize / 2.5, 0, Math.PI * 2);
-              ctx.fill();
-              
-              // Simple highlight only for nodes that are not too numerous
-              if (skipFactor <= 2) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-                ctx.beginPath();
-                ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            }
-          }
-        }
-        
-        // Draw player head
-        const drawPlayerHead = () => {
-          ctx.fillStyle = playerColor;
-          
-          // Main processor square
-          const scale = playerSize / 20;
-          const baseX = player.x - 20 * scale / 2;
-          const baseY = player.y - 20 * scale / 2;
-          const size = 20 * scale;
-          
-          ctx.fillRect(baseX, baseY, size, size);
-          
-          // Main processor inner square
-          ctx.fillRect(baseX + size * 0.2, baseY + size * 0.2, size * 0.6, size * 0.6);
-          
-          // Connectors
-          ctx.fillRect(baseX + size * 0.075, baseY + size * 0.375, size * 0.125, size * 0.1); // left
-          ctx.fillRect(baseX + size * 0.8, baseY + size * 0.375, size * 0.125, size * 0.1);   // right
-          ctx.fillRect(baseX + size * 0.375, baseY + size * 0.075, size * 0.1, size * 0.125); // top
-          ctx.fillRect(baseX + size * 0.525, baseY + size * 0.075, size * 0.1, size * 0.125); // top
-          ctx.fillRect(baseX + size * 0.375, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
-          ctx.fillRect(baseX + size * 0.525, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
-          
-          // Inner detail
-          ctx.fillStyle = 'rgba(0,0,0,0.3)';
-          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.3, size * 0.4, size * 0.4);
-          
-          // Highlights
-          ctx.fillStyle = 'rgba(255,255,255,0.5)';
-          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.25, size * 0.05, size * 0.05);
-          ctx.fillRect(baseX + size * 0.7, baseY + size * 0.7, size * 0.05, size * 0.05);
-        };
-        
-        drawPlayerHead();
-        
-        // Highlight current player
-        if (id === playerId) {
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 2;
-          const scale = playerSize / 20;
-          ctx.strokeRect(player.x - 20 * scale / 2, player.y - 20 * scale / 2, 20 * scale, 20 * scale);
-        }
-        
-        // Draw boost effect
-        if (player.boosting) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          ctx.beginPath();
-          ctx.arc(player.x, player.y, playerSize * 1.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        
-        // Draw player label
-        if (id === playerId) {
-          ctx.fillStyle = '#FFFF00';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
-        } else {
-          const queueCount = player.queue?.length || 0;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`${queueCount}`, player.x, player.y - playerSize - 5);
-        }
-      });
-      
-      ctx.restore();
-      
-      // Draw UI overlay
-      // Use optimization: only redraw UI when it changes or on full redraw
-      if (rendererStateRef.current.needsFullRedraw) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(10, 10, 210, 90);
-        
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '16px Arial';
-        
-        const playerCount = Object.keys(rendererStateRef.current.players).length;
-        ctx.fillText(`Players: ${playerCount}`, 20, 30);
-        
-        if (playerId && rendererStateRef.current.players[playerId]) {
-          const player = rendererStateRef.current.players[playerId];
-          const queueCount = player.queue?.length || 0;
-          ctx.fillText(`Segments: ${queueCount}`, 20, 60);
-        }
-        
-        // Display FPS
-        ctx.fillText(`FPS: ${fpsRef.current.fps}`, 20, 90);
-      }
-      
-      // Reset full redraw flag
-      rendererStateRef.current.needsFullRedraw = false;
-      
-      // Store previous timestamp and request next frame
-      previousTimeRef.current = timestamp;
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    // Start the animation loop
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    // Enforce full redraw periodically to avoid stale UI
-    const fullRedrawInterval = setInterval(() => {
-      rendererStateRef.current.needsFullRedraw = true;
-    }, 1000);
+    // Start render loop
+    startRenderLoop();
     
     // Cleanup
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
+        rendererStateRef.current.isRendering = false;
       }
       window.removeEventListener('resize', resizeCanvas);
-      clearInterval(fullRedrawInterval);
     };
-  }, [gameState.worldSize, playerId, camera]);
+  }, []);
   
   return (
     <canvas 
