@@ -207,7 +207,7 @@ const Index = () => {
           ...acc,
           [id]: {
             ...player,
-            size: player.length || 20, // Ensure size is set for rendering
+            // Using length for size calculation, don't add a size field directly
             segments: player.segments || []
           }
         };
@@ -217,41 +217,10 @@ const Index = () => {
         ...prevState,
         players: processedPlayers
       }));
-      
-      // Check for collisions with other players
-      if (playerId) {
-        const currentPlayer = processedPlayers[playerId];
-        if (!currentPlayer) return;
-        
-        Object.entries(processedPlayers).forEach(([otherId, otherPlayer]) => {
-          if (otherId === playerId) return; // Don't check collision with self
-          
-          const dx = currentPlayer.x - otherPlayer.x;
-          const dy = currentPlayer.y - otherPlayer.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          const currentSize = currentPlayer.length || 20;
-          const otherSize = otherPlayer.length || 20;
-          
-          // If players are touching
-          if (distance < (currentSize + otherSize) / 2) {
-            // If the current player is smaller, they get eliminated
-            if (currentSize < otherSize) {
-              newSocket.emit("player_eliminated", { eliminatedBy: otherId });
-              toast.error("Vous avez été éliminé!");
-              setGameStarted(false);
-              setTimeout(() => {
-                handlePlay();
-              }, 1500);
-            } 
-            // If the current player is bigger, they eat the other player
-            else if (currentSize > otherSize) {
-              newSocket.emit("eat_player", { eatenPlayer: otherId });
-            }
-          }
-        });
-      }
     });
+    
+    // Join a room to start the game
+    newSocket.emit("join_room");
     
     setSocket(newSocket);
   };
@@ -345,6 +314,32 @@ const Index = () => {
       }));
     }
   };
+  
+  const handlePlayerCollision = (otherPlayerId: string) => {
+    if (socket && gameStarted && playerId) {
+      const currentPlayer = gameState.players[playerId];
+      const otherPlayer = gameState.players[otherPlayerId];
+      
+      if (!currentPlayer || !otherPlayer) return;
+      
+      const currentSize = currentPlayer.length || 20;
+      const otherSize = otherPlayer.length || 20;
+      
+      // If the current player is smaller, they get eliminated
+      if (currentSize < otherSize) {
+        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+        toast.error("Vous avez été éliminé!");
+        setGameStarted(false);
+        setTimeout(() => {
+          handlePlay();
+        }, 1500);
+      } 
+      // If the current player is bigger, they eat the other player
+      else if (currentSize > otherSize) {
+        socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+      }
+    }
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
@@ -394,6 +389,7 @@ const Index = () => {
             onMove={handleMove}
             onBoost={handleBoost}
             onCollectItem={handleCollectItem}
+            onPlayerCollision={handlePlayerCollision}
           />
           
           {isMobile && (

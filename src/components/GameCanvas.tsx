@@ -1,6 +1,4 @@
-
 import { useEffect, useRef, useState } from "react";
-import { Cpu } from "lucide-react";
 
 interface Player {
   id?: string;
@@ -34,9 +32,17 @@ interface GameCanvasProps {
   onMove: (direction: { x: number; y: number }) => void;
   onBoost: () => void;
   onCollectItem?: (itemId: string) => void;
+  onPlayerCollision?: (otherPlayerId: string) => void;
 }
 
-const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: GameCanvasProps) => {
+const GameCanvas = ({ 
+  gameState, 
+  playerId, 
+  onMove, 
+  onBoost, 
+  onCollectItem,
+  onPlayerCollision 
+}: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const rafRef = useRef<number>();
@@ -164,6 +170,29 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
       }
     });
   }, [gameState, playerId, onCollectItem]);
+  
+  // Check for player collisions
+  useEffect(() => {
+    if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
+    
+    const currentPlayer = gameState.players[playerId];
+    const currentSize = currentPlayer.size || currentPlayer.length || 20;
+    
+    // Check collisions with other players
+    Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
+      if (otherId === playerId) return; // Don't check collision with self
+      
+      const otherSize = otherPlayer.size || otherPlayer.length || 20;
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // If players are touching and the current player is smaller
+      if (distance < (currentSize + otherSize) / 2) {
+        onPlayerCollision(otherId);
+      }
+    });
+  }, [gameState, playerId, onPlayerCollision]);
   
   // Render game
   useEffect(() => {
