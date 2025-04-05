@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -557,10 +558,10 @@ const GameCanvas = ({
       });
     }
     
-    // Draw players
-    let playerCount = 0;
+    // Draw players - Fix: Use a counter for drawing, then use a different name for the UI display
+    let drawnPlayerCount = 0;
     Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-      playerCount++;
+      drawnPlayerCount++;
       
       // Debug log player positions if debug mode
       if (rendererStateRef.current.debugMode) {
@@ -728,8 +729,9 @@ const GameCanvas = ({
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '16px Arial';
     
-    const playerCount = Object.keys(rendererStateRef.current.players).length;
-    ctx.fillText(`Players: ${playerCount}`, 20, 30);
+    // Fix: Use a different name for the UI display count
+    const totalPlayerCount = Object.keys(rendererStateRef.current.players).length;
+    ctx.fillText(`Players: ${totalPlayerCount}`, 20, 30);
     
     if (playerId && rendererStateRef.current.players[playerId]) {
       const player = rendererStateRef.current.players[playerId];
