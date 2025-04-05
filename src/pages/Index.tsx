@@ -53,7 +53,7 @@ const Index = () => {
   });
   
   const isMobile = useIsMobile();
-
+  
   useEffect(() => {
     // Cleanup function - will be called when component unmounts
     return () => {
@@ -143,7 +143,7 @@ const Index = () => {
             y: Math.random() * 600,
             length: 20, // Starting size
             color: randomColor,
-            segments: []
+            segments: [] // Initialize empty segments array
           }
         },
         items: randomItems,
@@ -176,13 +176,19 @@ const Index = () => {
           const currentPlayer = prevState.players[playerId];
           if (!currentPlayer) return prevState;
           
+          // Add growth number of segments at the player's current position
+          let newSegments = [...(currentPlayer.segments || [])];
+          for (let i = 0; i < data.growth; i++) {
+            newSegments.push({ x: currentPlayer.x, y: currentPlayer.y });
+          }
+          
           return {
             ...prevState,
             players: {
               ...prevState.players,
               [playerId]: {
                 ...currentPlayer,
-                length: (currentPlayer.length || 20) + data.growth
+                segments: newSegments
               }
             }
           };
@@ -207,7 +213,6 @@ const Index = () => {
           ...acc,
           [id]: {
             ...player,
-            // Using length for size calculation, don't add a size field directly
             segments: player.segments || []
           }
         };
@@ -239,7 +244,8 @@ const Index = () => {
       // Check boundaries to ensure the player stays within the game world
       const worldWidth = gameState.worldSize?.width || 2000;
       const worldHeight = gameState.worldSize?.height || 2000;
-      const playerSize = player.length || 20;
+      const playerSegments = player.segments?.length || 0;
+      const playerSize = 20 * (1 + (playerSegments * 0.1)); // Calculate size based on segments
       
       // Restrict movement to within the boundaries with a small margin
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
@@ -247,6 +253,57 @@ const Index = () => {
 
       // Send the new position to the server
       socket.emit("move", { x: boundedX, y: boundedY });
+
+      // Update segments based on the player's movement (snake-like behavior)
+      // First segment follows the head, others follow the segment before them
+      setGameState(prevState => {
+        const currentPlayer = prevState.players[playerId];
+        if (!currentPlayer) return prevState;
+        
+        let newSegments = [...(currentPlayer.segments || [])];
+        
+        // Only update segments if we have some
+        if (newSegments.length > 0) {
+          // Create a copy of the first segment to maintain length
+          const firstSegPos = { x: currentPlayer.x, y: currentPlayer.y };
+          
+          // Update segment positions - each segment follows the one in front of it
+          for (let i = 0; i < newSegments.length; i++) {
+            const tempPos = { ...newSegments[i] };
+            if (i === 0) {
+              newSegments[i] = firstSegPos;
+            } else {
+              newSegments[i] = { ...newSegments[i - 1] };
+            }
+          }
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                x: boundedX,
+                y: boundedY,
+                segments: newSegments
+              }
+            }
+          };
+        }
+        
+        // If no segments, just update the position
+        return {
+          ...prevState,
+          players: {
+            ...prevState.players,
+            [playerId]: {
+              ...currentPlayer,
+              x: boundedX,
+              y: boundedY
+            }
+          }
+        };
+      });
     }
   };
   
@@ -263,9 +320,6 @@ const Index = () => {
       
       socket.emit("collect_item", { itemId });
       
-      // Grow the player based on the item value
-      const growthAmount = item.value || 1;
-      
       // Update local game state (optimistic update)
       setGameState(prevState => {
         // Remove the collected item
@@ -273,11 +327,20 @@ const Index = () => {
         const newItems = { ...prevState.items };
         delete newItems[itemId];
         
-        // Grow the player
+        // Get the current player
         const currentPlayer = prevState.players[playerId];
         if (!currentPlayer) return { ...prevState, items: newItems };
         
-        const newLength = (currentPlayer.length || 20) + growthAmount;
+        // Add the collected item as a new segment at the end of the snake
+        // If no segments yet, add it at the player's current position
+        const lastSegmentPos = currentPlayer.segments && currentPlayer.segments.length > 0
+          ? { ...currentPlayer.segments[currentPlayer.segments.length - 1] }
+          : { x: currentPlayer.x, y: currentPlayer.y };
+        
+        const newSegments = [...(currentPlayer.segments || []), { 
+          x: item.x, 
+          y: item.y 
+        }];
         
         return {
           ...prevState,
@@ -286,7 +349,7 @@ const Index = () => {
             ...prevState.players,
             [playerId]: {
               ...currentPlayer,
-              length: newLength
+              segments: newSegments
             }
           }
         };
@@ -322,11 +385,15 @@ const Index = () => {
       
       if (!currentPlayer || !otherPlayer) return;
       
-      const currentSize = currentPlayer.length || 20;
-      const otherSize = otherPlayer.length || 20;
+      // Calculate player sizes based on segments
+      const currentPlayerSegments = currentPlayer.segments?.length || 0;
+      const otherPlayerSegments = otherPlayer.segments?.length || 0;
+      
+      const currentSize = 20 * (1 + (currentPlayerSegments * 0.1));
+      const otherSize = 20 * (1 + (otherPlayerSegments * 0.1));
       
       // If the current player is smaller, they get eliminated
-      if (currentSize < otherSize) {
+      if (currentPlayerSegments < otherPlayerSegments) {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé!");
         setGameStarted(false);
@@ -335,8 +402,38 @@ const Index = () => {
         }, 1500);
       } 
       // If the current player is bigger, they eat the other player
-      else if (currentSize > otherSize) {
+      else if (currentPlayerSegments > otherPlayerSegments) {
         socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+        
+        // Optimistically add the other player's segments to our own
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          
+          // Add growth based on the other player's size
+          const growthAmount = otherPlayerSegments;
+          let newSegments = [...(currentPlayer.segments || [])];
+          
+          // Add new segments at the end of our snake
+          for (let i = 0; i < growthAmount; i++) {
+            const lastPos = newSegments.length > 0 
+              ? { ...newSegments[newSegments.length - 1] } 
+              : { x: currentPlayer.x, y: currentPlayer.y };
+            
+            newSegments.push(lastPos);
+          }
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                segments: newSegments
+              }
+            }
+          };
+        });
       }
     }
   };

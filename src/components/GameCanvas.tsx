@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -156,7 +157,7 @@ const GameCanvas = ({
     if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
     
     const player = gameState.players[playerId];
-    const playerSize = player.size || player.length || 20;
+    const playerSize = calculatePlayerSize(player);
     
     // Check if the player is overlapping with any items
     Object.entries(gameState.items).forEach(([itemId, item]) => {
@@ -176,13 +177,13 @@ const GameCanvas = ({
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
     const currentPlayer = gameState.players[playerId];
-    const currentSize = currentPlayer.size || currentPlayer.length || 20;
+    const currentSize = calculatePlayerSize(currentPlayer);
     
     // Check collisions with other players
     Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
       if (otherId === playerId) return; // Don't check collision with self
       
-      const otherSize = otherPlayer.size || otherPlayer.length || 20;
+      const otherSize = calculatePlayerSize(otherPlayer);
       const dx = currentPlayer.x - otherPlayer.x;
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -193,6 +194,16 @@ const GameCanvas = ({
       }
     });
   }, [gameState, playerId, onPlayerCollision]);
+
+  // Calculate player size based on number of segments
+  const calculatePlayerSize = (player: Player): number => {
+    const baseSize = 20;
+    const segmentCount = player.segments?.length || 0;
+    
+    // Formula: baseSize * (1 + (segmentCount * 0.1))
+    // This means 1.3x for 3 segments, 1.6x for 6 segments, 2.3x for 13 segments
+    return baseSize * (1 + (segmentCount * 0.1));
+  };
   
   // Render game
   useEffect(() => {
@@ -264,38 +275,49 @@ const GameCanvas = ({
           ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
           ctx.fill();
           
-          // Draw item value
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '10px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`${item.value}`, item.x, item.y + 20);
+          // Removed the value display under the item as requested
         });
       }
       
       // Draw players and their segments
       Object.entries(gameState.players).forEach(([id, player]) => {
-        // Use default size or length if not provided
-        const playerSize = player.size || player.length || 20;
+        // Calculate player size based on segments count
+        const playerSize = calculatePlayerSize(player);
         const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
-        // Draw segments (trail)
+        // Draw segments (trail) - the collected circles as the snake's tail
         if (player.segments && player.segments.length > 0) {
           ctx.strokeStyle = playerColor;
           ctx.lineWidth = Math.max(3, playerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
+          // Draw line connecting segments
           ctx.beginPath();
-          
-          // Start from the head
           ctx.moveTo(player.x, player.y);
           
-          // Draw line through all segments
           for (let i = 0; i < player.segments.length; i++) {
             ctx.lineTo(player.segments[i].x, player.segments[i].y);
           }
           
           ctx.stroke();
+          
+          // Draw circles at each segment position (representing the collected items)
+          for (let i = 0; i < player.segments.length; i++) {
+            const segment = player.segments[i];
+            
+            // Draw a circle at each segment position
+            ctx.fillStyle = playerColor;
+            ctx.beginPath();
+            ctx.arc(segment.x, segment.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add shine effect
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
         
         // Create a processor image for this player if needed
@@ -377,13 +399,14 @@ const GameCanvas = ({
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`You (${Math.round(player.x)},${Math.round(player.y)})`, player.x, player.y - playerSize - 15);
+          // Show segments count for the player
+          ctx.fillText(`You (${player.segments?.length || 0})`, player.x, player.y - playerSize - 15);
         } else {
-          const size = Math.round(playerSize);
+          const segmentCount = player.segments?.length || 0;
           ctx.fillStyle = '#FFFFFF';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`${size}`, player.x, player.y - playerSize - 5);
+          ctx.fillText(`${segmentCount}`, player.x, player.y - playerSize - 5);
         }
       });
       
@@ -401,8 +424,8 @@ const GameCanvas = ({
       
       if (playerId && gameState.players[playerId]) {
         const player = gameState.players[playerId];
-        const playerSize = player.size || player.length || 0;
-        ctx.fillText(`Size: ${Math.floor(playerSize)}`, 20, 60);
+        const segmentCount = player.segments?.length || 0;
+        ctx.fillText(`Segments: ${segmentCount}`, 20, 60);
       }
       
       rafRef.current = requestAnimationFrame(render);
