@@ -7,12 +7,10 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
-// Supabase client initialization (optionnel ici)
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Game state interfaces
 interface ServerPlayer {
   id?: string;
   x: number;
@@ -20,7 +18,7 @@ interface ServerPlayer {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  queue?: Array<{ x: number; y: number }>;  // Propriété "queue" utilisée par le serveur
+  queue?: Array<{ x: number; y: number }>;
   boosting?: boolean;
 }
 
@@ -119,7 +117,6 @@ const Index = () => {
       const worldSize = { width: 2000, height: 2000 };
       const randomItems = generateRandomItems(50, worldSize);
       
-      // Initialiser l'état de jeu avec la propriété "queue" vide pour le joueur
       setGameState(prevState => ({
         ...prevState,
         players: {
@@ -193,7 +190,6 @@ const Index = () => {
     
     newSocket.on("update_items", (items: Record<string, GameItem> | GameItem[]) => {
       console.log("Items update:", items);
-      // Convertir array en objet si nécessaire
       const itemsObject = Array.isArray(items) 
         ? items.reduce((acc, item) => ({ ...acc, [item.id]: item }), {})
         : items;
@@ -225,8 +221,6 @@ const Index = () => {
       
       socket.emit("move", { x: boundedX, y: boundedY });
       
-      // Le serveur gère maintenant la mise à jour de la queue, donc nous n'avons pas besoin
-      // de mettre à jour la queue localement, juste la position du joueur
       setGameState(prevState => {
         if (!prevState.players[playerId]) return prevState;
         return {
@@ -262,7 +256,7 @@ const Index = () => {
       const currentQueueLength = currentPlayer.queue?.length || 0;
       const otherQueueLength = otherPlayer.queue?.length || 0;
       
-      if (currentQueueLength < otherQueueLength) {
+      if (currentQueueLength <= otherQueueLength) {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé!");
         setGameStarted(false);
@@ -318,7 +312,6 @@ const Index = () => {
             gameState={{
               ...gameState,
               players: gameState.players || {},
-              // Convertir l'objet items en tableau pour le passer à GameCanvas
               items: gameState.items ? Object.values(gameState.items) : [],
               worldSize: gameState.worldSize || { width: 2000, height: 2000 }
             }}

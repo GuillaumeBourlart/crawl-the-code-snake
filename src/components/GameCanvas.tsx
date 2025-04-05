@@ -153,7 +153,7 @@ const GameCanvas = ({
       }
       
       if (otherPlayer.queue && otherPlayer.queue.length > 0) {
-        const collisionRadius = (currentSize + otherSize) / 2;
+        const collisionRadius = currentSize / 2;
         
         for (const segment of otherPlayer.queue) {
           const segDx = currentPlayer.x - segment.x;
@@ -161,8 +161,13 @@ const GameCanvas = ({
           const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
           
           if (segDistance < collisionRadius) {
-            onPlayerCollision(otherId);
-            return;
+            const currentQueueLength = currentPlayer.queue?.length || 0;
+            const otherQueueLength = otherPlayer.queue?.length || 0;
+            
+            if (currentQueueLength <= otherQueueLength) {
+              onPlayerCollision(otherId);
+              return;
+            }
           }
         }
       }
