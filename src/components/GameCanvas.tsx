@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -62,7 +61,8 @@ const GameCanvas = ({
     needsFullRedraw: true,
     lastFrameTime: 0,
     isRendering: false, // Flag to prevent multiple render loops
-    pendingRender: false // Flag to indicate a render is needed
+    pendingRender: false, // Flag to indicate a render is needed
+    debugMode: true // Enable debug mode to show logs
   });
   
   // Cache grid rendering
@@ -74,6 +74,13 @@ const GameCanvas = ({
     lastFpsUpdate: 0,
     fps: 0
   });
+  
+  // Debug logging function
+  const debugLog = (message: string) => {
+    if (rendererStateRef.current.debugMode) {
+      console.log(`[GameCanvas] ${message}`);
+    }
+  };
   
   // Update gameStateRef when props change
   useEffect(() => {
@@ -87,25 +94,64 @@ const GameCanvas = ({
       ...gameState,
       items: gameState.items || []
     };
-  }, [gameState]);
+    
+    if (playerId && gameState.players[playerId]) {
+      debugLog(`Player position: x=${gameState.players[playerId].x}, y=${gameState.players[playerId].y}`);
+    } else if (playerId) {
+      debugLog("Player ID exists but player not found in gameState");
+    } else {
+      debugLog("No player ID available");
+    }
+  }, [gameState, playerId]);
   
-  // Initialize camera position when player joins
+  // Initialize camera position when player joins - CRITICAL FIX HERE
   useEffect(() => {
-    if (!playerId || !gameState.players[playerId]) return;
+    if (!playerId) {
+      debugLog("No player ID, can't initialize camera");
+      return;
+    }
     
     const player = gameState.players[playerId];
+    if (!player) {
+      debugLog("Player not found in gameState, can't initialize camera");
+      return;
+    }
+    
+    debugLog(`Initializing camera to player position: x=${player.x}, y=${player.y}`);
+    
+    // Force camera to player position on first render
     setCamera(prev => {
-      // Only update if position changed significantly
-      const dx = Math.abs(prev.x - player.x);
-      const dy = Math.abs(prev.y - player.y);
-      if (dx > 1 || dy > 1) {
+      // If camera is at origin (0,0), it's probably first initialization
+      if (prev.x === 0 && prev.y === 0) {
+        debugLog("Camera at origin, setting directly to player position");
         return {
           ...prev,
           x: player.x,
           y: player.y
         };
       }
-      return prev;
+      
+      // Regular camera tracking with lerp
+      const dx = Math.abs(prev.x - player.x);
+      const dy = Math.abs(prev.y - player.y);
+      
+      // If player is far from camera, snap directly
+      if (dx > 100 || dy > 100) {
+        debugLog("Player far from camera, snapping camera position");
+        return {
+          ...prev,
+          x: player.x,
+          y: player.y
+        };
+      }
+      
+      // Otherwise smooth tracking
+      const lerpFactor = 0.2;
+      return {
+        ...prev,
+        x: prev.x + (player.x - prev.x) * lerpFactor,
+        y: prev.y + (player.y - prev.y) * lerpFactor
+      };
     });
   }, [gameState, playerId]);
   
@@ -236,9 +282,14 @@ const GameCanvas = ({
   
   // When gameState changes, update camera position to follow player
   useEffect(() => {
-    if (!playerId || !gameState.players[playerId]) return;
+    if (!playerId) {
+      return;
+    }
     
     const player = gameState.players[playerId];
+    if (!player) {
+      return;
+    }
     
     // Smoothly interpolate camera position
     setCamera(prev => {
@@ -249,15 +300,13 @@ const GameCanvas = ({
       const dx = Math.abs(prev.x - targetX);
       const dy = Math.abs(prev.y - targetY);
       
-      if (dx > 2 || dy > 2) {
-        const lerpFactor = 0.2; // Lower = smoother but slower
-        return {
-          ...prev,
-          x: prev.x + (targetX - prev.x) * lerpFactor,
-          y: prev.y + (targetY - prev.y) * lerpFactor
-        };
-      }
-      return prev;
+      // Always update camera at first to make sure it's tracking the player
+      const lerpFactor = 0.2; // Lower = smoother but slower
+      return {
+        ...prev,
+        x: prev.x + (targetX - prev.x) * lerpFactor,
+        y: prev.y + (targetY - prev.y) * lerpFactor
+      };
     });
     
     // Mark grid for update only when player moves far enough
@@ -327,17 +376,17 @@ const GameCanvas = ({
     const shouldRender = timeSinceLastRender >= 16.667 || rendererStateRef.current.needsFullRedraw || rendererStateRef.current.pendingRender;
     
     if (shouldRender) {
+      // Always clear the canvas completely - important fix!
+      ctx.fillStyle = '#121212';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
       // Create grid cache canvas if it doesn't exist
       if (!gridCacheCanvasRef.current) {
         gridCacheCanvasRef.current = document.createElement('canvas');
-        const dpr = window.devicePixelRatio || 1;
         gridCacheCanvasRef.current.width = canvas.width;
         gridCacheCanvasRef.current.height = canvas.height;
+        rendererStateRef.current.gridNeedsUpdate = true;
       }
-      
-      // Clear the canvas only if needed - IMPORTANT: always clear to prevent artifacts
-      ctx.fillStyle = '#121212';
-      ctx.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
       
       // Update grid cache if needed
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
@@ -349,10 +398,9 @@ const GameCanvas = ({
         ctx.drawImage(
           gridCacheCanvasRef.current, 
           0, 0, 
-          canvas.width, canvas.height,
+          gridCacheCanvasRef.current.width, gridCacheCanvasRef.current.height,
           0, 0, 
-          canvas.width / window.devicePixelRatio, 
-          canvas.height / window.devicePixelRatio
+          canvas.width, canvas.height
         );
       }
       
@@ -385,18 +433,18 @@ const GameCanvas = ({
     
     gridCtx.save();
     
-    // Scale for high-DPI displays
+    // Fix: Scale transformations for the grid
     const dpr = window.devicePixelRatio || 1;
-    gridCtx.scale(dpr, dpr);
     
-    gridCtx.translate(canvas.width / window.devicePixelRatio / 2, canvas.height / window.devicePixelRatio / 2);
+    // Apply the correct transformations for camera
+    gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
     gridCtx.scale(camera.zoom, camera.zoom);
     gridCtx.translate(-camera.x, -camera.y);
     
     // Draw grid
     const gridSize = 50;
-    const viewWidth = canvas.width / window.devicePixelRatio / camera.zoom;
-    const viewHeight = canvas.height / window.devicePixelRatio / camera.zoom;
+    const viewWidth = canvas.width / camera.zoom;
+    const viewHeight = canvas.height / camera.zoom;
     const startX = Math.floor((camera.x - viewWidth / 2) / gridSize) * gridSize;
     const endX = Math.ceil((camera.x + viewWidth / 2) / gridSize) * gridSize;
     const startY = Math.floor((camera.y - viewHeight / 2) / gridSize) * gridSize;
@@ -435,18 +483,41 @@ const GameCanvas = ({
   const renderGameElements = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     ctx.save();
     
-    ctx.translate(canvas.width / window.devicePixelRatio / 2, canvas.height / window.devicePixelRatio / 2);
+    // Apply the correct camera transformations - CRITICAL FIX
+    ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
     
     // Use viewport culling for efficient rendering
-    const viewWidth = canvas.width / window.devicePixelRatio / camera.zoom;
-    const viewHeight = canvas.height / window.devicePixelRatio / camera.zoom;
+    const viewWidth = canvas.width / camera.zoom;
+    const viewHeight = canvas.height / camera.zoom;
     
     const viewportLeft = camera.x - viewWidth / 2 - 100;
     const viewportRight = camera.x + viewWidth / 2 + 100;
     const viewportTop = camera.y - viewHeight / 2 - 100;
     const viewportBottom = camera.y + viewHeight / 2 + 100;
+    
+    // Draw debug info around player
+    if (playerId && gameStateRef.current.players[playerId]) {
+      const player = gameStateRef.current.players[playerId];
+      
+      // Draw debug cross at player position
+      ctx.strokeStyle = '#FFFF00';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(player.x - 50, player.y);
+      ctx.lineTo(player.x + 50, player.y);
+      ctx.moveTo(player.x, player.y - 50);
+      ctx.lineTo(player.x, player.y + 50);
+      ctx.stroke();
+      
+      // Draw camera position indicator
+      ctx.strokeStyle = '#00FFFF';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(camera.x, camera.y, 10, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     
     // Draw items
     if (rendererStateRef.current.items.length > 0) {
@@ -487,7 +558,15 @@ const GameCanvas = ({
     }
     
     // Draw players
+    let playerCount = 0;
     Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+      playerCount++;
+      
+      // Debug log player positions if debug mode
+      if (rendererStateRef.current.debugMode) {
+        debugLog(`Drawing player ${id}: x=${player.x}, y=${player.y}`);
+      }
+      
       // Skip players outside viewport
       if (
         player.x < viewportLeft ||
@@ -495,6 +574,9 @@ const GameCanvas = ({
         player.y < viewportTop ||
         player.y > viewportBottom
       ) {
+        if (id === playerId) {
+          debugLog(`WARNING: Current player is outside viewport!`);
+        }
         return;
       }
       
@@ -596,12 +678,22 @@ const GameCanvas = ({
       
       drawPlayerHead();
       
-      // Highlight current player
+      // Highlight current player more visibly
       if (id === playerId) {
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2;
         const scale = playerSize / 20;
-        ctx.strokeRect(player.x - 20 * scale / 2, player.y - 20 * scale / 2, 20 * scale, 20 * scale);
+        const baseX = player.x - 20 * scale / 2 - 5; // Slightly larger highlight box
+        const baseY = player.y - 20 * scale / 2 - 5;
+        const size = 20 * scale + 10;
+        ctx.strokeRect(baseX, baseY, size, size);
+        
+        // Add a glowing effect for the current player
+        ctx.shadowColor = '#FFFFFF';
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = '#FFFF00';
+        ctx.strokeRect(baseX, baseY, size, size);
+        ctx.shadowBlur = 0;
       }
       
       // Draw boost effect
@@ -615,7 +707,7 @@ const GameCanvas = ({
       // Draw player label
       if (id === playerId) {
         ctx.fillStyle = '#FFFF00';
-        ctx.font = '12px Arial';
+        ctx.font = '16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
       } else {
@@ -631,7 +723,7 @@ const GameCanvas = ({
     
     // Draw UI overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(10, 10, 210, 90);
+    ctx.fillRect(10, 10, 210, 120);
     
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '16px Arial';
@@ -643,10 +735,15 @@ const GameCanvas = ({
       const player = rendererStateRef.current.players[playerId];
       const queueCount = player.queue?.length || 0;
       ctx.fillText(`Segments: ${queueCount}`, 20, 60);
+      
+      // Add camera position debugging
+      ctx.fillText(`Cam: ${Math.round(camera.x)},${Math.round(camera.y)}`, 20, 90);
+    } else {
+      ctx.fillText(`Player not found!`, 20, 90);
     }
     
     // Display FPS
-    ctx.fillText(`FPS: ${fpsRef.current.fps}`, 20, 90);
+    ctx.fillText(`FPS: ${fpsRef.current.fps}`, 20, 120);
   };
   
   // Set up canvas on mount
