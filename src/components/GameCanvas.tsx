@@ -44,44 +44,28 @@ const GameCanvas = ({
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
-  const rafRef = useRef<number>();
-  const cpuImageRef = useRef<HTMLImageElement | null>(null);
+  const requestRef = useRef<number>();
+  const previousTimeRef = useRef<number>(0);
+  const rendererStateRef = useRef({
+    players: {} as Record<string, Player>,
+    items: [] as GameItem[],
+    gridNeedsUpdate: true
+  });
+  const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
+  // Initialize camera position when player joins
   useEffect(() => {
-    const createProcessorImage = (color: string): HTMLImageElement => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 40;
-      canvas.height = 40;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) return new Image();
-      
-      ctx.fillStyle = color;
-      
-      ctx.fillRect(8, 8, 24, 24);
-      
-      ctx.fillRect(3, 15, 5, 4);  // left
-      ctx.fillRect(32, 15, 5, 4); // right
-      ctx.fillRect(15, 3, 4, 5);  // top
-      ctx.fillRect(21, 3, 4, 5);  // top
-      ctx.fillRect(15, 32, 4, 5); // bottom
-      ctx.fillRect(21, 32, 4, 5); // bottom
-      
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillRect(12, 12, 16, 16);
-      
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillRect(10, 10, 2, 2);
-      ctx.fillRect(28, 28, 2, 2);
-      
-      const img = new Image();
-      img.src = canvas.toDataURL();
-      return img;
-    };
+    if (!playerId || !gameState.players[playerId]) return;
     
-    cpuImageRef.current = createProcessorImage('#FF0000');
-  }, []);
+    const player = gameState.players[playerId];
+    setCamera(prev => ({
+      ...prev,
+      x: player.x,
+      y: player.y
+    }));
+  }, [gameState, playerId]);
   
+  // Handle mouse movement for player direction
   useEffect(() => {
     if (!playerId) return;
     
@@ -123,17 +107,7 @@ const GameCanvas = ({
     };
   }, [gameState, playerId, onMove, onBoost, camera]);
   
-  useEffect(() => {
-    if (!playerId || !gameState.players[playerId]) return;
-    
-    const player = gameState.players[playerId];
-    setCamera(prev => ({
-      ...prev,
-      x: player.x,
-      y: player.y
-    }));
-  }, [gameState, playerId]);
-  
+  // Check for player collisions
   useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
@@ -184,31 +158,132 @@ const GameCanvas = ({
     return baseSize * (1 + (queueCount * 0.1));
   };
   
-  // Simplified rendering with better performance
+  // When gameState changes, update camera position to follow player
+  useEffect(() => {
+    if (!playerId || !gameState.players[playerId]) return;
+    
+    const player = gameState.players[playerId];
+    setCamera(prev => ({
+      ...prev,
+      x: player.x,
+      y: player.y
+    }));
+    
+    // Mark grid for update when players move significantly
+    const prevPlayer = rendererStateRef.current.players[playerId];
+    if (prevPlayer) {
+      const dx = Math.abs(prevPlayer.x - player.x);
+      const dy = Math.abs(prevPlayer.y - player.y);
+      if (dx > 50 || dy > 50) {
+        rendererStateRef.current.gridNeedsUpdate = true;
+      }
+    }
+    
+    // Update renderer state with new data
+    rendererStateRef.current.players = { ...gameState.players };
+    rendererStateRef.current.items = gameState.items || [];
+  }, [gameState, playerId]);
+  
+  // Main rendering loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
+    
+    // Create grid cache canvas if it doesn't exist
+    if (!gridCacheCanvasRef.current) {
+      gridCacheCanvasRef.current = document.createElement('canvas');
+    }
     
     // Set canvas to match screen resolution
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      
+      if (gridCacheCanvasRef.current) {
+        gridCacheCanvasRef.current.width = canvas.width;
+        gridCacheCanvasRef.current.height = canvas.height;
+      }
+      
+      rendererStateRef.current.gridNeedsUpdate = true;
     };
     
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Precompute grid positions
-    const gridSize = 50;
+    // Pre-render grid to offscreen canvas
+    const updateGridCache = () => {
+      const gridCanvas = gridCacheCanvasRef.current;
+      if (!gridCanvas) return;
+      
+      const gridCtx = gridCanvas.getContext('2d', { alpha: false });
+      if (!gridCtx) return;
+      
+      // Clear grid canvas
+      gridCtx.fillStyle = '#121212';
+      gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+      
+      gridCtx.save();
+      
+      gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
+      gridCtx.scale(camera.zoom, camera.zoom);
+      gridCtx.translate(-camera.x, -camera.y);
+      
+      // Draw grid
+      const gridSize = 50;
+      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
+      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
+      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      
+      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
+      gridCtx.lineWidth = 1;
+      
+      // Draw horizontal grid lines
+      gridCtx.beginPath();
+      for (let y = startY; y <= endY; y += gridSize) {
+        gridCtx.moveTo(startX, y);
+        gridCtx.lineTo(endX, y);
+      }
+      gridCtx.stroke();
+      
+      // Draw vertical grid lines
+      gridCtx.beginPath();
+      for (let x = startX; x <= endX; x += gridSize) {
+        gridCtx.moveTo(x, startY);
+        gridCtx.lineTo(x, endY);
+      }
+      gridCtx.stroke();
+      
+      // Draw world boundary
+      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+      gridCtx.lineWidth = 2;
+      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      
+      gridCtx.restore();
+      
+      rendererStateRef.current.gridNeedsUpdate = false;
+    };
     
-    // Animation render loop
-    const render = () => {
-      // Clear canvas
+    // Animation frame callback
+    const renderFrame = (timestamp: number) => {
+      if (!canvas) return;
+      
+      // Clear the canvas with solid color (more efficient than clearRect)
       ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Update grid cache if needed
+      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
+        updateGridCache();
+      }
+      
+      // Draw grid from cache
+      if (gridCacheCanvasRef.current) {
+        ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
+      }
       
       ctx.save();
       
@@ -216,53 +291,30 @@ const GameCanvas = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      // Draw grid
-      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      
-      ctx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
-      ctx.lineWidth = 1;
-      
-      for (let x = startX; x <= endX; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-        ctx.stroke();
-      }
-      
-      for (let y = startY; y <= endY; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
-        ctx.stroke();
-      }
-      
-      // Draw world boundary
-      ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      // Use viewport culling for efficient rendering
+      const viewportLeft = camera.x - canvas.width / camera.zoom / 2 - 100;
+      const viewportRight = camera.x + canvas.width / camera.zoom / 2 + 100;
+      const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
+      const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
       // Draw items
-      if (gameState.items && gameState.items.length > 0) {
-        gameState.items.forEach(item => {
-          // Skip rendering items outside of view
-          if (
-            item.x < camera.x - canvas.width / camera.zoom / 2 - 20 ||
-            item.x > camera.x + canvas.width / camera.zoom / 2 + 20 ||
-            item.y < camera.y - canvas.height / camera.zoom / 2 - 20 ||
-            item.y > camera.y + canvas.height / camera.zoom / 2 + 20
-          ) {
-            return;
-          }
-          
+      if (rendererStateRef.current.items.length > 0) {
+        const visibleItems = rendererStateRef.current.items.filter(item => 
+          item.x >= viewportLeft && 
+          item.x <= viewportRight && 
+          item.y >= viewportTop && 
+          item.y <= viewportBottom
+        );
+        
+        // Batch similar items for performance
+        ctx.beginPath();
+        visibleItems.forEach(item => {
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
           ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
           ctx.fill();
           
-          // Highlight effect
+          // Simple highlight effect
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.beginPath();
           ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
@@ -271,13 +323,13 @@ const GameCanvas = ({
       }
       
       // Draw players
-      Object.entries(gameState.players).forEach(([id, player]) => {
-        // Skip rendering players far outside of view
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        // Skip players outside viewport
         if (
-          player.x < camera.x - canvas.width / camera.zoom / 2 - 100 ||
-          player.x > camera.x + canvas.width / camera.zoom / 2 + 100 ||
-          player.y < camera.y - canvas.height / camera.zoom / 2 - 100 ||
-          player.y > camera.y + canvas.height / camera.zoom / 2 + 100
+          player.x < viewportLeft ||
+          player.x > viewportRight ||
+          player.y < viewportTop ||
+          player.y > viewportBottom
         ) {
           return;
         }
@@ -285,45 +337,49 @@ const GameCanvas = ({
         const playerSize = calculatePlayerSize(player);
         const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
+        // Draw queue segments
         if (player.queue && player.queue.length > 0) {
           ctx.strokeStyle = playerColor;
           ctx.lineWidth = Math.max(3, playerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
-          // Draw queue segments
-          ctx.beginPath();
-          ctx.moveTo(player.x, player.y);
+          // Optimize queue rendering by skipping segments outside viewport
+          const visibleQueue = player.queue.filter(segment => 
+            segment.x >= viewportLeft && 
+            segment.x <= viewportRight && 
+            segment.y >= viewportTop && 
+            segment.y <= viewportBottom
+          );
           
-          for (let i = 0; i < player.queue.length; i++) {
-            ctx.lineTo(player.queue[i].x, player.queue[i].y);
-          }
-          
-          ctx.stroke();
-          
-          // Draw queue nodes (only for visible segments)
-          for (let i = 0; i < player.queue.length; i++) {
-            const segment = player.queue[i];
+          if (visibleQueue.length > 0 || (
+            player.x >= viewportLeft && 
+            player.x <= viewportRight && 
+            player.y >= viewportTop && 
+            player.y <= viewportBottom
+          )) {
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
             
-            // Skip segments far from camera
-            if (
-              segment.x < camera.x - canvas.width / camera.zoom / 2 - 20 ||
-              segment.x > camera.x + canvas.width / camera.zoom / 2 + 20 ||
-              segment.y < camera.y - canvas.height / camera.zoom / 2 - 20 ||
-              segment.y > camera.y + canvas.height / camera.zoom / 2 + 20
-            ) {
-              continue;
+            for (const segment of visibleQueue) {
+              ctx.lineTo(segment.x, segment.y);
             }
             
-            ctx.fillStyle = playerColor;
-            ctx.beginPath();
-            ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.stroke();
             
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.beginPath();
-            ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
-            ctx.fill();
+            // Draw queue nodes
+            for (const segment of visibleQueue) {
+              ctx.fillStyle = playerColor;
+              ctx.beginPath();
+              ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
+              ctx.fill();
+              
+              // Simple highlight
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+              ctx.beginPath();
+              ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         }
         
@@ -331,16 +387,15 @@ const GameCanvas = ({
         const drawPlayerHead = () => {
           ctx.fillStyle = playerColor;
           
-          ctx.fillRect(player.x - 20 * (playerSize / 20) / 2, player.y - 20 * (playerSize / 20) / 2, 
-                       20 * (playerSize / 20), 20 * (playerSize / 20));
-          
-          // Draw embellishments
+          // Main processor square
           const scale = playerSize / 20;
           const baseX = player.x - 20 * scale / 2;
           const baseY = player.y - 20 * scale / 2;
           const size = 20 * scale;
           
-          // Main processor square
+          ctx.fillRect(baseX, baseY, size, size);
+          
+          // Main processor inner square
           ctx.fillRect(baseX + size * 0.2, baseY + size * 0.2, size * 0.6, size * 0.6);
           
           // Connectors
@@ -403,27 +458,31 @@ const GameCanvas = ({
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '16px Arial';
       
-      const playerCount = Object.keys(gameState.players).length;
+      const playerCount = Object.keys(rendererStateRef.current.players).length;
       ctx.fillText(`Players: ${playerCount}`, 20, 30);
       
-      if (playerId && gameState.players[playerId]) {
-        const player = gameState.players[playerId];
+      if (playerId && rendererStateRef.current.players[playerId]) {
+        const player = rendererStateRef.current.players[playerId];
         const queueCount = player.queue?.length || 0;
         ctx.fillText(`Segments: ${queueCount}`, 20, 60);
       }
       
-      rafRef.current = requestAnimationFrame(render);
+      // Store previous timestamp and request next frame
+      previousTimeRef.current = timestamp;
+      requestRef.current = requestAnimationFrame(renderFrame);
     };
     
-    rafRef.current = requestAnimationFrame(render);
+    // Start the animation loop
+    requestRef.current = requestAnimationFrame(renderFrame);
     
+    // Cleanup
     return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
       }
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [gameState, playerId, camera]);
+  }, [gameState.worldSize, playerId, camera]);
   
   return (
     <canvas 
