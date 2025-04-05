@@ -152,9 +152,19 @@ const Index = () => {
   };
   
   const handleMove = (direction: { x: number; y: number }) => {
-    if (socket && gameStarted) {
-      // Send the direction vector to the server
-      socket.emit("move", direction);
+    if (socket && gameStarted && playerId) {
+      // Get the current player position
+      const player = gameState.players[playerId];
+      if (!player) return;
+
+      // Calculate new position based on current position and direction
+      // We'll use a speed factor to control how fast the player moves
+      const speed = 5;
+      const newX = player.x + direction.x * speed;
+      const newY = player.y + direction.y * speed;
+
+      // Send the new position to the server
+      socket.emit("move", { x: newX, y: newY });
     }
   };
   
