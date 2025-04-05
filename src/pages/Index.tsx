@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -8,7 +7,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
-// Supabase client initialization
+// Supabase client initialization (optionnel ici)
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -21,7 +20,7 @@ interface ServerPlayer {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  segments?: Array<{ x: number; y: number }>;
+  queue?: Array<{ x: number; y: number }>;  // Nouvelle propriété "queue"
   boosting?: boolean;
 }
 
@@ -35,7 +34,7 @@ interface GameItem {
 
 interface ServerGameState {
   players: Record<string, ServerPlayer>;
-  items?: GameItem[]; // Assurez-vous que c'est un tableau et non un Record
+  items?: Record<string, GameItem>;
   worldSize?: { width: number; height: number };
 }
 
@@ -48,15 +47,13 @@ const Index = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
-    items: [],
+    items: {},
     worldSize: { width: 2000, height: 2000 }
   });
-  const [lastPosition, setLastPosition] = useState<{x: number, y: number} | null>(null);
   
   const isMobile = useIsMobile();
   
   useEffect(() => {
-    // Cleanup function - will be called when component unmounts
     return () => {
       if (socket) {
         socket.disconnect();
@@ -64,51 +61,24 @@ const Index = () => {
     };
   }, [socket]);
   
-  // Effect to update player segments positions to create a snake-like movement
-  useEffect(() => {
-    if (gameStarted && playerId && gameState.players[playerId]) {
-      const player = gameState.players[playerId];
-      const currentPos = { x: player.x, y: player.y };
-      
-      if (lastPosition && (lastPosition.x !== currentPos.x || lastPosition.y !== currentPos.y)) {
-        // Player has moved
-        // We'll send the new position to the server including the updated segments
-        updatePlayerSegments(currentPos);
-      }
-      
-      setLastPosition(currentPos);
+  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
+    const items: Record<string, GameItem> = {};
+    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
+    for (let i = 0; i < count; i++) {
+      const id = `item-${i}`;
+      items[id] = {
+        id,
+        x: Math.random() * worldSize.width,
+        y: Math.random() * worldSize.height,
+        value: Math.floor(Math.random() * 5) + 1,
+        color: itemColors[Math.floor(Math.random() * itemColors.length)]
+      };
     }
-  }, [gameState.players, playerId, gameStarted]);
-  
-  const updatePlayerSegments = (currentPos: {x: number, y: number}) => {
-    if (!socket || !playerId || !gameState.players[playerId]) return;
-    
-    const player = gameState.players[playerId];
-    const segments = player.segments || [];
-    
-    if (segments.length > 0) {
-      // Calculate new positions for segments to follow the player
-      const newSegments = [...segments];
-      
-      // Move each segment to the position of the segment in front of it
-      for (let i = segments.length - 1; i > 0; i--) {
-        newSegments[i] = {...newSegments[i-1]};
-      }
-      
-      // First segment follows the player position
-      if (newSegments.length > 0) {
-        newSegments[0] = {...lastPosition!};
-      }
-      
-      // Send updated position and segments to server
-      socket.emit("update_segments", { segments: newSegments });
-    }
+    return items;
   };
   
   const handlePlay = () => {
     setConnecting(true);
-    
-    // Create a new socket connection
     const newSocket = io("https://codecrawl-production.up.railway.app", {
       transports: ["websocket"],
       upgrade: false,
@@ -117,7 +87,6 @@ const Index = () => {
       timeout: 10000
     });
     
-    // Connection established
     newSocket.on("connect", () => {
       console.log("Connected to WebSocket server");
       setConnected(true);
@@ -125,14 +94,12 @@ const Index = () => {
       toast.success("Connecté au serveur");
     });
     
-    // Connection error
     newSocket.on("connect_error", (err) => {
       console.error("Connection error:", err);
       setConnecting(false);
       toast.error("Erreur de connexion au serveur");
     });
     
-    // Disconnected from server
     newSocket.on("disconnect", () => {
       console.log("Disconnected from WebSocket server");
       setConnected(false);
@@ -141,95 +108,153 @@ const Index = () => {
       toast.error("Déconnecté du serveur");
     });
     
-    // Joined a room
     newSocket.on("joined_room", (data: { roomId: string }) => {
       console.log("Joined room:", data.roomId);
       setRoomId(data.roomId);
       setPlayerId(newSocket.id);
       setGameStarted(true);
       
-      // Initialize the player with a random color
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
+      const worldSize = { width: 2000, height: 2000 };
+      const randomItems = generateRandomItems(50, worldSize);
       
-      // Set initial gameState
+      // Initialiser l'état de jeu avec la propriété "queue" vide pour le joueur
       setGameState(prevState => ({
         ...prevState,
-        players: {},
-        worldSize: { width: 2000, height: 2000 }
+        players: {
+          ...prevState.players,
+          [newSocket.id]: {
+            x: Math.random() * 800,
+            y: Math.random() * 600,
+            length: 20,
+            color: randomColor,
+            queue: []  // Queue initialement vide
+          }
+        },
+        items: randomItems,
+        worldSize
       }));
       
       toast.success("Vous avez rejoint la partie");
     });
     
-    // Players update from server
-    newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
-      console.log("Players update:", players);
-      
-      setGameState(prevState => ({
-        ...prevState,
-        players: players
-      }));
-    });
-    
-    // Items update from server
-    newSocket.on("update_items", (items: GameItem[]) => {
-      console.log("Items update:", items);
-      
-      setGameState(prevState => ({
-        ...prevState,
-        items: items // Gardez items comme un tableau
-      }));
-    });
-    
-    // Player eliminated
     newSocket.on("player_eliminated", () => {
       console.log("You were eliminated!");
       toast.error("Vous avez été éliminé!");
       setGameStarted(false);
-      
-      // Optionally reconnect after a short delay
       setTimeout(() => {
         newSocket.emit("join_room");
       }, 1500);
     });
     
-    // No rooms available
+    newSocket.on("player_grew", (data: { growth: number }) => {
+      console.log("You ate another player! Growing by:", data.growth);
+      toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
+      if (playerId) {
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          let newQueue = [...(currentPlayer.queue || [])];
+          for (let i = 0; i < data.growth; i++) {
+            newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
+          }
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                queue: newQueue
+              }
+            }
+          };
+        });
+      }
+    });
+    
     newSocket.on("no_room_available", () => {
       toast.error("Aucune salle disponible");
       setConnecting(false);
       newSocket.disconnect();
     });
     
-    // Join a room to start the game
-    newSocket.emit("join_room");
+    newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
+      console.log("Players update:", players);
+      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => ({
+        ...acc,
+        [id]: { ...player, queue: player.queue || [] }
+      }), {});
+      setGameState(prevState => ({
+        ...prevState,
+        players: processedPlayers
+      }));
+    });
     
+    newSocket.on("update_items", (items: Record<string, GameItem> | GameItem[]) => {
+      console.log("Items update:", items);
+      setGameState(prevState => ({
+        ...prevState,
+        items
+      }));
+    });
+    
+    newSocket.emit("join_room");
     setSocket(newSocket);
   };
   
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
-      // Get the current player position
       const player = gameState.players[playerId];
       if (!player) return;
-
-      // Calculate new position based on current position and direction
-      const speed = 5;
+      const speed = player.boosting ? 10 : 5;
       const newX = player.x + direction.x * speed;
       const newY = player.y + direction.y * speed;
-
-      // Check boundaries to ensure the player stays within the game world
       const worldWidth = gameState.worldSize?.width || 2000;
       const worldHeight = gameState.worldSize?.height || 2000;
-      const playerSegments = player.segments?.length || 0;
-      const playerSize = 20 * (1 + (playerSegments * 0.1)); // Calculate size based on segments
-      
-      // Restrict movement to within the boundaries with a small margin
+      const playerQueueLength = player.queue?.length || 0;
+      const baseSize = 20;
+      const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
       const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
-
-      // Send the new position to the server - this will handle collisions, etc.
       socket.emit("move", { x: boundedX, y: boundedY });
+      
+      // Mise à jour de la queue : décaler chaque élément pour qu'il suive la position du joueur
+      setGameState(prevState => {
+        const currentPlayer = prevState.players[playerId];
+        if (!currentPlayer) return prevState;
+        let newQueue = [...(currentPlayer.queue || [])];
+        if (newQueue.length > 0) {
+          const firstQueuePos = { x: currentPlayer.x, y: currentPlayer.y };
+          for (let i = newQueue.length - 1; i > 0; i--) {
+            newQueue[i] = { ...newQueue[i - 1] };
+          }
+          newQueue[0] = firstQueuePos;
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                x: boundedX,
+                y: boundedY,
+                queue: newQueue
+              }
+            }
+          };
+        }
+        return {
+          ...prevState,
+          players: {
+            ...prevState.players,
+            [playerId]: {
+              ...currentPlayer,
+              x: boundedX,
+              y: boundedY
+            }
+          }
+        };
+      });
     }
   };
   
@@ -239,20 +264,91 @@ const Index = () => {
     }
   };
   
+  const handleCollectItem = (itemId: string) => {
+    if (socket && gameStarted && playerId) {
+      const item = gameState.items?.[itemId];
+      if (!item) return;
+      socket.emit("collect_item", { itemId });
+      setGameState(prevState => {
+        if (!prevState.items) return prevState;
+        const newItems = { ...prevState.items };
+        delete newItems[itemId];
+        const currentPlayer = prevState.players[playerId];
+        if (!currentPlayer) return { ...prevState, items: newItems };
+        let newQueue = [...(currentPlayer.queue || [])];
+        // Ajoute un nouvel élément dans la queue à la position de l'item mangé
+        newQueue.push({ x: item.x, y: item.y });
+        console.log(`Player collected item! New queue length: ${newQueue.length}`);
+        return {
+          ...prevState,
+          items: newItems,
+          players: {
+            ...prevState.players,
+            [playerId]: {
+              ...currentPlayer,
+              queue: newQueue
+            }
+          }
+        };
+      });
+      const worldSize = gameState.worldSize || { width: 2000, height: 2000 };
+      const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
+      const newItemId = `item-${Date.now()}`;
+      const newItem: GameItem = {
+        id: newItemId,
+        x: Math.random() * worldSize.width,
+        y: Math.random() * worldSize.height,
+        value: Math.floor(Math.random() * 5) + 1,
+        color: itemColors[Math.floor(Math.random() * itemColors.length)]
+      };
+      setGameState(prevState => ({
+        ...prevState,
+        items: {
+          ...(prevState.items || {}),
+          [newItemId]: newItem
+        }
+      }));
+    }
+  };
+  
   const handlePlayerCollision = (otherPlayerId: string) => {
     if (socket && gameStarted && playerId) {
       const currentPlayer = gameState.players[playerId];
       const otherPlayer = gameState.players[otherPlayerId];
-      
       if (!currentPlayer || !otherPlayer) return;
-      
-      // Calculate player sizes based on segments
-      const currentPlayerSegments = currentPlayer.segments?.length || 0;
-      const otherPlayerSegments = otherPlayer.segments?.length || 0;
-      
-      // If the current player is smaller, they get eliminated
-      if (currentPlayerSegments < otherPlayerSegments) {
+      const currentQueueLength = currentPlayer.queue?.length || 0;
+      const otherQueueLength = otherPlayer.queue?.length || 0;
+      const currentSize = 20 * (1 + (currentQueueLength * 0.1));
+      const otherSize = 20 * (1 + (otherQueueLength * 0.1));
+      if (currentQueueLength < otherQueueLength) {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+        toast.error("Vous avez été éliminé!");
+        setGameStarted(false);
+        setTimeout(() => {
+          handlePlay();
+        }, 1500);
+      } else if (currentQueueLength > otherQueueLength) {
+        socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          const growthAmount = otherQueueLength;
+          let newQueue = [...(currentPlayer.queue || [])];
+          for (let i = 0; i < growthAmount; i++) {
+            const lastPos = newQueue.length > 0 ? { ...newQueue[newQueue.length - 1] } : { x: currentPlayer.x, y: currentPlayer.y };
+            newQueue.push(lastPos);
+          }
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                queue: newQueue
+              }
+            }
+          };
+        });
       }
     }
   };
@@ -297,13 +393,14 @@ const Index = () => {
         <>
           <GameCanvas 
             gameState={{
+              ...gameState,
               players: gameState.players || {},
-              worldSize: gameState.worldSize || { width: 2000, height: 2000 },
-              items: gameState.items || []
+              worldSize: gameState.worldSize || { width: 2000, height: 2000 }
             }}
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
+            onCollectItem={handleCollectItem}
             onPlayerCollision={handlePlayerCollision}
           />
           
