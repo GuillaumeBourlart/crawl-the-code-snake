@@ -205,10 +205,15 @@ const Index = () => {
     setSocket(newSocket);
   };
   
- 
+  
 
-  const handleMove = (direction: { x: number; y: number }) => {
+  const moveThrottleRef = useRef(false);
+
+const handleMove = (direction: { x: number; y: number }) => {
   if (socket && gameStarted && playerId) {
+    if (moveThrottleRef.current) return; // Ignore si en attente
+    moveThrottleRef.current = true;
+    
     const player = gameState.players[playerId];
     if (!player) return;
     const speed = player.boosting ? 10 : 5;
@@ -222,10 +227,12 @@ const Index = () => {
     const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
     const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
     
-    // Émettre l'événement move uniquement
     socket.emit("move", { x: boundedX, y: boundedY });
     
-    // Supprimez la mise à jour locale de gameState ici
+    // Remettre à false après 50ms (ajustez selon vos besoins)
+    setTimeout(() => {
+      moveThrottleRef.current = false;
+    }, 50);
   }
 };
 
