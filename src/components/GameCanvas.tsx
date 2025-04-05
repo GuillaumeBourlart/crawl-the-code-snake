@@ -46,9 +46,6 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const rafRef = useRef<number>();
   const cpuImageRef = useRef<HTMLImageElement | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
-  const targetFpsRef = useRef<number>(60);
-  const fpsInterval = useRef<number>(1000 / targetFpsRef.current);
   
   useEffect(() => {
     const createProcessorImage = (color: string): HTMLImageElement => {
@@ -151,6 +148,7 @@ const GameCanvas = ({
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
+      // Head-to-head collision - compare sizes
       if (distance < (currentSize + otherSize) / 2) {
         const currentQueueLength = currentPlayer.queue?.length || 0;
         const otherQueueLength = otherPlayer.queue?.length || 0;
@@ -161,6 +159,7 @@ const GameCanvas = ({
         }
       }
       
+      // Queue collision - current player dies regardless of size
       if (otherPlayer.queue && otherPlayer.queue.length > 0) {
         const collisionRadius = currentSize / 2;
         
@@ -185,266 +184,232 @@ const GameCanvas = ({
     return baseSize * (1 + (queueCount * 0.1));
   };
   
-  // Optimized rendering with frame timing
+  // Simplified rendering with better performance
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const ctx = canvas.getContext('2d', { alpha: false });  // Disable alpha for better performance
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Enable image smoothing optimization
-    ctx.imageSmoothingEnabled = false;
-    
     // Set canvas to match screen resolution
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height = `${window.innerHeight}px`;
-    ctx.scale(dpr, dpr);
-    
-    // Precompute grid positions
-    const gridCache = {
-      size: 50,
-      extent: 1000,
-      lastCameraX: 0,
-      lastCameraY: 0,
-      lines: [] as {x1: number, y1: number, x2: number, y2: number}[]
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
     
-    // Animation render loop with timing control
-    const render = (timestamp: number) => {
-      if (!lastUpdateTimeRef.current) {
-        lastUpdateTimeRef.current = timestamp;
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Precompute grid positions
+    const gridSize = 50;
+    
+    // Animation render loop
+    const render = () => {
+      // Clear canvas
+      ctx.fillStyle = '#121212';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.save();
+      
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+      
+      // Draw grid
+      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
+      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
+      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      
+      ctx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
+      ctx.lineWidth = 1;
+      
+      for (let x = startX; x <= endX; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
+        ctx.stroke();
       }
       
-      // Calculate elapsed time
-      const elapsed = timestamp - lastUpdateTimeRef.current;
+      for (let y = startY; y <= endY; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(startX, y);
+        ctx.lineTo(endX, y);
+        ctx.stroke();
+      }
       
-      // Only render if enough time has passed (for target FPS)
-      if (elapsed > fpsInterval.current) {
-        // Adjust for time difference to maintain smooth animation
-        lastUpdateTimeRef.current = timestamp - (elapsed % fpsInterval.current);
-        
-        // Clear with a single rect operation (faster than clearRect)
-        ctx.fillStyle = '#121212';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.save();
-        
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.scale(camera.zoom, camera.zoom);
-        ctx.translate(-camera.x, -camera.y);
-        
-        // Only recalculate grid when camera moves significantly
+      // Draw world boundary
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      
+      // Draw items
+      if (gameState.items && gameState.items.length > 0) {
+        gameState.items.forEach(item => {
+          // Skip rendering items outside of view
+          if (
+            item.x < camera.x - canvas.width / camera.zoom / 2 - 20 ||
+            item.x > camera.x + canvas.width / camera.zoom / 2 + 20 ||
+            item.y < camera.y - canvas.height / camera.zoom / 2 - 20 ||
+            item.y > camera.y + canvas.height / camera.zoom / 2 + 20
+          ) {
+            return;
+          }
+          
+          ctx.fillStyle = item.color || '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Highlight effect
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.beginPath();
+          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      
+      // Draw players
+      Object.entries(gameState.players).forEach(([id, player]) => {
+        // Skip rendering players far outside of view
         if (
-          Math.abs(camera.x - gridCache.lastCameraX) > gridCache.size || 
-          Math.abs(camera.y - gridCache.lastCameraY) > gridCache.size
+          player.x < camera.x - canvas.width / camera.zoom / 2 - 100 ||
+          player.x > camera.x + canvas.width / camera.zoom / 2 + 100 ||
+          player.y < camera.y - canvas.height / camera.zoom / 2 - 100 ||
+          player.y > camera.y + canvas.height / camera.zoom / 2 + 100
         ) {
-          gridCache.lastCameraX = camera.x;
-          gridCache.lastCameraY = camera.y;
-          
-          gridCache.lines = [];
-          
-          const startX = Math.floor((camera.x - gridCache.extent) / gridCache.size) * gridCache.size;
-          const endX = Math.ceil((camera.x + gridCache.extent) / gridCache.size) * gridCache.size;
-          const startY = Math.floor((camera.y - gridCache.extent) / gridCache.size) * gridCache.size;
-          const endY = Math.ceil((camera.y + gridCache.extent) / gridCache.size) * gridCache.size;
-          
-          // Calculate grid lines in batches
-          for (let x = startX; x <= endX; x += gridCache.size) {
-            gridCache.lines.push({
-              x1: x, 
-              y1: camera.y - gridCache.extent,
-              x2: x, 
-              y2: camera.y + gridCache.extent
-            });
-          }
-          
-          for (let y = startY; y <= endY; y += gridCache.size) {
-            gridCache.lines.push({
-              x1: camera.x - gridCache.extent, 
-              y1: y,
-              x2: camera.x + gridCache.extent, 
-              y2: y
-            });
-          }
+          return;
         }
         
-        // Draw grid from cache
-        ctx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
-        ctx.lineWidth = 1;
+        const playerSize = calculatePlayerSize(player);
+        const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
-        // Batch draw grid lines
-        ctx.beginPath();
-        gridCache.lines.forEach(line => {
-          ctx.moveTo(line.x1, line.y1);
-          ctx.lineTo(line.x2, line.y2);
-        });
-        ctx.stroke();
-        
-        // Draw world boundary
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-        
-        // Optimize item rendering
-        if (gameState.items && gameState.items.length > 0) {
-          // Batch similar rendering operations
-          ctx.fillStyle = '#FFFFFF';
-          gameState.items.forEach(item => {
-            ctx.fillStyle = item.color || '#FFFFFF';
+        if (player.queue && player.queue.length > 0) {
+          ctx.strokeStyle = playerColor;
+          ctx.lineWidth = Math.max(3, playerSize / 3);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          // Draw queue segments
+          ctx.beginPath();
+          ctx.moveTo(player.x, player.y);
+          
+          for (let i = 0; i < player.queue.length; i++) {
+            ctx.lineTo(player.queue[i].x, player.queue[i].y);
+          }
+          
+          ctx.stroke();
+          
+          // Draw queue nodes (only for visible segments)
+          for (let i = 0; i < player.queue.length; i++) {
+            const segment = player.queue[i];
+            
+            // Skip segments far from camera
+            if (
+              segment.x < camera.x - canvas.width / camera.zoom / 2 - 20 ||
+              segment.x > camera.x + canvas.width / camera.zoom / 2 + 20 ||
+              segment.y < camera.y - canvas.height / camera.zoom / 2 - 20 ||
+              segment.y > camera.y + canvas.height / camera.zoom / 2 + 20
+            ) {
+              continue;
+            }
+            
+            ctx.fillStyle = playerColor;
             ctx.beginPath();
-            ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+            ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
             ctx.fill();
             
-            // Highlight effect
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.beginPath();
-            ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+            ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
             ctx.fill();
-          });
+          }
         }
         
-        // Batch process players for fewer context changes
-        Object.entries(gameState.players).forEach(([id, player]) => {
-          const playerSize = calculatePlayerSize(player);
-          const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
+        // Draw player head
+        const drawPlayerHead = () => {
+          ctx.fillStyle = playerColor;
           
-          if (player.queue && player.queue.length > 0) {
-            ctx.strokeStyle = playerColor;
-            ctx.lineWidth = Math.max(3, playerSize / 3);
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            
-            // Draw queue segments efficiently
-            ctx.beginPath();
-            ctx.moveTo(player.x, player.y);
-            
-            for (let i = 0; i < player.queue.length; i++) {
-              ctx.lineTo(player.queue[i].x, player.queue[i].y);
-            }
-            
-            ctx.stroke();
-            
-            // Only draw queue nodes if close to the player's viewport
-            for (let i = 0; i < player.queue.length; i++) {
-              const segment = player.queue[i];
-              
-              const dx = segment.x - camera.x;
-              const dy = segment.y - camera.y;
-              const distanceFromCamera = Math.sqrt(dx * dx + dy * dy);
-              
-              // Only render segments within visible range
-              if (distanceFromCamera < canvas.width / (2 * camera.zoom)) {
-                ctx.fillStyle = playerColor;
-                ctx.beginPath();
-                ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-                ctx.beginPath();
-                ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            }
-          }
+          ctx.fillRect(player.x - 20 * (playerSize / 20) / 2, player.y - 20 * (playerSize / 20) / 2, 
+                       20 * (playerSize / 20), 20 * (playerSize / 20));
           
-          if (id === playerId || !cpuImageRef.current) {
-            const cpuImage = document.createElement('canvas');
-            cpuImage.width = 40;
-            cpuImage.height = 40;
-            const cpuCtx = cpuImage.getContext('2d');
-            
-            if (cpuCtx) {
-              cpuCtx.fillStyle = playerColor;
-              
-              cpuCtx.fillRect(8, 8, 24, 24);
-              
-              cpuCtx.fillRect(3, 15, 5, 4);
-              cpuCtx.fillRect(32, 15, 5, 4);
-              cpuCtx.fillRect(15, 3, 4, 5);
-              cpuCtx.fillRect(21, 3, 4, 5);
-              cpuCtx.fillRect(15, 32, 4, 5);
-              cpuCtx.fillRect(21, 32, 4, 5);
-              
-              cpuCtx.fillStyle = 'rgba(0,0,0,0.3)';
-              cpuCtx.fillRect(12, 12, 16, 16);
-              
-              cpuCtx.fillStyle = 'rgba(255,255,255,0.5)';
-              cpuCtx.fillRect(10, 10, 2, 2);
-              cpuCtx.fillRect(28, 28, 2, 2);
-              
-              const scale = playerSize / 20;
-              ctx.drawImage(
-                cpuImage, 
-                player.x - 20 * scale, 
-                player.y - 20 * scale, 
-                40 * scale, 
-                40 * scale
-              );
-            }
-          } else {
-            const scale = playerSize / 20;
-            ctx.drawImage(
-              cpuImageRef.current, 
-              player.x - 20 * scale, 
-              player.y - 20 * scale, 
-              40 * scale, 
-              40 * scale
-            );
-          }
+          // Draw embellishments
+          const scale = playerSize / 20;
+          const baseX = player.x - 20 * scale / 2;
+          const baseY = player.y - 20 * scale / 2;
+          const size = 20 * scale;
           
-          if (id === playerId) {
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-              player.x - 20 * (playerSize / 20),
-              player.y - 20 * (playerSize / 20),
-              40 * (playerSize / 20),
-              40 * (playerSize / 20)
-            );
-          }
+          // Main processor square
+          ctx.fillRect(baseX + size * 0.2, baseY + size * 0.2, size * 0.6, size * 0.6);
           
-          if (player.boosting) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, playerSize * 1.5, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          // Connectors
+          ctx.fillRect(baseX + size * 0.075, baseY + size * 0.375, size * 0.125, size * 0.1); // left
+          ctx.fillRect(baseX + size * 0.8, baseY + size * 0.375, size * 0.125, size * 0.1);   // right
+          ctx.fillRect(baseX + size * 0.375, baseY + size * 0.075, size * 0.1, size * 0.125); // top
+          ctx.fillRect(baseX + size * 0.525, baseY + size * 0.075, size * 0.1, size * 0.125); // top
+          ctx.fillRect(baseX + size * 0.375, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
+          ctx.fillRect(baseX + size * 0.525, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
           
-          if (id === playerId) {
-            ctx.fillStyle = '#FFFF00';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
-          } else {
-            const queueCount = player.queue?.length || 0;
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${queueCount}`, player.x, player.y - playerSize - 5);
-          }
-        });
+          // Inner detail
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.3, size * 0.4, size * 0.4);
+          
+          // Highlights
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.25, size * 0.05, size * 0.05);
+          ctx.fillRect(baseX + size * 0.7, baseY + size * 0.7, size * 0.05, size * 0.05);
+        };
         
-        ctx.restore();
+        drawPlayerHead();
         
-        // Draw UI overlay
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(10, 10, 200, 60);
+        // Highlight current player
+        if (id === playerId) {
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 2;
+          const scale = playerSize / 20;
+          ctx.strokeRect(player.x - 20 * scale / 2, player.y - 20 * scale / 2, 20 * scale, 20 * scale);
+        }
         
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '16px Arial';
+        // Draw boost effect
+        if (player.boosting) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+          ctx.beginPath();
+          ctx.arc(player.x, player.y, playerSize * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
         
-        const playerCount = Object.keys(gameState.players).length;
-        ctx.fillText(`Players: ${playerCount}`, 20, 30);
-        
-        if (playerId && gameState.players[playerId]) {
-          const player = gameState.players[playerId];
+        // Draw player label
+        if (id === playerId) {
+          ctx.fillStyle = '#FFFF00';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
+        } else {
           const queueCount = player.queue?.length || 0;
-          ctx.fillText(`Segments: ${queueCount}`, 20, 60);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${queueCount}`, player.x, player.y - playerSize - 5);
         }
+      });
+      
+      ctx.restore();
+      
+      // Draw UI overlay
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(10, 10, 200, 60);
+      
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '16px Arial';
+      
+      const playerCount = Object.keys(gameState.players).length;
+      ctx.fillText(`Players: ${playerCount}`, 20, 30);
+      
+      if (playerId && gameState.players[playerId]) {
+        const player = gameState.players[playerId];
+        const queueCount = player.queue?.length || 0;
+        ctx.fillText(`Segments: ${queueCount}`, 20, 60);
       }
       
       rafRef.current = requestAnimationFrame(render);
@@ -452,22 +417,11 @@ const GameCanvas = ({
     
     rafRef.current = requestAnimationFrame(render);
     
-    const handleResize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
-      ctx.scale(dpr, dpr);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
     return () => {
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', resizeCanvas);
     };
   }, [gameState, playerId, camera]);
   
