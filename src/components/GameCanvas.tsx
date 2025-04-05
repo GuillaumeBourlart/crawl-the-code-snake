@@ -46,23 +46,64 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
+  
+  // Use refs for rendering state to prevent re-renders
+  const gameStateRef = useRef<GameState>({
+    players: {},
+    items: [],
+    worldSize: { width: 2000, height: 2000 }
+  });
+  
+  // Store renderer state in a ref to avoid re-renders
   const rendererStateRef = useRef({
     players: {} as Record<string, Player>,
     items: [] as GameItem[],
-    gridNeedsUpdate: true
+    gridNeedsUpdate: true,
+    needsFullRedraw: true,
+    lastFrameTime: 0
   });
+  
+  // Cache grid rendering
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  // Frame rate tracking
+  const fpsRef = useRef({
+    frames: 0,
+    lastFpsUpdate: 0,
+    fps: 0
+  });
+  
+  // Update gameStateRef when props change
+  useEffect(() => {
+    // Only mark for full redraw if there's a significant change
+    if (JSON.stringify(gameStateRef.current.players) !== JSON.stringify(gameState.players)) {
+      rendererStateRef.current.needsFullRedraw = true;
+    }
+    
+    gameStateRef.current = {
+      ...gameState,
+      items: gameState.items || []
+    };
+  }, [gameState]);
   
   // Initialize camera position when player joins
   useEffect(() => {
     if (!playerId || !gameState.players[playerId]) return;
     
     const player = gameState.players[playerId];
-    setCamera(prev => ({
-      ...prev,
-      x: player.x,
-      y: player.y
-    }));
+    setCamera(prev => {
+      // Only update if position changed significantly
+      const dx = Math.abs(prev.x - player.x);
+      const dy = Math.abs(prev.y - player.y);
+      if (dx > 1 || dy > 1) {
+        return {
+          ...prev,
+          x: player.x,
+          y: player.y
+        };
+      }
+      return prev;
+    });
   }, [gameState, playerId]);
   
   // Handle mouse movement for player direction
@@ -77,7 +118,7 @@ const GameCanvas = ({
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
       
-      const player = gameState.players[playerId];
+      const player = gameStateRef.current.players[playerId];
       if (!player) return;
       
       const worldX = (canvasX / canvas.width) * canvas.width / camera.zoom + camera.x - canvas.width / camera.zoom / 2;
@@ -94,61 +135,93 @@ const GameCanvas = ({
       }
     };
     
+    // Throttle mouse move events 
+    let lastMoveTime = 0;
+    const throttledMouseMove = (e: MouseEvent) => {
+      const now = performance.now();
+      if (now - lastMoveTime >= 16) { // ~60fps throttle
+        lastMoveTime = now;
+        handleMouseMove(e);
+      }
+    };
+    
     const handleMouseClick = () => {
       onBoost();
     };
     
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', throttledMouseMove);
     window.addEventListener('mousedown', handleMouseClick);
     
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousemove', throttledMouseMove);
       window.removeEventListener('mousedown', handleMouseClick);
     };
-  }, [gameState, playerId, onMove, onBoost, camera]);
+  }, [camera, onMove, onBoost, playerId]);
   
-  // Check for player collisions
+  // Check for player collisions - optimized to run less frequently
   useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
-    const currentPlayer = gameState.players[playerId];
-    const currentSize = calculatePlayerSize(currentPlayer);
-    
-    Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
-      if (otherId === playerId) return;
+    const collisionCheckInterval = setInterval(() => {
+      const currentPlayer = gameStateRef.current.players[playerId];
+      if (!currentPlayer) return;
       
-      const otherSize = calculatePlayerSize(otherPlayer);
-      const dx = currentPlayer.x - otherPlayer.x;
-      const dy = currentPlayer.y - otherPlayer.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const currentSize = calculatePlayerSize(currentPlayer);
       
-      // Head-to-head collision - compare sizes
-      if (distance < (currentSize + otherSize) / 2) {
-        const currentQueueLength = currentPlayer.queue?.length || 0;
-        const otherQueueLength = otherPlayer.queue?.length || 0;
+      Object.entries(gameStateRef.current.players).forEach(([otherId, otherPlayer]) => {
+        if (otherId === playerId) return;
         
-        if (currentQueueLength <= otherQueueLength) {
-          onPlayerCollision(otherId);
-          return;
+        const otherSize = calculatePlayerSize(otherPlayer);
+        const dx = currentPlayer.x - otherPlayer.x;
+        const dy = currentPlayer.y - otherPlayer.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Use bounding box check before more expensive distance check
+        const boundingBoxSize = currentSize + otherSize;
+        if (Math.abs(dx) > boundingBoxSize || Math.abs(dy) > boundingBoxSize) {
+          return; // Skip detailed collision check if objects are far apart
         }
-      }
-      
-      // Queue collision - current player dies regardless of size
-      if (otherPlayer.queue && otherPlayer.queue.length > 0) {
-        const collisionRadius = currentSize / 2;
         
-        for (const segment of otherPlayer.queue) {
-          const segDx = currentPlayer.x - segment.x;
-          const segDy = currentPlayer.y - segment.y;
-          const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
+        // Head-to-head collision - compare sizes
+        if (distance < (currentSize + otherSize) / 2) {
+          const currentQueueLength = currentPlayer.queue?.length || 0;
+          const otherQueueLength = otherPlayer.queue?.length || 0;
           
-          if (segDistance < collisionRadius) {
+          if (currentQueueLength <= otherQueueLength) {
             onPlayerCollision(otherId);
             return;
           }
         }
-      }
-    });
+        
+        // Only check queue collision if player heads are close enough
+        if (distance < 200 && otherPlayer.queue && otherPlayer.queue.length > 0) {
+          const collisionRadius = currentSize / 2;
+          
+          // Only check every few segments for performance
+          const skipFactor = Math.max(1, Math.floor(otherPlayer.queue.length / 20));
+          
+          for (let i = 0; i < otherPlayer.queue.length; i += skipFactor) {
+            const segment = otherPlayer.queue[i];
+            const segDx = currentPlayer.x - segment.x;
+            const segDy = currentPlayer.y - segment.y;
+            
+            // Bounding box check before distance check
+            if (Math.abs(segDx) > collisionRadius || Math.abs(segDy) > collisionRadius) {
+              continue;
+            }
+            
+            const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
+            
+            if (segDistance < collisionRadius) {
+              onPlayerCollision(otherId);
+              return;
+            }
+          }
+        }
+      });
+    }, 100); // Check collisions every 100ms instead of every frame
+    
+    return () => clearInterval(collisionCheckInterval);
   }, [gameState, playerId, onPlayerCollision]);
 
   const calculatePlayerSize = (player: Player): number => {
@@ -163,13 +236,28 @@ const GameCanvas = ({
     if (!playerId || !gameState.players[playerId]) return;
     
     const player = gameState.players[playerId];
-    setCamera(prev => ({
-      ...prev,
-      x: player.x,
-      y: player.y
-    }));
     
-    // Mark grid for update when players move significantly
+    // Smoothly interpolate camera position
+    setCamera(prev => {
+      const targetX = player.x;
+      const targetY = player.y;
+      
+      // Only update if position changed significantly to prevent unnecessary rerenders
+      const dx = Math.abs(prev.x - targetX);
+      const dy = Math.abs(prev.y - targetY);
+      
+      if (dx > 2 || dy > 2) {
+        const lerpFactor = 0.2; // Lower = smoother but slower
+        return {
+          ...prev,
+          x: prev.x + (targetX - prev.x) * lerpFactor,
+          y: prev.y + (targetY - prev.y) * lerpFactor
+        };
+      }
+      return prev;
+    });
+    
+    // Mark grid for update only when player moves far enough
     const prevPlayer = rendererStateRef.current.players[playerId];
     if (prevPlayer) {
       const dx = Math.abs(prevPlayer.x - player.x);
@@ -189,7 +277,12 @@ const GameCanvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const ctx = canvas.getContext('2d', { alpha: false });
+    // Get context with optimization flags
+    const ctx = canvas.getContext('2d', { 
+      alpha: false,          // No transparency needed for full canvas
+      desynchronized: true,  // Allow browser to optimize rendering
+      willReadFrequently: false // We don't read pixel data
+    });
     if (!ctx) return;
     
     // Create grid cache canvas if it doesn't exist
@@ -199,15 +292,21 @@ const GameCanvas = ({
     
     // Set canvas to match screen resolution
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // Scale for high-DPI displays
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
       
       if (gridCacheCanvasRef.current) {
         gridCacheCanvasRef.current.width = canvas.width;
         gridCacheCanvasRef.current.height = canvas.height;
       }
       
+      ctx.scale(dpr, dpr);
       rendererStateRef.current.gridNeedsUpdate = true;
+      rendererStateRef.current.needsFullRedraw = true;
     };
     
     resizeCanvas();
@@ -218,7 +317,10 @@ const GameCanvas = ({
       const gridCanvas = gridCacheCanvasRef.current;
       if (!gridCanvas) return;
       
-      const gridCtx = gridCanvas.getContext('2d', { alpha: false });
+      const gridCtx = gridCanvas.getContext('2d', { 
+        alpha: false, 
+        desynchronized: true 
+      });
       if (!gridCtx) return;
       
       // Clear grid canvas
@@ -233,10 +335,12 @@ const GameCanvas = ({
       
       // Draw grid
       const gridSize = 50;
-      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      const viewWidth = canvas.width / camera.zoom;
+      const viewHeight = canvas.height / camera.zoom;
+      const startX = Math.floor((camera.x - viewWidth / 2) / gridSize) * gridSize;
+      const endX = Math.ceil((camera.x + viewWidth / 2) / gridSize) * gridSize;
+      const startY = Math.floor((camera.y - viewHeight / 2) / gridSize) * gridSize;
+      const endY = Math.ceil((camera.y + viewHeight / 2) / gridSize) * gridSize;
       
       gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
       gridCtx.lineWidth = 1;
@@ -260,7 +364,7 @@ const GameCanvas = ({
       // Draw world boundary
       gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       gridCtx.lineWidth = 2;
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      gridCtx.strokeRect(0, 0, gameStateRef.current.worldSize.width, gameStateRef.current.worldSize.height);
       
       gridCtx.restore();
       
@@ -271,9 +375,30 @@ const GameCanvas = ({
     const renderFrame = (timestamp: number) => {
       if (!canvas) return;
       
-      // Clear the canvas with solid color (more efficient than clearRect)
-      ctx.fillStyle = '#121212';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Calculate delta time between frames
+      const deltaTime = timestamp - (rendererStateRef.current.lastFrameTime || timestamp);
+      rendererStateRef.current.lastFrameTime = timestamp;
+      
+      // FPS counter
+      fpsRef.current.frames++;
+      if (timestamp - fpsRef.current.lastFpsUpdate > 1000) {
+        fpsRef.current.fps = fpsRef.current.frames;
+        fpsRef.current.frames = 0;
+        fpsRef.current.lastFpsUpdate = timestamp;
+      }
+      
+      // Only update UI at 60 FPS max
+      const timeSinceLastRender = timestamp - previousTimeRef.current;
+      if (timeSinceLastRender < 16.667 && !rendererStateRef.current.needsFullRedraw) {
+        requestRef.current = requestAnimationFrame(renderFrame);
+        return;
+      }
+      
+      // Clear the canvas only if needed
+      if (rendererStateRef.current.needsFullRedraw) {
+        ctx.fillStyle = '#121212';
+        ctx.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+      }
       
       // Update grid cache if needed
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
@@ -282,44 +407,70 @@ const GameCanvas = ({
       
       // Draw grid from cache
       if (gridCacheCanvasRef.current) {
-        ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
+        ctx.drawImage(
+          gridCacheCanvasRef.current, 
+          0, 0, 
+          canvas.width, canvas.height,
+          0, 0, 
+          canvas.width / window.devicePixelRatio, 
+          canvas.height / window.devicePixelRatio
+        );
       }
       
       ctx.save();
       
-      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.translate(canvas.width / window.devicePixelRatio / 2, canvas.height / window.devicePixelRatio / 2);
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
       // Use viewport culling for efficient rendering
-      const viewportLeft = camera.x - canvas.width / camera.zoom / 2 - 100;
-      const viewportRight = camera.x + canvas.width / camera.zoom / 2 + 100;
-      const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
-      const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
+      const viewWidth = canvas.width / window.devicePixelRatio / camera.zoom;
+      const viewHeight = canvas.height / window.devicePixelRatio / camera.zoom;
+      
+      const viewportLeft = camera.x - viewWidth / 2 - 100;
+      const viewportRight = camera.x + viewWidth / 2 + 100;
+      const viewportTop = camera.y - viewHeight / 2 - 100;
+      const viewportBottom = camera.y + viewHeight / 2 + 100;
       
       // Draw items
       if (rendererStateRef.current.items.length > 0) {
-        const visibleItems = rendererStateRef.current.items.filter(item => 
-          item.x >= viewportLeft && 
-          item.x <= viewportRight && 
-          item.y >= viewportTop && 
-          item.y <= viewportBottom
-        );
-        
-        // Batch similar items for performance
-        ctx.beginPath();
-        visibleItems.forEach(item => {
-          ctx.fillStyle = item.color || '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
-          ctx.fill();
+        // Only redraw items when full redraw is needed
+        if (rendererStateRef.current.needsFullRedraw) {
+          const visibleItems = rendererStateRef.current.items.filter(item => 
+            item.x >= viewportLeft && 
+            item.x <= viewportRight && 
+            item.y >= viewportTop && 
+            item.y <= viewportBottom
+          );
           
-          // Simple highlight effect
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          ctx.beginPath();
-          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
-          ctx.fill();
-        });
+          // Batch items by color for fewer state changes
+          const itemsByColor = visibleItems.reduce((groups, item) => {
+            const color = item.color || '#FFFFFF';
+            if (!groups[color]) {
+              groups[color] = [];
+            }
+            groups[color].push(item);
+            return groups;
+          }, {} as Record<string, GameItem[]>);
+          
+          // Draw items grouped by color
+          Object.entries(itemsByColor).forEach(([color, items]) => {
+            ctx.fillStyle = color;
+            items.forEach(item => {
+              ctx.beginPath();
+              ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+              ctx.fill();
+            });
+            
+            // Draw highlights
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            items.forEach(item => {
+              ctx.beginPath();
+              ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+              ctx.fill();
+            });
+          });
+        }
       }
       
       // Draw players
@@ -345,14 +496,26 @@ const GameCanvas = ({
           ctx.lineJoin = 'round';
           
           // Optimize queue rendering by skipping segments outside viewport
-          const visibleQueue = player.queue.filter(segment => 
-            segment.x >= viewportLeft && 
-            segment.x <= viewportRight && 
-            segment.y >= viewportTop && 
-            segment.y <= viewportBottom
-          );
+          // and using segmentation for long queues
+          const skipFactor = player.queue.length > 50 ? Math.floor(player.queue.length / 50) : 1;
           
-          if (visibleQueue.length > 0 || (
+          // Filter visible segments
+          const visibleSegments: {x: number, y: number, index: number}[] = [];
+          player.queue.forEach((segment, index) => {
+            if (index % skipFactor !== 0 && index !== player.queue!.length - 1) return;
+            
+            if (
+              segment.x >= viewportLeft && 
+              segment.x <= viewportRight && 
+              segment.y >= viewportTop && 
+              segment.y <= viewportBottom
+            ) {
+              visibleSegments.push({...segment, index});
+            }
+          });
+          
+          // Draw line connecting segments
+          if (visibleSegments.length > 0 || (
             player.x >= viewportLeft && 
             player.x <= viewportRight && 
             player.y >= viewportTop && 
@@ -361,24 +524,26 @@ const GameCanvas = ({
             ctx.beginPath();
             ctx.moveTo(player.x, player.y);
             
-            for (const segment of visibleQueue) {
+            for (const segment of visibleSegments) {
               ctx.lineTo(segment.x, segment.y);
             }
             
             ctx.stroke();
             
-            // Draw queue nodes
-            for (const segment of visibleQueue) {
+            // Only draw queue nodes for visible segments
+            for (const segment of visibleSegments) {
               ctx.fillStyle = playerColor;
               ctx.beginPath();
-              ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
+              ctx.arc(segment.x, segment.y, playerSize / 2.5, 0, Math.PI * 2);
               ctx.fill();
               
-              // Simple highlight
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-              ctx.beginPath();
-              ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
-              ctx.fill();
+              // Simple highlight only for nodes that are not too numerous
+              if (skipFactor <= 2) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
             }
           }
         }
@@ -452,20 +617,29 @@ const GameCanvas = ({
       ctx.restore();
       
       // Draw UI overlay
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(10, 10, 200, 60);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '16px Arial';
-      
-      const playerCount = Object.keys(rendererStateRef.current.players).length;
-      ctx.fillText(`Players: ${playerCount}`, 20, 30);
-      
-      if (playerId && rendererStateRef.current.players[playerId]) {
-        const player = rendererStateRef.current.players[playerId];
-        const queueCount = player.queue?.length || 0;
-        ctx.fillText(`Segments: ${queueCount}`, 20, 60);
+      // Use optimization: only redraw UI when it changes or on full redraw
+      if (rendererStateRef.current.needsFullRedraw) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(10, 10, 210, 90);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '16px Arial';
+        
+        const playerCount = Object.keys(rendererStateRef.current.players).length;
+        ctx.fillText(`Players: ${playerCount}`, 20, 30);
+        
+        if (playerId && rendererStateRef.current.players[playerId]) {
+          const player = rendererStateRef.current.players[playerId];
+          const queueCount = player.queue?.length || 0;
+          ctx.fillText(`Segments: ${queueCount}`, 20, 60);
+        }
+        
+        // Display FPS
+        ctx.fillText(`FPS: ${fpsRef.current.fps}`, 20, 90);
       }
+      
+      // Reset full redraw flag
+      rendererStateRef.current.needsFullRedraw = false;
       
       // Store previous timestamp and request next frame
       previousTimeRef.current = timestamp;
@@ -475,12 +649,18 @@ const GameCanvas = ({
     // Start the animation loop
     requestRef.current = requestAnimationFrame(renderFrame);
     
+    // Enforce full redraw periodically to avoid stale UI
+    const fullRedrawInterval = setInterval(() => {
+      rendererStateRef.current.needsFullRedraw = true;
+    }, 1000);
+    
     // Cleanup
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
       window.removeEventListener('resize', resizeCanvas);
+      clearInterval(fullRedrawInterval);
     };
   }, [gameState.worldSize, playerId, camera]);
   
