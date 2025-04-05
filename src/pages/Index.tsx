@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -82,6 +81,19 @@ const Index = () => {
     return items;
   };
   
+  // Function to generate initial segments for a snake
+  const generateInitialSegments = (x: number, y: number, count: number = 5): Array<{x: number, y: number}> => {
+    const segments = [];
+    // Create segments in a line behind the player head position
+    for (let i = 0; i < count; i++) {
+      segments.push({
+        x: x - (i * 5), // Space them out behind the player
+        y: y
+      });
+    }
+    return segments;
+  };
+  
   const handlePlay = () => {
     setConnecting(true);
     
@@ -129,6 +141,10 @@ const Index = () => {
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       
+      // Generate random starting position
+      const startX = Math.random() * 800;
+      const startY = Math.random() * 600;
+      
       // Generate random items
       const worldSize = { width: 2000, height: 2000 };
       const randomItems = generateRandomItems(50, worldSize);
@@ -139,11 +155,12 @@ const Index = () => {
         players: {
           ...prevState.players,
           [newSocket.id]: {
-            x: Math.random() * 800,
-            y: Math.random() * 600,
+            x: startX,
+            y: startY,
             length: 20, // Starting size
             color: randomColor,
-            segments: []
+            segments: generateInitialSegments(startX, startY), // Initialize with segments
+            direction: { x: 1, y: 0 } // Initial direction (right)
           }
         },
         items: randomItems,
@@ -176,13 +193,23 @@ const Index = () => {
           const currentPlayer = prevState.players[playerId];
           if (!currentPlayer) return prevState;
           
+          // Add new segments
+          const newSegments = [...(currentPlayer.segments || [])];
+          const lastSegment = newSegments.length > 0 ? newSegments[newSegments.length - 1] : { x: currentPlayer.x, y: currentPlayer.y };
+          
+          // Add segments at the end of the trail
+          for (let i = 0; i < data.growth; i++) {
+            newSegments.push({ x: lastSegment.x, y: lastSegment.y });
+          }
+          
           return {
             ...prevState,
             players: {
               ...prevState.players,
               [playerId]: {
                 ...currentPlayer,
-                length: (currentPlayer.length || 20) + data.growth
+                length: (currentPlayer.length || 20) + data.growth,
+                segments: newSegments
               }
             }
           };
@@ -202,16 +229,15 @@ const Index = () => {
       console.log("Players update:", players);
       
       // Convert incoming server data format to client format if needed
-      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => {
-        return {
-          ...acc,
-          [id]: {
-            ...player,
-            size: player.length || 20, // Ensure size is set for rendering
-            segments: player.segments || []
-          }
+      const processedPlayers: Record<string, ServerPlayer> = {};
+      
+      Object.entries(players).forEach(([id, player]) => {
+        processedPlayers[id] = {
+          ...player,
+          size: player.length || 20, // Ensure size is set for rendering
+          segments: player.segments || []
         };
-      }, {});
+      });
       
       setGameState(prevState => ({
         ...prevState,
@@ -219,9 +245,8 @@ const Index = () => {
       }));
       
       // Check for collisions with other players
-      if (playerId) {
+      if (playerId && processedPlayers[playerId]) {
         const currentPlayer = processedPlayers[playerId];
-        if (!currentPlayer) return;
         
         Object.entries(processedPlayers).forEach(([otherId, otherPlayer]) => {
           if (otherId === playerId) return; // Don't check collision with self
@@ -275,15 +300,83 @@ const Index = () => {
       // Restrict movement to within the boundaries with a small margin
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
       const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
+      
+      // Create a new segments array by shifting all segments
+      let newSegments = [...(player.segments || [])];
+      
+      // Add current position as the new head segment
+      newSegments.unshift({ x: player.x, y: player.y });
+      
+      // Limit segments length to player's length
+      const segmentLength = Math.max(5, Math.floor((player.length || 20) / 4));
+      newSegments = newSegments.slice(0, segmentLength);
+      
+      // Update local game state immediately for smooth movement
+      setGameState(prevState => ({
+        ...prevState,
+        players: {
+          ...prevState.players,
+          [playerId]: {
+            ...player,
+            x: boundedX,
+            y: boundedY,
+            direction: { x: direction.x, y: direction.y },
+            segments: newSegments
+          }
+        }
+      }));
 
       // Send the new position to the server
-      socket.emit("move", { x: boundedX, y: boundedY });
+      socket.emit("move", { 
+        x: boundedX, 
+        y: boundedY,
+        direction: direction,
+        segments: newSegments
+      });
     }
   };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
       socket.emit("boost");
+      
+      // Update local state to show boost effect immediately
+      if (playerId) {
+        setGameState(prev => {
+          const player = prev.players[playerId];
+          if (!player) return prev;
+          
+          return {
+            ...prev,
+            players: {
+              ...prev.players,
+              [playerId]: {
+                ...player,
+                boosting: true
+              }
+            }
+          };
+        });
+        
+        // Reset boost effect after a short delay
+        setTimeout(() => {
+          setGameState(prev => {
+            const player = prev.players[playerId];
+            if (!player) return prev;
+            
+            return {
+              ...prev,
+              players: {
+                ...prev.players,
+                [playerId]: {
+                  ...player,
+                  boosting: false
+                }
+              }
+            };
+          });
+        }, 500);
+      }
     }
   };
   
@@ -310,6 +403,15 @@ const Index = () => {
         
         const newLength = (currentPlayer.length || 20) + growthAmount;
         
+        // Add new segments based on growth amount
+        const segments = [...(currentPlayer.segments || [])];
+        const lastSegment = segments.length > 0 ? segments[segments.length - 1] : { x: currentPlayer.x, y: currentPlayer.y };
+        
+        // Add new segments at the end
+        for (let i = 0; i < growthAmount; i++) {
+          segments.push({ x: lastSegment.x, y: lastSegment.y });
+        }
+        
         return {
           ...prevState,
           items: newItems,
@@ -317,7 +419,8 @@ const Index = () => {
             ...prevState.players,
             [playerId]: {
               ...currentPlayer,
-              length: newLength
+              length: newLength,
+              segments: segments
             }
           }
         };
