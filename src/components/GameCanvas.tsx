@@ -8,7 +8,7 @@ interface Player {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  queue?: Array<{ x: number; y: number }>; // Renommé de segments à queue pour correspondre à l'API du serveur
+  queue?: Array<{ x: number; y: number }>; 
   boosting?: boolean;
 }
 
@@ -149,6 +149,22 @@ const GameCanvas = ({
       
       if (distance < (currentSize + otherSize) / 2) {
         onPlayerCollision(otherId);
+        return;
+      }
+      
+      if (otherPlayer.queue && otherPlayer.queue.length > 0) {
+        const collisionRadius = (currentSize + otherSize) / 2;
+        
+        for (const segment of otherPlayer.queue) {
+          const segDx = currentPlayer.x - segment.x;
+          const segDy = currentPlayer.y - segment.y;
+          const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
+          
+          if (segDistance < collisionRadius) {
+            onPlayerCollision(otherId);
+            return;
+          }
+        }
       }
     });
   }, [gameState, playerId, onPlayerCollision]);
