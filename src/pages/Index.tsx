@@ -205,8 +205,6 @@ const Index = () => {
     setSocket(newSocket);
   };
   
-  
-
   const moveThrottleRef = useRef(false);
 
 const handleMove = (direction: { x: number; y: number }) => {
