@@ -22,7 +22,7 @@ interface GameItem {
 
 interface GameState {
   players: Record<string, Player>;
-  items?: Record<string, GameItem>;
+  items: Record<string, GameItem>;
   worldSize: { width: number; height: number };
 }
 
@@ -31,17 +31,13 @@ interface GameCanvasProps {
   playerId: string | null;
   onMove: (direction: { x: number; y: number }) => void;
   onBoost: () => void;
-  onCollectItem?: (itemId: string) => void;
-  onPlayerCollision?: (otherPlayerId: string) => void;
 }
 
 const GameCanvas = ({ 
   gameState, 
   playerId, 
   onMove, 
-  onBoost, 
-  onCollectItem,
-  onPlayerCollision 
+  onBoost
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
@@ -135,44 +131,6 @@ const GameCanvas = ({
     }));
   }, [gameState, playerId]);
   
-  useEffect(() => {
-    if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
-    
-    const player = gameState.players[playerId];
-    const playerSize = calculatePlayerSize(player);
-    
-    Object.entries(gameState.items).forEach(([itemId, item]) => {
-      const dx = player.x - item.x;
-      const dy = player.y - item.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < playerSize / 2 + 10) {
-        console.log("Item collected! Calling onCollectItem");
-        onCollectItem(itemId);
-      }
-    });
-  }, [gameState, playerId, onCollectItem]);
-  
-  useEffect(() => {
-    if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
-    
-    const currentPlayer = gameState.players[playerId];
-    const currentSize = calculatePlayerSize(currentPlayer);
-    
-    Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
-      if (otherId === playerId) return;
-      
-      const otherSize = calculatePlayerSize(otherPlayer);
-      const dx = currentPlayer.x - otherPlayer.x;
-      const dy = currentPlayer.y - otherPlayer.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < (currentSize + otherSize) / 2) {
-        onPlayerCollision(otherId);
-      }
-    });
-  }, [gameState, playerId, onPlayerCollision]);
-
   const calculatePlayerSize = (player: Player): number => {
     const baseSize = 20;
     const segmentCount = player.segments?.length || 0;
