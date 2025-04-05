@@ -25,9 +25,17 @@ interface ServerPlayer {
   boosting?: boolean;
 }
 
+interface GameItem {
+  id: string;
+  x: number;
+  y: number;
+  value: number;
+  type: string;
+}
+
 interface ServerGameState {
   players: Record<string, ServerPlayer>;
-  items?: Record<string, any>;
+  items?: Record<string, GameItem>;
   worldSize?: { width: number; height: number };
 }
 
@@ -40,6 +48,7 @@ const Index = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
+    items: {},
     worldSize: { width: 2000, height: 2000 }
   });
   
@@ -53,6 +62,24 @@ const Index = () => {
       }
     };
   }, [socket]);
+  
+  // Generate random items across the map
+  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
+    const items: Record<string, GameItem> = {};
+    
+    for (let i = 0; i < count; i++) {
+      const id = `item-${i}`;
+      items[id] = {
+        id,
+        x: Math.random() * worldSize.width,
+        y: Math.random() * worldSize.height,
+        value: Math.floor(Math.random() * 5) + 1, // Value between 1 and 5
+        type: Math.random() > 0.5 ? 'code' : 'data'
+      };
+    }
+    
+    return items;
+  };
   
   const handlePlay = () => {
     setConnecting(true);
@@ -98,10 +125,14 @@ const Index = () => {
       setGameStarted(true);
       
       // Initialize the player with a random color
-      const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+      const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       
-      // Set initial gameState with the player
+      // Generate random items
+      const worldSize = { width: 2000, height: 2000 };
+      const randomItems = generateRandomItems(50, worldSize);
+      
+      // Set initial gameState with the player and items
       setGameState(prevState => ({
         ...prevState,
         players: {
@@ -113,7 +144,9 @@ const Index = () => {
             color: randomColor,
             segments: []
           }
-        }
+        },
+        items: randomItems,
+        worldSize
       }));
       
       toast.success("Vous avez rejoint la partie");
@@ -158,19 +191,47 @@ const Index = () => {
       if (!player) return;
 
       // Calculate new position based on current position and direction
-      // We'll use a speed factor to control how fast the player moves
       const speed = 5;
       const newX = player.x + direction.x * speed;
       const newY = player.y + direction.y * speed;
 
+      // Check boundaries to ensure the player stays within the game world
+      const worldWidth = gameState.worldSize?.width || 2000;
+      const worldHeight = gameState.worldSize?.height || 2000;
+      const playerSize = player.length || 10;
+      
+      // Restrict movement to within the boundaries with a small margin
+      const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
+      const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
+
       // Send the new position to the server
-      socket.emit("move", { x: newX, y: newY });
+      socket.emit("move", { x: boundedX, y: boundedY });
     }
   };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
       socket.emit("boost");
+    }
+  };
+  
+  const handleCollectItem = (itemId: string) => {
+    // This function would be called when a player collects an item
+    if (socket && gameStarted) {
+      socket.emit("collect_item", { itemId });
+      
+      // Update local game state to remove the item (optimistic update)
+      setGameState(prevState => {
+        if (!prevState.items) return prevState;
+        
+        const newItems = { ...prevState.items };
+        delete newItems[itemId];
+        
+        return {
+          ...prevState,
+          items: newItems
+        };
+      });
     }
   };
 
@@ -221,6 +282,7 @@ const Index = () => {
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
+            onCollectItem={handleCollectItem}
           />
           
           {isMobile && (

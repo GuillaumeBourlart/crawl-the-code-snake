@@ -1,5 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
+import { Cpu } from "lucide-react";
 
 interface Player {
   id?: string;
@@ -18,6 +19,7 @@ interface GameItem {
   x: number;
   y: number;
   value: number;
+  type: string;
 }
 
 interface GameState {
@@ -31,12 +33,139 @@ interface GameCanvasProps {
   playerId: string | null;
   onMove: (direction: { x: number; y: number }) => void;
   onBoost: () => void;
+  onCollectItem?: (itemId: string) => void;
 }
 
-const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) => {
+const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const rafRef = useRef<number>();
+  const cpuImageRef = useRef<HTMLImageElement | null>(null);
+  const codeFragmentImageRef = useRef<HTMLImageElement | null>(null);
+  const dataFragmentImageRef = useRef<HTMLImageElement | null>(null);
+  
+  // Preload images
+  useEffect(() => {
+    // Create CPU image (processor)
+    const createProcessorImage = (color: string): HTMLImageElement => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 40;
+      canvas.height = 40;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) return new Image();
+      
+      // Draw a processor-like shape
+      ctx.fillStyle = color;
+      
+      // Main square
+      ctx.fillRect(8, 8, 24, 24);
+      
+      // Connection pins
+      ctx.fillRect(3, 15, 5, 4);  // left
+      ctx.fillRect(32, 15, 5, 4); // right
+      ctx.fillRect(15, 3, 4, 5);  // top
+      ctx.fillRect(21, 3, 4, 5);  // top
+      ctx.fillRect(15, 32, 4, 5); // bottom
+      ctx.fillRect(21, 32, 4, 5); // bottom
+      
+      // Inner details
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(12, 12, 16, 16);
+      
+      // Highlights
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(10, 10, 2, 2);
+      ctx.fillRect(28, 28, 2, 2);
+      
+      // Convert to image
+      const img = new Image();
+      img.src = canvas.toDataURL();
+      return img;
+    };
+    
+    // Create code fragment image
+    const createCodeFragmentImage = (): HTMLImageElement => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 20;
+      canvas.height = 20;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) return new Image();
+      
+      // Draw a code fragment (like a small code snippet)
+      ctx.fillStyle = '#63e6be'; // Bright teal
+      ctx.beginPath();
+      ctx.moveTo(0, 5);
+      ctx.lineTo(5, 0);
+      ctx.lineTo(15, 0);
+      ctx.lineTo(20, 5);
+      ctx.lineTo(20, 15);
+      ctx.lineTo(15, 20);
+      ctx.lineTo(5, 20);
+      ctx.lineTo(0, 15);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Add some code-like details
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(5, 6);
+      ctx.lineTo(15, 6);
+      ctx.moveTo(5, 10);
+      ctx.lineTo(12, 10);
+      ctx.moveTo(5, 14);
+      ctx.lineTo(10, 14);
+      ctx.stroke();
+      
+      // Convert to image
+      const img = new Image();
+      img.src = canvas.toDataURL();
+      return img;
+    };
+    
+    // Create data fragment image
+    const createDataFragmentImage = (): HTMLImageElement => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 20;
+      canvas.height = 20;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) return new Image();
+      
+      // Draw a data fragment (like a small database)
+      ctx.fillStyle = '#9775fa'; // Bright purple
+      ctx.beginPath();
+      ctx.arc(10, 10, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Add some data-like details
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(6, 7);
+      ctx.lineTo(14, 7);
+      ctx.moveTo(6, 10);
+      ctx.lineTo(14, 10);
+      ctx.moveTo(6, 13);
+      ctx.lineTo(14, 13);
+      ctx.stroke();
+      
+      // Convert to image
+      const img = new Image();
+      img.src = canvas.toDataURL();
+      return img;
+    };
+    
+    // Create default processor with red color
+    cpuImageRef.current = createProcessorImage('#FF0000');
+    
+    // Create code and data fragment images
+    codeFragmentImageRef.current = createCodeFragmentImage();
+    dataFragmentImageRef.current = createDataFragmentImage();
+    
+  }, []);
   
   // Track mouse position
   useEffect(() => {
@@ -96,6 +225,26 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
     }));
   }, [gameState, playerId]);
   
+  // Check for item collection
+  useEffect(() => {
+    if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
+    
+    const player = gameState.players[playerId];
+    const playerSize = player.size || player.length || 10;
+    
+    // Check if the player is overlapping with any items
+    Object.entries(gameState.items).forEach(([itemId, item]) => {
+      const dx = player.x - item.x;
+      const dy = player.y - item.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // If the player is touching the item, collect it
+      if (distance < playerSize + 10) {
+        onCollectItem(itemId);
+      }
+    });
+  }, [gameState, playerId, onCollectItem]);
+  
   // Render game
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -154,10 +303,36 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
       // Draw items - checking if items exist before iterating
       if (gameState.items) {
         Object.values(gameState.items).forEach(item => {
-          ctx.fillStyle = '#00FF00';
-          ctx.beginPath();
-          ctx.arc(item.x, item.y, 5, 0, Math.PI * 2);
-          ctx.fill();
+          // Draw different items based on their type
+          if (item.type === 'code' && codeFragmentImageRef.current) {
+            ctx.drawImage(
+              codeFragmentImageRef.current,
+              item.x - 10,
+              item.y - 10,
+              20,
+              20
+            );
+          } else if (item.type === 'data' && dataFragmentImageRef.current) {
+            ctx.drawImage(
+              dataFragmentImageRef.current,
+              item.x - 10,
+              item.y - 10,
+              20,
+              20
+            );
+          } else {
+            // Fallback to a simple circle if the image isn't loaded
+            ctx.fillStyle = item.type === 'code' ? '#63e6be' : '#9775fa';
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, 7, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Draw item value
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${item.value}`, item.x, item.y + 20);
         });
       }
       
@@ -187,17 +362,70 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
           ctx.stroke();
         }
         
-        // Draw player head
-        ctx.fillStyle = playerColor;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, playerSize, 0, Math.PI * 2);
-        ctx.fill();
+        // Create a processor image for this player if needed
+        if (id === playerId || !cpuImageRef.current) {
+          // Use the preloaded CPU image or create one for this player
+          const cpuImage = document.createElement('canvas');
+          cpuImage.width = 40;
+          cpuImage.height = 40;
+          const cpuCtx = cpuImage.getContext('2d');
+          
+          if (cpuCtx) {
+            // Draw a processor-like shape with player's color
+            cpuCtx.fillStyle = playerColor;
+            
+            // Main square
+            cpuCtx.fillRect(8, 8, 24, 24);
+            
+            // Connection pins
+            cpuCtx.fillRect(3, 15, 5, 4);  // left
+            cpuCtx.fillRect(32, 15, 5, 4); // right
+            cpuCtx.fillRect(15, 3, 4, 5);  // top
+            cpuCtx.fillRect(21, 3, 4, 5);  // top
+            cpuCtx.fillRect(15, 32, 4, 5); // bottom
+            cpuCtx.fillRect(21, 32, 4, 5); // bottom
+            
+            // Inner details
+            cpuCtx.fillStyle = 'rgba(0,0,0,0.3)';
+            cpuCtx.fillRect(12, 12, 16, 16);
+            
+            // Highlights
+            cpuCtx.fillStyle = 'rgba(255,255,255,0.5)';
+            cpuCtx.fillRect(10, 10, 2, 2);
+            cpuCtx.fillRect(28, 28, 2, 2);
+            
+            // Draw processor at player position
+            const scale = playerSize / 10; // Scale based on player size
+            ctx.drawImage(
+              cpuImage, 
+              player.x - 20 * scale, 
+              player.y - 20 * scale, 
+              40 * scale, 
+              40 * scale
+            );
+          }
+        } else {
+          // Use the default CPU image for other players
+          const scale = playerSize / 10; // Scale based on player size
+          ctx.drawImage(
+            cpuImageRef.current, 
+            player.x - 20 * scale, 
+            player.y - 20 * scale, 
+            40 * scale, 
+            40 * scale
+          );
+        }
         
         // Add a border if this is the current player
         if (id === playerId) {
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 2;
-          ctx.stroke();
+          ctx.strokeRect(
+            player.x - 20 * (playerSize / 10),
+            player.y - 20 * (playerSize / 10),
+            40 * (playerSize / 10),
+            40 * (playerSize / 10)
+          );
         }
         
         // Draw boost effect if the player is boosting
@@ -212,7 +440,8 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
         if (id === playerId) {
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
-          ctx.fillText(`You (${Math.round(player.x)},${Math.round(player.y)})`, player.x - 20, player.y - playerSize - 5);
+          ctx.textAlign = 'center';
+          ctx.fillText(`You (${Math.round(player.x)},${Math.round(player.y)})`, player.x, player.y - playerSize - 15);
         }
       });
       
