@@ -31,7 +31,6 @@ interface GameCanvasProps {
   playerId: string | null;
   onMove: (direction: { x: number; y: number }) => void;
   onBoost: () => void;
-  onCollectItem?: (itemId: string) => void;
   onPlayerCollision?: (otherPlayerId: string) => void;
 }
 
@@ -40,7 +39,6 @@ const GameCanvas = ({
   playerId, 
   onMove, 
   onBoost, 
-  onCollectItem,
   onPlayerCollision 
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -134,24 +132,6 @@ const GameCanvas = ({
       y: player.y
     }));
   }, [gameState, playerId]);
-  
-  useEffect(() => {
-    if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
-    
-    const player = gameState.players[playerId];
-    const playerSize = calculatePlayerSize(player);
-    
-    Object.entries(gameState.items).forEach(([itemId, item]) => {
-      const dx = player.x - item.x;
-      const dy = player.y - item.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < playerSize / 2 + 10) {
-        console.log("Item collected! Calling onCollectItem");
-        onCollectItem(itemId);
-      }
-    });
-  }, [gameState, playerId, onCollectItem]);
   
   useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;

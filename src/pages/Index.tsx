@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -34,7 +35,7 @@ interface GameItem {
 
 interface ServerGameState {
   players: Record<string, ServerPlayer>;
-  items?: Record<string, GameItem>;
+  items?: GameItem[];
   worldSize?: { width: number; height: number };
 }
 
@@ -47,7 +48,7 @@ const Index = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
-    items: {},
+    items: [],
     worldSize: { width: 2000, height: 2000 }
   });
   
@@ -61,25 +62,6 @@ const Index = () => {
       }
     };
   }, [socket]);
-  
-  // Generate random items across the map
-  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
-    const items: Record<string, GameItem> = {};
-    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
-    
-    for (let i = 0; i < count; i++) {
-      const id = `item-${i}`;
-      items[id] = {
-        id,
-        x: Math.random() * worldSize.width,
-        y: Math.random() * worldSize.height,
-        value: Math.floor(Math.random() * 5) + 1, // Value between 1 and 5
-        color: itemColors[Math.floor(Math.random() * itemColors.length)]
-      };
-    }
-    
-    return items;
-  };
   
   const handlePlay = () => {
     setConnecting(true);
@@ -128,28 +110,40 @@ const Index = () => {
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       
-      // Generate random items
-      const worldSize = { width: 2000, height: 2000 };
-      const randomItems = generateRandomItems(50, worldSize);
-      
-      // Set initial gameState with the player and items
+      // Set initial gameState
       setGameState(prevState => ({
         ...prevState,
-        players: {
-          ...prevState.players,
-          [newSocket.id]: {
-            x: Math.random() * 800,
-            y: Math.random() * 600,
-            length: 20, // Starting size
-            color: randomColor,
-            segments: [] // Initialize empty segments array
-          }
-        },
-        items: randomItems,
-        worldSize
+        players: {},
+        worldSize: { width: 2000, height: 2000 }
       }));
       
       toast.success("Vous avez rejoint la partie");
+    });
+    
+    // Players update from server
+    newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
+      console.log("Players update:", players);
+      
+      setGameState(prevState => ({
+        ...prevState,
+        players: players
+      }));
+    });
+    
+    // Items update from server
+    newSocket.on("update_items", (items: GameItem[]) => {
+      console.log("Items update:", items);
+      
+      // Convert array to record for compatibility with existing code
+      const itemsRecord: Record<string, GameItem> = {};
+      items.forEach(item => {
+        itemsRecord[item.id] = item;
+      });
+      
+      setGameState(prevState => ({
+        ...prevState,
+        items: itemsRecord
+      }));
     });
     
     // Player eliminated
@@ -164,63 +158,11 @@ const Index = () => {
       }, 1500);
     });
     
-    // Player grew from eating another player
-    newSocket.on("player_grew", (data: { growth: number }) => {
-      console.log("You ate another player! Growing by:", data.growth);
-      toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
-      
-      // Update player size locally (will be overridden by next update from server)
-      if (playerId) {
-        setGameState(prevState => {
-          const currentPlayer = prevState.players[playerId];
-          if (!currentPlayer) return prevState;
-          
-          // Add growth number of segments at the player's current position
-          let newSegments = [...(currentPlayer.segments || [])];
-          for (let i = 0; i < data.growth; i++) {
-            newSegments.push({ x: currentPlayer.x, y: currentPlayer.y });
-          }
-          
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...currentPlayer,
-                segments: newSegments
-              }
-            }
-          };
-        });
-      }
-    });
-    
     // No rooms available
     newSocket.on("no_room_available", () => {
       toast.error("Aucune salle disponible");
       setConnecting(false);
       newSocket.disconnect();
-    });
-    
-    // Players update
-    newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
-      console.log("Players update:", players);
-      
-      // Convert incoming server data format to client format if needed
-      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => {
-        return {
-          ...acc,
-          [id]: {
-            ...player,
-            segments: player.segments || []
-          }
-        };
-      }, {});
-      
-      setGameState(prevState => ({
-        ...prevState,
-        players: processedPlayers
-      }));
     });
     
     // Join a room to start the game
@@ -250,134 +192,14 @@ const Index = () => {
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
       const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
 
-      // Send the new position to the server
+      // Send the new position to the server - this will handle collisions, etc.
       socket.emit("move", { x: boundedX, y: boundedY });
-
-      // Update segments based on the player's movement (snake-like behavior)
-      setGameState(prevState => {
-        const currentPlayer = prevState.players[playerId];
-        if (!currentPlayer) return prevState;
-        
-        let newSegments = [...(currentPlayer.segments || [])];
-        
-        // Only update segments if we have some
-        if (newSegments.length > 0) {
-          // Store the current player position for the first segment to follow
-          const firstSegPos = { x: currentPlayer.x, y: currentPlayer.y };
-          
-          // Update segment positions - each segment follows the one in front of it
-          for (let i = newSegments.length - 1; i > 0; i--) {
-            newSegments[i] = { ...newSegments[i - 1] };
-          }
-          
-          // First segment follows the player
-          if (newSegments.length > 0) {
-            newSegments[0] = firstSegPos;
-          }
-          
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...currentPlayer,
-                x: boundedX,
-                y: boundedY,
-                segments: newSegments
-              }
-            }
-          };
-        }
-        
-        // If no segments, just update the position
-        return {
-          ...prevState,
-          players: {
-            ...prevState.players,
-            [playerId]: {
-              ...currentPlayer,
-              x: boundedX,
-              y: boundedY
-            }
-          }
-        };
-      });
     }
   };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
       socket.emit("boost");
-    }
-  };
-  
-  const handleCollectItem = (itemId: string) => {
-    if (socket && gameStarted && playerId) {
-      const item = gameState.items?.[itemId];
-      if (!item) return;
-      
-      // Emit to server that we collected an item
-      socket.emit("collect_item", { itemId });
-      
-      // Update local game state (optimistic update)
-      setGameState(prevState => {
-        // Remove the collected item
-        if (!prevState.items) return prevState;
-        const newItems = { ...prevState.items };
-        delete newItems[itemId];
-        
-        // Get the current player
-        const currentPlayer = prevState.players[playerId];
-        if (!currentPlayer) return { ...prevState, items: newItems };
-        
-        // Create a new segment at the player's current position
-        // This is important - it should be at the end of the current segments
-        const newSegments = [...(currentPlayer.segments || [])];
-        
-        // Add the new segment at the player's current position
-        // If segments exist, add it at the position of the last segment
-        // Otherwise, add it at the player's position
-        const lastPos = newSegments.length > 0 
-          ? { ...newSegments[newSegments.length - 1] } 
-          : { x: currentPlayer.x, y: currentPlayer.y };
-          
-        newSegments.push({ x: item.x, y: item.y });
-        
-        console.log(`Player collected item! New segment count: ${newSegments.length}`);
-        
-        return {
-          ...prevState,
-          items: newItems,
-          players: {
-            ...prevState.players,
-            [playerId]: {
-              ...currentPlayer,
-              segments: newSegments
-            }
-          }
-        };
-      });
-      
-      // Add a new item to replace the one that was collected
-      const worldSize = gameState.worldSize || { width: 2000, height: 2000 };
-      const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
-      
-      const newItemId = `item-${Date.now()}`;
-      const newItem: GameItem = {
-        id: newItemId,
-        x: Math.random() * worldSize.width,
-        y: Math.random() * worldSize.height,
-        value: Math.floor(Math.random() * 5) + 1,
-        color: itemColors[Math.floor(Math.random() * itemColors.length)]
-      };
-      
-      setGameState(prevState => ({
-        ...prevState,
-        items: {
-          ...(prevState.items || {}),
-          [newItemId]: newItem
-        }
-      }));
     }
   };
   
@@ -392,51 +214,9 @@ const Index = () => {
       const currentPlayerSegments = currentPlayer.segments?.length || 0;
       const otherPlayerSegments = otherPlayer.segments?.length || 0;
       
-      const currentSize = 20 * (1 + (currentPlayerSegments * 0.1));
-      const otherSize = 20 * (1 + (otherPlayerSegments * 0.1));
-      
       // If the current player is smaller, they get eliminated
       if (currentPlayerSegments < otherPlayerSegments) {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-        toast.error("Vous avez été éliminé!");
-        setGameStarted(false);
-        setTimeout(() => {
-          handlePlay();
-        }, 1500);
-      } 
-      // If the current player is bigger, they eat the other player
-      else if (currentPlayerSegments > otherPlayerSegments) {
-        socket.emit("eat_player", { eatenPlayer: otherPlayerId });
-        
-        // Optimistically add the other player's segments to our own
-        setGameState(prevState => {
-          const currentPlayer = prevState.players[playerId];
-          if (!currentPlayer) return prevState;
-          
-          // Add growth based on the other player's size
-          const growthAmount = otherPlayerSegments;
-          let newSegments = [...(currentPlayer.segments || [])];
-          
-          // Add new segments at the end of our snake
-          for (let i = 0; i < growthAmount; i++) {
-            const lastPos = newSegments.length > 0 
-              ? { ...newSegments[newSegments.length - 1] } 
-              : { x: currentPlayer.x, y: currentPlayer.y };
-            
-            newSegments.push(lastPos);
-          }
-          
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...currentPlayer,
-                segments: newSegments
-              }
-            }
-          };
-        });
       }
     }
   };
@@ -488,7 +268,6 @@ const Index = () => {
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
-            onCollectItem={handleCollectItem}
             onPlayerCollision={handlePlayerCollision}
           />
           
