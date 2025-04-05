@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -49,9 +48,7 @@ const GameCanvas = ({
   const rafRef = useRef<number>();
   const cpuImageRef = useRef<HTMLImageElement | null>(null);
   
-  // Preload images
   useEffect(() => {
-    // Create CPU image (processor)
     const createProcessorImage = (color: string): HTMLImageElement => {
       const canvas = document.createElement('canvas');
       canvas.width = 40;
@@ -60,13 +57,10 @@ const GameCanvas = ({
       
       if (!ctx) return new Image();
       
-      // Draw a processor-like shape
       ctx.fillStyle = color;
       
-      // Main square
       ctx.fillRect(8, 8, 24, 24);
       
-      // Connection pins
       ctx.fillRect(3, 15, 5, 4);  // left
       ctx.fillRect(32, 15, 5, 4); // right
       ctx.fillRect(15, 3, 4, 5);  // top
@@ -74,27 +68,21 @@ const GameCanvas = ({
       ctx.fillRect(15, 32, 4, 5); // bottom
       ctx.fillRect(21, 32, 4, 5); // bottom
       
-      // Inner details
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(12, 12, 16, 16);
       
-      // Highlights
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillRect(10, 10, 2, 2);
       ctx.fillRect(28, 28, 2, 2);
       
-      // Convert to image
       const img = new Image();
       img.src = canvas.toDataURL();
       return img;
     };
     
-    // Create default processor with red color
     cpuImageRef.current = createProcessorImage('#FF0000');
-    
   }, []);
   
-  // Track mouse position
   useEffect(() => {
     if (!playerId) return;
     
@@ -106,19 +94,15 @@ const GameCanvas = ({
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
       
-      // Calculate the direction based on current player position and mouse position
       const player = gameState.players[playerId];
       if (!player) return;
       
-      // Convert canvas coordinates to world coordinates
       const worldX = (canvasX / canvas.width) * canvas.width / camera.zoom + camera.x - canvas.width / camera.zoom / 2;
       const worldY = (canvasY / canvas.height) * canvas.height / camera.zoom + camera.y - canvas.height / camera.zoom / 2;
       
-      // Calculate direction vector from player to mouse
       const dx = worldX - player.x;
       const dy = worldY - player.y;
       
-      // Normalize the direction vector
       const length = Math.sqrt(dx * dx + dy * dy);
       if (length > 0) {
         const normalizedDx = dx / length;
@@ -140,7 +124,6 @@ const GameCanvas = ({
     };
   }, [gameState, playerId, onMove, onBoost, camera]);
   
-  // Update camera position to follow player
   useEffect(() => {
     if (!playerId || !gameState.players[playerId]) return;
     
@@ -152,60 +135,51 @@ const GameCanvas = ({
     }));
   }, [gameState, playerId]);
   
-  // Check for item collection
   useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
     
     const player = gameState.players[playerId];
     const playerSize = calculatePlayerSize(player);
     
-    // Check if the player is overlapping with any items
     Object.entries(gameState.items).forEach(([itemId, item]) => {
       const dx = player.x - item.x;
       const dy = player.y - item.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // If the player is touching the item, collect it
-      if (distance < playerSize + 10) {
+      if (distance < playerSize / 2 + 10) {
+        console.log("Item collected! Calling onCollectItem");
         onCollectItem(itemId);
       }
     });
   }, [gameState, playerId, onCollectItem]);
   
-  // Check for player collisions
   useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
     const currentPlayer = gameState.players[playerId];
     const currentSize = calculatePlayerSize(currentPlayer);
     
-    // Check collisions with other players
     Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
-      if (otherId === playerId) return; // Don't check collision with self
+      if (otherId === playerId) return;
       
       const otherSize = calculatePlayerSize(otherPlayer);
       const dx = currentPlayer.x - otherPlayer.x;
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // If players are touching and the current player is smaller
       if (distance < (currentSize + otherSize) / 2) {
         onPlayerCollision(otherId);
       }
     });
   }, [gameState, playerId, onPlayerCollision]);
 
-  // Calculate player size based on number of segments
   const calculatePlayerSize = (player: Player): number => {
     const baseSize = 20;
     const segmentCount = player.segments?.length || 0;
     
-    // Formula: baseSize * (1 + (segmentCount * 0.1))
-    // This means 1.3x for 3 segments, 1.6x for 6 segments, 2.3x for 13 segments
     return baseSize * (1 + (segmentCount * 0.1));
   };
   
-  // Render game
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -213,31 +187,25 @@ const GameCanvas = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Set canvas size to match window
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
     const render = () => {
-      // Clear canvas
       ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Save context to restore later
       ctx.save();
       
-      // Move the context to center of canvas and apply camera transform
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      // Draw grid
       const gridSize = 50;
-      const gridExtent = 1000; // How far to draw the grid in each direction
+      const gridExtent = 1000;
       
       ctx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
       ctx.lineWidth = 1;
       
-      // Start grid from camera position snapped to grid
       const startX = Math.floor((camera.x - gridExtent) / gridSize) * gridSize;
       const startY = Math.floor((camera.y - gridExtent) / gridSize) * gridSize;
       
@@ -255,21 +223,17 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Draw world boundary
       ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Draw items - checking if items exist before iterating
       if (gameState.items) {
         Object.values(gameState.items).forEach(item => {
-          // Draw circle with item's color
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
           ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
           ctx.fill();
           
-          // Add shine effect
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.beginPath();
           ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
@@ -277,20 +241,16 @@ const GameCanvas = ({
         });
       }
       
-      // Draw players and their segments
       Object.entries(gameState.players).forEach(([id, player]) => {
-        // Calculate player size based on segments count
         const playerSize = calculatePlayerSize(player);
         const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
-        // Draw segments (trail) - the collected circles as the snake's tail
         if (player.segments && player.segments.length > 0) {
           ctx.strokeStyle = playerColor;
           ctx.lineWidth = Math.max(3, playerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
-          // Draw line connecting segments
           ctx.beginPath();
           ctx.moveTo(player.x, player.y);
           
@@ -300,17 +260,14 @@ const GameCanvas = ({
           
           ctx.stroke();
           
-          // Draw circles at each segment position (representing the collected items)
           for (let i = 0; i < player.segments.length; i++) {
             const segment = player.segments[i];
             
-            // Draw a circle at each segment position
             ctx.fillStyle = playerColor;
             ctx.beginPath();
             ctx.arc(segment.x, segment.y, 8, 0, Math.PI * 2);
             ctx.fill();
             
-            // Add shine effect
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.beginPath();
             ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
@@ -318,40 +275,32 @@ const GameCanvas = ({
           }
         }
         
-        // Create a processor image for this player if needed
         if (id === playerId || !cpuImageRef.current) {
-          // Use the preloaded CPU image or create one for this player
           const cpuImage = document.createElement('canvas');
           cpuImage.width = 40;
           cpuImage.height = 40;
           const cpuCtx = cpuImage.getContext('2d');
           
           if (cpuCtx) {
-            // Draw a processor-like shape with player's color
             cpuCtx.fillStyle = playerColor;
             
-            // Main square
             cpuCtx.fillRect(8, 8, 24, 24);
             
-            // Connection pins
-            cpuCtx.fillRect(3, 15, 5, 4);  // left
-            cpuCtx.fillRect(32, 15, 5, 4); // right
-            cpuCtx.fillRect(15, 3, 4, 5);  // top
-            cpuCtx.fillRect(21, 3, 4, 5);  // top
-            cpuCtx.fillRect(15, 32, 4, 5); // bottom
-            cpuCtx.fillRect(21, 32, 4, 5); // bottom
+            cpuCtx.fillRect(3, 15, 5, 4);
+            cpuCtx.fillRect(32, 15, 5, 4);
+            cpuCtx.fillRect(15, 3, 4, 5);
+            cpuCtx.fillRect(21, 3, 4, 5);
+            cpuCtx.fillRect(15, 32, 4, 5);
+            cpuCtx.fillRect(21, 32, 4, 5);
             
-            // Inner details
             cpuCtx.fillStyle = 'rgba(0,0,0,0.3)';
             cpuCtx.fillRect(12, 12, 16, 16);
             
-            // Highlights
             cpuCtx.fillStyle = 'rgba(255,255,255,0.5)';
             cpuCtx.fillRect(10, 10, 2, 2);
             cpuCtx.fillRect(28, 28, 2, 2);
             
-            // Draw processor at player position
-            const scale = playerSize / 20; // Scale based on player size
+            const scale = playerSize / 20;
             ctx.drawImage(
               cpuImage, 
               player.x - 20 * scale, 
@@ -361,8 +310,7 @@ const GameCanvas = ({
             );
           }
         } else {
-          // Use the default CPU image for other players
-          const scale = playerSize / 20; // Scale based on player size
+          const scale = playerSize / 20;
           ctx.drawImage(
             cpuImageRef.current, 
             player.x - 20 * scale, 
@@ -372,7 +320,6 @@ const GameCanvas = ({
           );
         }
         
-        // Add a border if this is the current player
         if (id === playerId) {
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 2;
@@ -384,7 +331,6 @@ const GameCanvas = ({
           );
         }
         
-        // Draw boost effect if the player is boosting
         if (player.boosting) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
           ctx.beginPath();
@@ -392,12 +338,10 @@ const GameCanvas = ({
           ctx.fill();
         }
         
-        // Draw player ID or position for debugging
         if (id === playerId) {
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          // Show segments count for the player
           ctx.fillText(`You (${player.segments?.length || 0})`, player.x, player.y - playerSize - 15);
         } else {
           const segmentCount = player.segments?.length || 0;
@@ -410,7 +354,6 @@ const GameCanvas = ({
       
       ctx.restore();
       
-      // Draw score and player count
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(10, 10, 200, 60);
       

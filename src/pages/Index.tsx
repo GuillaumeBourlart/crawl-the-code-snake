@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -255,7 +254,6 @@ const Index = () => {
       socket.emit("move", { x: boundedX, y: boundedY });
 
       // Update segments based on the player's movement (snake-like behavior)
-      // First segment follows the head, others follow the segment before them
       setGameState(prevState => {
         const currentPlayer = prevState.players[playerId];
         if (!currentPlayer) return prevState;
@@ -264,7 +262,7 @@ const Index = () => {
         
         // Only update segments if we have some
         if (newSegments.length > 0) {
-          // Create a copy of the first segment to maintain length
+          // Store the current player position for the first segment to follow
           const firstSegPos = { x: currentPlayer.x, y: currentPlayer.y };
           
           // Update segment positions - each segment follows the one in front of it
@@ -318,6 +316,7 @@ const Index = () => {
       const item = gameState.items?.[itemId];
       if (!item) return;
       
+      // Emit to server that we collected an item
       socket.emit("collect_item", { itemId });
       
       // Update local game state (optimistic update)
@@ -331,16 +330,20 @@ const Index = () => {
         const currentPlayer = prevState.players[playerId];
         if (!currentPlayer) return { ...prevState, items: newItems };
         
-        // Add the collected item as a new segment at the end of the snake
-        // If no segments yet, add it at the player's current position
-        const lastSegmentPos = currentPlayer.segments && currentPlayer.segments.length > 0
-          ? { ...currentPlayer.segments[currentPlayer.segments.length - 1] }
-          : { x: currentPlayer.x, y: currentPlayer.y };
+        // Create a new segment at the player's current position
+        // This is important - it should be at the end of the current segments
+        const newSegments = [...(currentPlayer.segments || [])];
         
-        const newSegments = [...(currentPlayer.segments || []), { 
-          x: item.x, 
-          y: item.y 
-        }];
+        // Add the new segment at the player's current position
+        // If segments exist, add it at the position of the last segment
+        // Otherwise, add it at the player's position
+        const lastPos = newSegments.length > 0 
+          ? { ...newSegments[newSegments.length - 1] } 
+          : { x: currentPlayer.x, y: currentPlayer.y };
+          
+        newSegments.push({ x: item.x, y: item.y });
+        
+        console.log(`Player collected item! New segment count: ${newSegments.length}`);
         
         return {
           ...prevState,
@@ -371,7 +374,7 @@ const Index = () => {
       setGameState(prevState => ({
         ...prevState,
         items: {
-          ...prevState.items,
+          ...(prevState.items || {}),
           [newItemId]: newItem
         }
       }));
