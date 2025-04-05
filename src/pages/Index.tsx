@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -252,8 +251,6 @@ const Index = () => {
   };
   
   const handleCollectItem = (itemId: string) => {
-    // Cette fonction n'est plus nécessaire car la collecte d'items
-    // est gérée entièrement côté serveur via le gestionnaire de mouvement
     console.log("Item collection is now handled server-side");
   };
   
@@ -328,7 +325,6 @@ const Index = () => {
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
-            onCollectItem={handleCollectItem}
             onPlayerCollision={handlePlayerCollision}
           />
           
