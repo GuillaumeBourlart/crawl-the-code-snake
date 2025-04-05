@@ -22,7 +22,7 @@ interface GameItem {
 
 interface GameState {
   players: Record<string, Player>;
-  items?: Record<string, GameItem>;
+  items?: GameItem[];
   worldSize: { width: number; height: number };
 }
 
@@ -207,8 +207,8 @@ const GameCanvas = ({
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      if (gameState.items) {
-        Object.values(gameState.items).forEach(item => {
+      if (gameState.items && gameState.items.length > 0) {
+        gameState.items.forEach(item => {
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
           ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);

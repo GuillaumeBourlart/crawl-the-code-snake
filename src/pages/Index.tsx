@@ -35,7 +35,7 @@ interface GameItem {
 
 interface ServerGameState {
   players: Record<string, ServerPlayer>;
-  items?: GameItem[];
+  items?: GameItem[]; // Assurez-vous que c'est un tableau et non un Record
   worldSize?: { width: number; height: number };
 }
 
@@ -134,15 +134,9 @@ const Index = () => {
     newSocket.on("update_items", (items: GameItem[]) => {
       console.log("Items update:", items);
       
-      // Convert array to record for compatibility with existing code
-      const itemsRecord: Record<string, GameItem> = {};
-      items.forEach(item => {
-        itemsRecord[item.id] = item;
-      });
-      
       setGameState(prevState => ({
         ...prevState,
-        items: itemsRecord
+        items: items // Gardez items comme un tableau
       }));
     });
     
@@ -261,9 +255,9 @@ const Index = () => {
         <>
           <GameCanvas 
             gameState={{
-              ...gameState,
               players: gameState.players || {},
-              worldSize: gameState.worldSize || { width: 2000, height: 2000 }
+              worldSize: gameState.worldSize || { width: 2000, height: 2000 },
+              items: gameState.items || []
             }}
             playerId={playerId} 
             onMove={handleMove}
