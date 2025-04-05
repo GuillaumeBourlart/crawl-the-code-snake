@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -76,7 +77,6 @@ const Index = () => {
   };
   
   const handlePlay = () => {
-    console.log("Connecting to game server...");
     setConnecting(true);
     const newSocket = io("https://codecrawl-production.up.railway.app", {
       transports: ["websocket"],
@@ -87,7 +87,7 @@ const Index = () => {
     });
     
     newSocket.on("connect", () => {
-      console.log("Connected to WebSocket server with ID:", newSocket.id);
+      console.log("Connected to WebSocket server");
       setConnected(true);
       setConnecting(false);
       toast.success("Connecté au serveur");
@@ -108,44 +108,32 @@ const Index = () => {
     });
     
     newSocket.on("joined_room", (data: { roomId: string }) => {
-      console.log("Joined room:", data.roomId, "with player ID:", newSocket.id);
+      console.log("Joined room:", data.roomId);
       setRoomId(data.roomId);
       setPlayerId(newSocket.id);
+      setGameStarted(true);
       
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       const worldSize = { width: 2000, height: 2000 };
-      
-      // Place player in center of screen initially
-      const centerX = worldSize.width / 2;
-      const centerY = worldSize.height / 2;
-      
-      // Create random items
       const randomItems = generateRandomItems(50, worldSize);
       
-      // Set game state with player at center
-      setGameState(prevState => {
-        const newState = {
-          ...prevState,
-          players: {
-            ...prevState.players,
-            [newSocket.id]: {
-              x: centerX,
-              y: centerY,
-              length: 20,
-              color: randomColor,
-              queue: [] // Queue initialement vide
-            }
-          },
-          items: randomItems,
-          worldSize
-        };
-        
-        console.log("Initial game state:", newState);
-        return newState;
-      });
+      setGameState(prevState => ({
+        ...prevState,
+        players: {
+          ...prevState.players,
+          [newSocket.id]: {
+            x: Math.random() * 800,
+            y: Math.random() * 600,
+            length: 20,
+            color: randomColor,
+            queue: []  // Queue initialement vide
+          }
+        },
+        items: randomItems,
+        worldSize
+      }));
       
-      setGameStarted(true);
       toast.success("Vous avez rejoint la partie");
     });
     
@@ -190,27 +178,19 @@ const Index = () => {
     });
     
     newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
-      console.log("Players update received, count:", Object.keys(players).length);
-      // Ensure the players object has properly formatted queue arrays
+      console.log("Players update:", players);
       const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => ({
         ...acc,
         [id]: { ...player, queue: player.queue || [] }
       }), {});
-      
-      setGameState(prevState => {
-        // Make sure we don't lose our own player data if it doesn't come from server
-        if (playerId && !processedPlayers[playerId] && prevState.players[playerId]) {
-          processedPlayers[playerId] = prevState.players[playerId];
-        }
-        
-        return {
-          ...prevState,
-          players: processedPlayers
-        };
-      });
+      setGameState(prevState => ({
+        ...prevState,
+        players: processedPlayers
+      }));
     });
     
     newSocket.on("update_items", (items: Record<string, GameItem> | GameItem[]) => {
+      console.log("Items update:", items);
       const itemsObject = Array.isArray(items) 
         ? items.reduce((acc, item) => ({ ...acc, [item.id]: item }), {})
         : items;
@@ -221,7 +201,6 @@ const Index = () => {
       }));
     });
     
-    console.log("Joining room...");
     newSocket.emit("join_room");
     setSocket(newSocket);
   };
@@ -229,11 +208,7 @@ const Index = () => {
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
       const player = gameState.players[playerId];
-      if (!player) {
-        console.warn("Player not found in gameState, can't move");
-        return;
-      }
-      
+      if (!player) return;
       const speed = player.boosting ? 10 : 5;
       const newX = player.x + direction.x * speed;
       const newY = player.y + direction.y * speed;
@@ -247,7 +222,6 @@ const Index = () => {
       
       socket.emit("move", { x: boundedX, y: boundedY });
       
-      // Immediately update local state for responsive movement
       setGameState(prevState => {
         if (!prevState.players[playerId]) return prevState;
         return {
