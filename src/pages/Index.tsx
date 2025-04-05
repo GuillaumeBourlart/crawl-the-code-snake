@@ -30,7 +30,7 @@ interface GameItem {
   x: number;
   y: number;
   value: number;
-  type: string;
+  color: string;
 }
 
 interface ServerGameState {
@@ -66,6 +66,7 @@ const Index = () => {
   // Generate random items across the map
   const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
     const items: Record<string, GameItem> = {};
+    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
     
     for (let i = 0; i < count; i++) {
       const id = `item-${i}`;
@@ -74,7 +75,7 @@ const Index = () => {
         x: Math.random() * worldSize.width,
         y: Math.random() * worldSize.height,
         value: Math.floor(Math.random() * 5) + 1, // Value between 1 and 5
-        type: Math.random() > 0.5 ? 'code' : 'data'
+        color: itemColors[Math.floor(Math.random() * itemColors.length)]
       };
     }
     
@@ -140,7 +141,7 @@ const Index = () => {
           [newSocket.id]: {
             x: Math.random() * 800,
             y: Math.random() * 600,
-            length: 10,
+            length: 20, // Starting size
             color: randomColor,
             segments: []
           }
@@ -150,6 +151,43 @@ const Index = () => {
       }));
       
       toast.success("Vous avez rejoint la partie");
+    });
+    
+    // Player eliminated
+    newSocket.on("player_eliminated", () => {
+      console.log("You were eliminated!");
+      toast.error("Vous avez été éliminé!");
+      setGameStarted(false);
+      
+      // Optionally reconnect after a short delay
+      setTimeout(() => {
+        newSocket.emit("join_room");
+      }, 1500);
+    });
+    
+    // Player grew from eating another player
+    newSocket.on("player_grew", (data: { growth: number }) => {
+      console.log("You ate another player! Growing by:", data.growth);
+      toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
+      
+      // Update player size locally (will be overridden by next update from server)
+      if (playerId) {
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                length: (currentPlayer.length || 20) + data.growth
+              }
+            }
+          };
+        });
+      }
     });
     
     // No rooms available
@@ -169,7 +207,7 @@ const Index = () => {
           ...acc,
           [id]: {
             ...player,
-            size: player.length || 10, // Ensure size is set for rendering
+            size: player.length || 20, // Ensure size is set for rendering
             segments: player.segments || []
           }
         };
@@ -179,6 +217,40 @@ const Index = () => {
         ...prevState,
         players: processedPlayers
       }));
+      
+      // Check for collisions with other players
+      if (playerId) {
+        const currentPlayer = processedPlayers[playerId];
+        if (!currentPlayer) return;
+        
+        Object.entries(processedPlayers).forEach(([otherId, otherPlayer]) => {
+          if (otherId === playerId) return; // Don't check collision with self
+          
+          const dx = currentPlayer.x - otherPlayer.x;
+          const dy = currentPlayer.y - otherPlayer.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          const currentSize = currentPlayer.length || 20;
+          const otherSize = otherPlayer.length || 20;
+          
+          // If players are touching
+          if (distance < (currentSize + otherSize) / 2) {
+            // If the current player is smaller, they get eliminated
+            if (currentSize < otherSize) {
+              newSocket.emit("player_eliminated", { eliminatedBy: otherId });
+              toast.error("Vous avez été éliminé!");
+              setGameStarted(false);
+              setTimeout(() => {
+                handlePlay();
+              }, 1500);
+            } 
+            // If the current player is bigger, they eat the other player
+            else if (currentSize > otherSize) {
+              newSocket.emit("eat_player", { eatenPlayer: otherId });
+            }
+          }
+        });
+      }
     });
     
     setSocket(newSocket);
@@ -198,7 +270,7 @@ const Index = () => {
       // Check boundaries to ensure the player stays within the game world
       const worldWidth = gameState.worldSize?.width || 2000;
       const worldHeight = gameState.worldSize?.height || 2000;
-      const playerSize = player.length || 10;
+      const playerSize = player.length || 20;
       
       // Restrict movement to within the boundaries with a small margin
       const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
@@ -216,22 +288,61 @@ const Index = () => {
   };
   
   const handleCollectItem = (itemId: string) => {
-    // This function would be called when a player collects an item
-    if (socket && gameStarted) {
+    if (socket && gameStarted && playerId) {
+      const item = gameState.items?.[itemId];
+      if (!item) return;
+      
       socket.emit("collect_item", { itemId });
       
-      // Update local game state to remove the item (optimistic update)
+      // Grow the player based on the item value
+      const growthAmount = item.value || 1;
+      
+      // Update local game state (optimistic update)
       setGameState(prevState => {
+        // Remove the collected item
         if (!prevState.items) return prevState;
-        
         const newItems = { ...prevState.items };
         delete newItems[itemId];
         
+        // Grow the player
+        const currentPlayer = prevState.players[playerId];
+        if (!currentPlayer) return { ...prevState, items: newItems };
+        
+        const newLength = (currentPlayer.length || 20) + growthAmount;
+        
         return {
           ...prevState,
-          items: newItems
+          items: newItems,
+          players: {
+            ...prevState.players,
+            [playerId]: {
+              ...currentPlayer,
+              length: newLength
+            }
+          }
         };
       });
+      
+      // Add a new item to replace the one that was collected
+      const worldSize = gameState.worldSize || { width: 2000, height: 2000 };
+      const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
+      
+      const newItemId = `item-${Date.now()}`;
+      const newItem: GameItem = {
+        id: newItemId,
+        x: Math.random() * worldSize.width,
+        y: Math.random() * worldSize.height,
+        value: Math.floor(Math.random() * 5) + 1,
+        color: itemColors[Math.floor(Math.random() * itemColors.length)]
+      };
+      
+      setGameState(prevState => ({
+        ...prevState,
+        items: {
+          ...prevState.items,
+          [newItemId]: newItem
+        }
+      }));
     }
   };
 

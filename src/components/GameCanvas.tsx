@@ -19,7 +19,7 @@ interface GameItem {
   x: number;
   y: number;
   value: number;
-  type: string;
+  color: string;
 }
 
 interface GameState {
@@ -41,8 +41,6 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const rafRef = useRef<number>();
   const cpuImageRef = useRef<HTMLImageElement | null>(null);
-  const codeFragmentImageRef = useRef<HTMLImageElement | null>(null);
-  const dataFragmentImageRef = useRef<HTMLImageElement | null>(null);
   
   // Preload images
   useEffect(() => {
@@ -84,86 +82,8 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
       return img;
     };
     
-    // Create code fragment image
-    const createCodeFragmentImage = (): HTMLImageElement => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 20;
-      canvas.height = 20;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) return new Image();
-      
-      // Draw a code fragment (like a small code snippet)
-      ctx.fillStyle = '#63e6be'; // Bright teal
-      ctx.beginPath();
-      ctx.moveTo(0, 5);
-      ctx.lineTo(5, 0);
-      ctx.lineTo(15, 0);
-      ctx.lineTo(20, 5);
-      ctx.lineTo(20, 15);
-      ctx.lineTo(15, 20);
-      ctx.lineTo(5, 20);
-      ctx.lineTo(0, 15);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Add some code-like details
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(5, 6);
-      ctx.lineTo(15, 6);
-      ctx.moveTo(5, 10);
-      ctx.lineTo(12, 10);
-      ctx.moveTo(5, 14);
-      ctx.lineTo(10, 14);
-      ctx.stroke();
-      
-      // Convert to image
-      const img = new Image();
-      img.src = canvas.toDataURL();
-      return img;
-    };
-    
-    // Create data fragment image
-    const createDataFragmentImage = (): HTMLImageElement => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 20;
-      canvas.height = 20;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) return new Image();
-      
-      // Draw a data fragment (like a small database)
-      ctx.fillStyle = '#9775fa'; // Bright purple
-      ctx.beginPath();
-      ctx.arc(10, 10, 8, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Add some data-like details
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(6, 7);
-      ctx.lineTo(14, 7);
-      ctx.moveTo(6, 10);
-      ctx.lineTo(14, 10);
-      ctx.moveTo(6, 13);
-      ctx.lineTo(14, 13);
-      ctx.stroke();
-      
-      // Convert to image
-      const img = new Image();
-      img.src = canvas.toDataURL();
-      return img;
-    };
-    
     // Create default processor with red color
     cpuImageRef.current = createProcessorImage('#FF0000');
-    
-    // Create code and data fragment images
-    codeFragmentImageRef.current = createCodeFragmentImage();
-    dataFragmentImageRef.current = createDataFragmentImage();
     
   }, []);
   
@@ -230,7 +150,7 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
     if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
     
     const player = gameState.players[playerId];
-    const playerSize = player.size || player.length || 10;
+    const playerSize = player.size || player.length || 20;
     
     // Check if the player is overlapping with any items
     Object.entries(gameState.items).forEach(([itemId, item]) => {
@@ -303,30 +223,17 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
       // Draw items - checking if items exist before iterating
       if (gameState.items) {
         Object.values(gameState.items).forEach(item => {
-          // Draw different items based on their type
-          if (item.type === 'code' && codeFragmentImageRef.current) {
-            ctx.drawImage(
-              codeFragmentImageRef.current,
-              item.x - 10,
-              item.y - 10,
-              20,
-              20
-            );
-          } else if (item.type === 'data' && dataFragmentImageRef.current) {
-            ctx.drawImage(
-              dataFragmentImageRef.current,
-              item.x - 10,
-              item.y - 10,
-              20,
-              20
-            );
-          } else {
-            // Fallback to a simple circle if the image isn't loaded
-            ctx.fillStyle = item.type === 'code' ? '#63e6be' : '#9775fa';
-            ctx.beginPath();
-            ctx.arc(item.x, item.y, 7, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          // Draw circle with item's color
+          ctx.fillStyle = item.color || '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Add shine effect
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.beginPath();
+          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+          ctx.fill();
           
           // Draw item value
           ctx.fillStyle = '#FFFFFF';
@@ -339,7 +246,7 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
       // Draw players and their segments
       Object.entries(gameState.players).forEach(([id, player]) => {
         // Use default size or length if not provided
-        const playerSize = player.size || player.length || 10;
+        const playerSize = player.size || player.length || 20;
         const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
         
         // Draw segments (trail)
@@ -395,7 +302,7 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
             cpuCtx.fillRect(28, 28, 2, 2);
             
             // Draw processor at player position
-            const scale = playerSize / 10; // Scale based on player size
+            const scale = playerSize / 20; // Scale based on player size
             ctx.drawImage(
               cpuImage, 
               player.x - 20 * scale, 
@@ -406,7 +313,7 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
           }
         } else {
           // Use the default CPU image for other players
-          const scale = playerSize / 10; // Scale based on player size
+          const scale = playerSize / 20; // Scale based on player size
           ctx.drawImage(
             cpuImageRef.current, 
             player.x - 20 * scale, 
@@ -421,10 +328,10 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
           ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 2;
           ctx.strokeRect(
-            player.x - 20 * (playerSize / 10),
-            player.y - 20 * (playerSize / 10),
-            40 * (playerSize / 10),
-            40 * (playerSize / 10)
+            player.x - 20 * (playerSize / 20),
+            player.y - 20 * (playerSize / 20),
+            40 * (playerSize / 20),
+            40 * (playerSize / 20)
           );
         }
         
@@ -442,6 +349,12 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost, onCollectItem }: Gam
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
           ctx.fillText(`You (${Math.round(player.x)},${Math.round(player.y)})`, player.x, player.y - playerSize - 15);
+        } else {
+          const size = Math.round(playerSize);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${size}`, player.x, player.y - playerSize - 5);
         }
       });
       
