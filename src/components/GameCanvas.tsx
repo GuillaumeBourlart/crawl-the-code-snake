@@ -2,14 +2,15 @@
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
-  id: string;
+  id?: string;
   x: number;
   y: number;
-  size: number;
-  color: string;
-  direction: { x: number; y: number };
-  segments: Array<{ x: number; y: number }>;
-  boosting: boolean;
+  size?: number;
+  length?: number;
+  color?: string;
+  direction?: { x: number; y: number };
+  segments?: Array<{ x: number; y: number }>;
+  boosting?: boolean;
 }
 
 interface GameItem {
@@ -21,7 +22,7 @@ interface GameItem {
 
 interface GameState {
   players: Record<string, Player>;
-  items: Record<string, GameItem>;
+  items?: Record<string, GameItem>;
   worldSize: { width: number; height: number };
 }
 
@@ -150,20 +151,26 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Draw items
-      Object.values(gameState.items).forEach(item => {
-        ctx.fillStyle = '#00FF00';
-        ctx.beginPath();
-        ctx.arc(item.x, item.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      // Draw items - checking if items exist before iterating
+      if (gameState.items) {
+        Object.values(gameState.items).forEach(item => {
+          ctx.fillStyle = '#00FF00';
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
       
       // Draw players and their segments
       Object.entries(gameState.players).forEach(([id, player]) => {
+        // Use default size or length if not provided
+        const playerSize = player.size || player.length || 10;
+        const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
+        
         // Draw segments (trail)
         if (player.segments && player.segments.length > 0) {
-          ctx.strokeStyle = player.color;
-          ctx.lineWidth = Math.max(3, player.size / 3);
+          ctx.strokeStyle = playerColor;
+          ctx.lineWidth = Math.max(3, playerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
@@ -181,9 +188,9 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
         }
         
         // Draw player head
-        ctx.fillStyle = player.color;
+        ctx.fillStyle = playerColor;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, playerSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Add a border if this is the current player
@@ -197,8 +204,15 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
         if (player.boosting) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
           ctx.beginPath();
-          ctx.arc(player.x, player.y, player.size * 1.5, 0, Math.PI * 2);
+          ctx.arc(player.x, player.y, playerSize * 1.5, 0, Math.PI * 2);
           ctx.fill();
+        }
+        
+        // Draw player ID or position for debugging
+        if (id === playerId) {
+          ctx.fillStyle = '#FFFF00';
+          ctx.font = '12px Arial';
+          ctx.fillText(`You (${Math.round(player.x)},${Math.round(player.y)})`, player.x - 20, player.y - playerSize - 5);
         }
       });
       
@@ -216,7 +230,8 @@ const GameCanvas = ({ gameState, playerId, onMove, onBoost }: GameCanvasProps) =
       
       if (playerId && gameState.players[playerId]) {
         const player = gameState.players[playerId];
-        ctx.fillText(`Size: ${Math.floor(player.size)}`, 20, 60);
+        const playerSize = player.size || player.length || 0;
+        ctx.fillText(`Size: ${Math.floor(playerSize)}`, 20, 60);
       }
       
       rafRef.current = requestAnimationFrame(render);

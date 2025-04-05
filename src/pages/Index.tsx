@@ -96,6 +96,26 @@ const Index = () => {
       setRoomId(data.roomId);
       setPlayerId(newSocket.id);
       setGameStarted(true);
+      
+      // Initialize the player with a random color
+      const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+      const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
+      
+      // Set initial gameState with the player
+      setGameState(prevState => ({
+        ...prevState,
+        players: {
+          ...prevState.players,
+          [newSocket.id]: {
+            x: Math.random() * 800,
+            y: Math.random() * 600,
+            length: 10,
+            color: randomColor,
+            segments: []
+          }
+        }
+      }));
+      
       toast.success("Vous avez rejoint la partie");
     });
     
@@ -109,9 +129,22 @@ const Index = () => {
     // Players update
     newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
       console.log("Players update:", players);
+      
+      // Convert incoming server data format to client format if needed
+      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => {
+        return {
+          ...acc,
+          [id]: {
+            ...player,
+            size: player.length || 10, // Ensure size is set for rendering
+            segments: player.segments || []
+          }
+        };
+      }, {});
+      
       setGameState(prevState => ({
         ...prevState,
-        players: players
+        players: processedPlayers
       }));
     });
     
@@ -120,7 +153,7 @@ const Index = () => {
   
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted) {
-      // Adjust to match the server's move event that expects x and y directly
+      // Send the direction vector to the server
       socket.emit("move", direction);
     }
   };
@@ -170,7 +203,11 @@ const Index = () => {
       {gameStarted && (
         <>
           <GameCanvas 
-            gameState={gameState as any} 
+            gameState={{
+              ...gameState,
+              players: gameState.players || {},
+              worldSize: gameState.worldSize || { width: 2000, height: 2000 }
+            }}
             playerId={playerId} 
             onMove={handleMove}
             onBoost={handleBoost}
