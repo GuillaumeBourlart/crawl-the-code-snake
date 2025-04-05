@@ -22,7 +22,7 @@ interface GameItem {
 
 interface GameState {
   players: Record<string, Player>;
-  items?: GameItem[];
+  items?: Record<string, GameItem>;
   worldSize: { width: number; height: number };
 }
 
@@ -31,6 +31,7 @@ interface GameCanvasProps {
   playerId: string | null;
   onMove: (direction: { x: number; y: number }) => void;
   onBoost: () => void;
+  onCollectItem?: (itemId: string) => void;
   onPlayerCollision?: (otherPlayerId: string) => void;
 }
 
@@ -39,6 +40,7 @@ const GameCanvas = ({
   playerId, 
   onMove, 
   onBoost, 
+  onCollectItem,
   onPlayerCollision 
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -134,6 +136,24 @@ const GameCanvas = ({
   }, [gameState, playerId]);
   
   useEffect(() => {
+    if (!playerId || !gameState.players[playerId] || !gameState.items || !onCollectItem) return;
+    
+    const player = gameState.players[playerId];
+    const playerSize = calculatePlayerSize(player);
+    
+    Object.entries(gameState.items).forEach(([itemId, item]) => {
+      const dx = player.x - item.x;
+      const dy = player.y - item.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < playerSize / 2 + 10) {
+        console.log("Item collected! Calling onCollectItem");
+        onCollectItem(itemId);
+      }
+    });
+  }, [gameState, playerId, onCollectItem]);
+  
+  useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
     const currentPlayer = gameState.players[playerId];
@@ -207,8 +227,8 @@ const GameCanvas = ({
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      if (gameState.items && gameState.items.length > 0) {
-        gameState.items.forEach(item => {
+      if (gameState.items) {
+        Object.values(gameState.items).forEach(item => {
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
           ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
