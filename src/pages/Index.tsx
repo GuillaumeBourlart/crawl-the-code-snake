@@ -205,39 +205,30 @@ const Index = () => {
     setSocket(newSocket);
   };
   
+ 
+
   const handleMove = (direction: { x: number; y: number }) => {
-    if (socket && gameStarted && playerId) {
-      const player = gameState.players[playerId];
-      if (!player) return;
-      const speed = player.boosting ? 10 : 5;
-      const newX = player.x + direction.x * speed;
-      const newY = player.y + direction.y * speed;
-      const worldWidth = gameState.worldSize?.width || 2000;
-      const worldHeight = gameState.worldSize?.height || 2000;
-      const playerQueueLength = player.queue?.length || 0;
-      const baseSize = 20;
-      const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
-      const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
-      const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
-      
-      socket.emit("move", { x: boundedX, y: boundedY });
-      
-      setGameState(prevState => {
-        if (!prevState.players[playerId]) return prevState;
-        return {
-          ...prevState,
-          players: {
-            ...prevState.players,
-            [playerId]: {
-              ...prevState.players[playerId],
-              x: boundedX,
-              y: boundedY
-            }
-          }
-        };
-      });
-    }
-  };
+  if (socket && gameStarted && playerId) {
+    const player = gameState.players[playerId];
+    if (!player) return;
+    const speed = player.boosting ? 10 : 5;
+    const newX = player.x + direction.x * speed;
+    const newY = player.y + direction.y * speed;
+    const worldWidth = gameState.worldSize?.width || 2000;
+    const worldHeight = gameState.worldSize?.height || 2000;
+    const playerQueueLength = player.queue?.length || 0;
+    const baseSize = 20;
+    const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
+    const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
+    const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
+    
+    // Émettre l'événement move uniquement
+    socket.emit("move", { x: boundedX, y: boundedY });
+    
+    // Supprimez la mise à jour locale de gameState ici
+  }
+};
+
   
   const handleBoost = () => {
     if (socket && gameStarted) {
