@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -207,34 +206,20 @@ const Index = () => {
   
   const moveThrottleRef = useRef(false);
 
-const handleMove = (direction: { x: number; y: number }) => {
-  if (socket && gameStarted && playerId) {
-    if (moveThrottleRef.current) return; // Ignore si en attente
-    moveThrottleRef.current = true;
-    
-    const player = gameState.players[playerId];
-    if (!player) return;
-    const speed = player.boosting ? 10 : 5;
-    const newX = player.x + direction.x * speed;
-    const newY = player.y + direction.y * speed;
-    const worldWidth = gameState.worldSize?.width || 2000;
-    const worldHeight = gameState.worldSize?.height || 2000;
-    const playerQueueLength = player.queue?.length || 0;
-    const baseSize = 20;
-    const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
-    const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
-    const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
-    
-    socket.emit("changeDirection", { direction: { x: normalizedDx, y: normalizedDy } });
-
-    
-    // Remettre à false après 50ms (ajustez selon vos besoins)
-    setTimeout(() => {
-      moveThrottleRef.current = false;
-    }, 50);
-  }
-};
-
+  const handleMove = (direction: { x: number; y: number }) => {
+    if (socket && gameStarted && playerId) {
+      if (moveThrottleRef.current) return; // Ignore si en attente
+      moveThrottleRef.current = true;
+      
+      // Avec le nouveau serveur, on envoie simplement la direction normalisée
+      socket.emit("changeDirection", { direction });
+      
+      // Remettre à false après 50ms (ajustez selon vos besoins)
+      setTimeout(() => {
+        moveThrottleRef.current = false;
+      }, 50);
+    }
+  };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
