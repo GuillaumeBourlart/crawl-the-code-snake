@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -31,7 +30,8 @@ interface GameCanvasProps {
   gameState: GameState;
   playerId: string | null;
   onMove: (direction: { x: number; y: number }) => void;
-  onBoost: () => void;
+  onBoostStart: () => void;
+  onBoostStop: () => void;
   onPlayerCollision?: (otherPlayerId: string) => void;
 }
 
@@ -39,7 +39,8 @@ const GameCanvas = ({
   gameState, 
   playerId, 
   onMove, 
-  onBoost, 
+  onBoostStart,
+  onBoostStop,
   onPlayerCollision 
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -94,18 +95,24 @@ const GameCanvas = ({
       }
     };
     
-    const handleMouseClick = () => {
-      onBoost();
+    const handleMouseDown = () => {
+      onBoostStart();
+    };
+    
+    const handleMouseUp = () => {
+      onBoostStop();
     };
     
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mousedown', handleMouseClick);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
     
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mousedown', handleMouseClick);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [gameState, playerId, onMove, onBoost, camera]);
+  }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera]);
   
   // Check for player collisions
   useEffect(() => {

@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 
 interface MobileControlsProps {
   onMove: (direction: { x: number; y: number }) => void;
-  onBoost: () => void;
+  onBoostStart: () => void;
+  onBoostStop: () => void;
 }
 
-const MobileControls = ({ onMove, onBoost }: MobileControlsProps) => {
+const MobileControls = ({ onMove, onBoostStart, onBoostStop }: MobileControlsProps) => {
   const joystickRef = useRef<HTMLDivElement>(null);
   const joystickKnobRef = useRef<HTMLDivElement>(null);
   const [joystickActive, setJoystickActive] = useState(false);
   const [touchId, setTouchId] = useState<number | null>(null);
   const [boostTouchId, setBoostTouchId] = useState<number | null>(null);
-  const boostIntervalRef = useRef<number | null>(null);
   
   useEffect(() => {
     const joystick = joystickRef.current;
@@ -113,9 +113,6 @@ const MobileControls = ({ onMove, onBoost }: MobileControlsProps) => {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
-      if (boostIntervalRef.current !== null) {
-        window.clearInterval(boostIntervalRef.current);
-      }
     };
   }, [onMove, joystickActive, touchId, boostTouchId]);
   
@@ -126,26 +123,13 @@ const MobileControls = ({ onMove, onBoost }: MobileControlsProps) => {
     const touch = e.touches[0];
     setBoostTouchId(touch.identifier);
     
-    // Immediately trigger the first boost
-    onBoost();
-    
-    // Set up continuous boosting
-    if (boostIntervalRef.current !== null) {
-      window.clearInterval(boostIntervalRef.current);
-    }
-    
-    // Set the interval to continuously trigger boost every 200ms while pressed
-    boostIntervalRef.current = window.setInterval(() => {
-      onBoost();
-    }, 200);
+    // Start continuous boosting
+    onBoostStart();
   };
   
   const handleBoostEnd = () => {
     setBoostTouchId(null);
-    if (boostIntervalRef.current !== null) {
-      window.clearInterval(boostIntervalRef.current);
-      boostIntervalRef.current = null;
-    }
+    onBoostStop();
   };
   
   return (

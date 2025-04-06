@@ -203,7 +203,6 @@ const Index = () => {
   
   const moveThrottleRef = useRef(false);
   
-  // Le client envoie uniquement la nouvelle direction
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
       if (moveThrottleRef.current) return;
@@ -215,9 +214,15 @@ const Index = () => {
     }
   };
   
-  const handleBoost = () => {
+  const handleBoostStart = () => {
     if (socket && gameStarted) {
-      socket.emit("boost");
+      socket.emit("boostStart");
+    }
+  };
+  
+  const handleBoostStop = () => {
+    if (socket && gameStarted) {
+      socket.emit("boostStop");
     }
   };
   
@@ -304,10 +309,11 @@ const Index = () => {
             }}
             playerId={playerId}
             onMove={handleMove}
-            onBoost={handleBoost}
+            onBoostStart={handleBoostStart}
+            onBoostStop={handleBoostStop}
             onPlayerCollision={handlePlayerCollision}
           />
-          {isMobile && <MobileControls onMove={handleMove} onBoost={handleBoost} />}
+          {isMobile && <MobileControls onMove={handleMove} onBoostStart={handleBoostStart} onBoostStop={handleBoostStop} />}
         </>
       )}
     </div>
