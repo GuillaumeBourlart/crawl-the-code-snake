@@ -373,15 +373,19 @@ const GameCanvas = ({
             
             ctx.stroke();
             
-            ctx.fillStyle = playerColor;
-            ctx.beginPath();
-            ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.beginPath();
-            ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
-            ctx.fill();
+            if (visibleQueue.length > 0) {
+              const lastSegment = visibleQueue[visibleQueue.length - 1];
+              
+              ctx.fillStyle = playerColor;
+              ctx.beginPath();
+              ctx.arc(lastSegment.x, lastSegment.y, playerSize / 2, 0, Math.PI * 2);
+              ctx.fill();
+              
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+              ctx.beginPath();
+              ctx.arc(lastSegment.x - 2, lastSegment.y - 2, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         }
         
