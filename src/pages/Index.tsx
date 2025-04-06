@@ -53,9 +53,7 @@ const Index = () => {
   
   useEffect(() => {
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      if (socket) socket.disconnect();
     };
   }, [socket]);
   
@@ -126,7 +124,7 @@ const Index = () => {
             y: Math.random() * 600,
             length: 20,
             color: randomColor,
-            queue: []  // Queue initialement vide
+            queue: []
           }
         },
         items: randomItems,
@@ -190,10 +188,9 @@ const Index = () => {
     
     newSocket.on("update_items", (items: Record<string, GameItem> | GameItem[]) => {
       console.log("Items update:", items);
-      const itemsObject = Array.isArray(items) 
+      const itemsObject = Array.isArray(items)
         ? items.reduce((acc, item) => ({ ...acc, [item.id]: item }), {})
         : items;
-      
       setGameState(prevState => ({
         ...prevState,
         items: itemsObject
@@ -205,16 +202,13 @@ const Index = () => {
   };
   
   const moveThrottleRef = useRef(false);
-
+  
+  // Le client envoie uniquement la nouvelle direction
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
-      if (moveThrottleRef.current) return; // Ignore si en attente
+      if (moveThrottleRef.current) return;
       moveThrottleRef.current = true;
-      
-      // Avec le nouveau serveur, on envoie simplement la direction normalisée
       socket.emit("changeDirection", { direction });
-      
-      // Remettre à false après 50ms (ajustez selon vos besoins)
       setTimeout(() => {
         moveThrottleRef.current = false;
       }, 50);
@@ -236,19 +230,14 @@ const Index = () => {
       const currentPlayer = gameState.players[playerId];
       const otherPlayer = gameState.players[otherPlayerId];
       if (!currentPlayer || !otherPlayer) return;
-      
-      // Check if it's a head-to-head collision
       const dx = currentPlayer.x - otherPlayer.x;
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
       const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
-      
-      // If heads are colliding, compare sizes
       if (distance < (currentSize + otherSize) / 2) {
         const currentQueueLength = currentPlayer.queue?.length || 0;
         const otherQueueLength = otherPlayer.queue?.length || 0;
-        
         if (currentQueueLength <= otherQueueLength) {
           socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
           toast.error("Vous avez été éliminé!");
@@ -260,7 +249,6 @@ const Index = () => {
           socket.emit("eat_player", { eatenPlayer: otherPlayerId });
         }
       } else {
-        // For queue collisions, player dies regardless of size comparison
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
         setGameStarted(false);
@@ -288,7 +276,6 @@ const Index = () => {
           >
             {connecting ? "Connexion..." : "JOUER"}
           </Button>
-          
           <div className="absolute top-0 left-0 w-full h-full -z-10">
             {Array.from({ length: 50 }).map((_, i) => (
               <div
@@ -306,25 +293,21 @@ const Index = () => {
           </div>
         </div>
       )}
-      
       {gameStarted && (
         <>
-          <GameCanvas 
+          <GameCanvas
             gameState={{
               ...gameState,
               players: gameState.players || {},
               items: gameState.items ? Object.values(gameState.items) : [],
               worldSize: gameState.worldSize || { width: 2000, height: 2000 }
             }}
-            playerId={playerId} 
+            playerId={playerId}
             onMove={handleMove}
             onBoost={handleBoost}
             onPlayerCollision={handlePlayerCollision}
           />
-          
-          {isMobile && (
-            <MobileControls onMove={handleMove} onBoost={handleBoost} />
-          )}
+          {isMobile && <MobileControls onMove={handleMove} onBoost={handleBoost} />}
         </>
       )}
     </div>
