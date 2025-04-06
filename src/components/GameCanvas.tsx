@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -52,6 +53,7 @@ const GameCanvas = ({
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
+  // Référence pour stocker la dernière position connue de la souris
   const lastMousePositionRef = useRef<{ x: number, y: number } | null>(null);
   const isMouseOverCanvasRef = useRef<boolean>(false);
   
@@ -99,6 +101,7 @@ const GameCanvas = ({
           const normalizedDx = dx / length;
           const normalizedDy = dy / length;
           
+          // Stocker la dernière position connue de la souris
           lastMousePositionRef.current = { x: normalizedDx, y: normalizedDy };
           
           onMove({ x: normalizedDx, y: normalizedDy });
