@@ -54,7 +54,6 @@ const GameCanvas = ({
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
-  // Initialize camera position when player joins
   useEffect(() => {
     if (!playerId || !gameState.players[playerId]) return;
     
@@ -66,7 +65,6 @@ const GameCanvas = ({
     }));
   }, [gameState, playerId]);
   
-  // Handle mouse movement for player direction
   useEffect(() => {
     if (!playerId) return;
     
@@ -114,7 +112,6 @@ const GameCanvas = ({
     };
   }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera]);
   
-  // Check for player collisions
   useEffect(() => {
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
@@ -129,7 +126,6 @@ const GameCanvas = ({
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // Head-to-head collision - compare sizes
       if (distance < (currentSize + otherSize) / 2) {
         const currentQueueLength = currentPlayer.queue?.length || 0;
         const otherQueueLength = otherPlayer.queue?.length || 0;
@@ -140,7 +136,6 @@ const GameCanvas = ({
         }
       }
       
-      // Queue collision - current player dies regardless of size
       if (otherPlayer.queue && otherPlayer.queue.length > 0) {
         const collisionRadius = currentSize / 2;
         
@@ -165,7 +160,6 @@ const GameCanvas = ({
     return baseSize * (1 + (queueCount * 0.1));
   };
   
-  // When gameState changes, update camera position to follow player
   useEffect(() => {
     if (!playerId || !gameState.players[playerId]) return;
     
@@ -176,7 +170,6 @@ const GameCanvas = ({
       y: player.y
     }));
     
-    // Mark grid for update when players move significantly
     const prevPlayer = rendererStateRef.current.players[playerId];
     if (prevPlayer) {
       const dx = Math.abs(prevPlayer.x - player.x);
@@ -186,12 +179,10 @@ const GameCanvas = ({
       }
     }
     
-    // Update renderer state with new data
     rendererStateRef.current.players = { ...gameState.players };
     rendererStateRef.current.items = gameState.items || [];
   }, [gameState, playerId]);
   
-  // Main rendering loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -199,12 +190,10 @@ const GameCanvas = ({
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
     
-    // Create grid cache canvas if it doesn't exist
     if (!gridCacheCanvasRef.current) {
       gridCacheCanvasRef.current = document.createElement('canvas');
     }
     
-    // Set canvas to match screen resolution
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -220,7 +209,6 @@ const GameCanvas = ({
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Pre-render grid to offscreen canvas
     const updateGridCache = () => {
       const gridCanvas = gridCacheCanvasRef.current;
       if (!gridCanvas) return;
@@ -228,7 +216,6 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // Clear grid canvas
       gridCtx.fillStyle = '#121212';
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
       
@@ -238,7 +225,6 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      // Draw grid
       const gridSize = 50;
       const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
       const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
@@ -248,7 +234,6 @@ const GameCanvas = ({
       gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
       gridCtx.lineWidth = 1;
       
-      // Draw horizontal grid lines
       gridCtx.beginPath();
       for (let y = startY; y <= endY; y += gridSize) {
         gridCtx.moveTo(startX, y);
@@ -256,7 +241,6 @@ const GameCanvas = ({
       }
       gridCtx.stroke();
       
-      // Draw vertical grid lines
       gridCtx.beginPath();
       for (let x = startX; x <= endX; x += gridSize) {
         gridCtx.moveTo(x, startY);
@@ -264,7 +248,6 @@ const GameCanvas = ({
       }
       gridCtx.stroke();
       
-      // Draw world boundary
       gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       gridCtx.lineWidth = 2;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
@@ -274,20 +257,188 @@ const GameCanvas = ({
       rendererStateRef.current.gridNeedsUpdate = false;
     };
     
-    // Animation frame callback
+    const drawPlayerProcessor = (player: Player, isCurrentPlayer: boolean) => {
+      const playerSize = calculatePlayerSize(player);
+      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+      
+      const scale = playerSize / 20;
+      const baseX = player.x - 20 * scale / 2;
+      const baseY = player.y - 20 * scale / 2;
+      const size = 20 * scale;
+      
+      const gradient = ctx.createLinearGradient(
+        baseX, baseY, 
+        baseX + size, baseY + size
+      );
+      
+      if (isCurrentPlayer) {
+        gradient.addColorStop(0, '#8B5CF6');
+        gradient.addColorStop(1, '#3B82F6');
+      } else {
+        gradient.addColorStop(0, playerColor);
+        gradient.addColorStop(1, shadeColor(playerColor, -20));
+      }
+      
+      ctx.fillStyle = gradient;
+      roundedRect(ctx, baseX, baseY, size, size, size * 0.2);
+      
+      ctx.fillStyle = 'rgba(30, 30, 40, 0.7)';
+      roundedRect(ctx, baseX + size * 0.15, baseY + size * 0.15, size * 0.7, size * 0.7, size * 0.1);
+      
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+      for (let i = 0; i < 3; i++) {
+        const padWidth = size * 0.12;
+        const padHeight = size * 0.06;
+        const startX = baseX + size * 0.3 + (i * size * 0.2);
+        ctx.fillRect(startX, baseY, padWidth, padHeight);
+      }
+      
+      for (let i = 0; i < 3; i++) {
+        const padWidth = size * 0.12;
+        const padHeight = size * 0.06;
+        const startX = baseX + size * 0.3 + (i * size * 0.2);
+        ctx.fillRect(startX, baseY + size - padHeight, padWidth, padHeight);
+      }
+      
+      for (let i = 0; i < 3; i++) {
+        const padWidth = size * 0.06;
+        const padHeight = size * 0.12;
+        const startY = baseY + size * 0.3 + (i * size * 0.2);
+        ctx.fillRect(baseX, startY, padWidth, padHeight);
+      }
+      
+      for (let i = 0; i < 3; i++) {
+        const padWidth = size * 0.06;
+        const padHeight = size * 0.12;
+        const startY = baseY + size * 0.3 + (i * size * 0.2);
+        ctx.fillRect(baseX + size - padWidth, startY, padWidth, padHeight);
+      }
+      
+      ctx.strokeStyle = 'rgba(180, 180, 220, 0.6)';
+      ctx.lineWidth = size * 0.02;
+      
+      for (let i = 1; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(baseX + size * 0.25, baseY + size * (i * 0.2));
+        ctx.lineTo(baseX + size * 0.75, baseY + size * (i * 0.2));
+        ctx.stroke();
+      }
+      
+      for (let i = 1; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(baseX + size * (i * 0.2), baseY + size * 0.25);
+        ctx.lineTo(baseX + size * (i * 0.2), baseY + size * 0.75);
+        ctx.stroke();
+      }
+      
+      const coreGradient = ctx.createRadialGradient(
+        baseX + size * 0.5, baseY + size * 0.5, 0,
+        baseX + size * 0.5, baseY + size * 0.5, size * 0.15
+      );
+      
+      const pulseIntensity = Math.sin(Date.now() / 200) * 0.5 + 0.5;
+      
+      if (isCurrentPlayer) {
+        coreGradient.addColorStop(0, `rgba(139, 92, 246, ${0.7 + pulseIntensity * 0.3})`);
+        coreGradient.addColorStop(1, `rgba(59, 130, 246, ${0.3 + pulseIntensity * 0.2})`);
+      } else {
+        const baseColorRgb = hexToRgb(playerColor);
+        coreGradient.addColorStop(0, `rgba(${baseColorRgb?.r}, ${baseColorRgb?.g}, ${baseColorRgb?.b}, ${0.7 + pulseIntensity * 0.3})`);
+        coreGradient.addColorStop(1, `rgba(${baseColorRgb?.r}, ${baseColorRgb?.g}, ${baseColorRgb?.b}, ${0.3 + pulseIntensity * 0.2})`);
+      }
+      
+      ctx.fillStyle = coreGradient;
+      ctx.beginPath();
+      ctx.arc(baseX + size * 0.5, baseY + size * 0.5, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(baseX + size * 0.4, baseY + size * 0.4, size * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+      
+      for (let i = 0; i < 4; i++) {
+        const angle = (Date.now() / 200 + i * Math.PI / 2) % (Math.PI * 2);
+        const dotRadius = size * 0.04;
+        const distance = size * 0.25;
+        const dotX = baseX + size * 0.5 + Math.cos(angle) * distance;
+        const dotY = baseY + size * 0.5 + Math.sin(angle) * distance;
+        
+        ctx.fillStyle = isCurrentPlayer ? 
+          `rgba(139, 92, 246, ${0.7 + pulseIntensity * 0.3})` : 
+          `rgba(255, 255, 255, ${0.7 + pulseIntensity * 0.3})`;
+          
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      if (isCurrentPlayer) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = size * 0.05;
+        roundedRect(ctx, baseX - size * 0.05, baseY - size * 0.05, size * 1.1, size * 1.1, size * 0.25, true);
+      }
+    };
+    
+    function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, stroke = false) {
+      context.beginPath();
+      context.moveTo(x + radius, y);
+      context.lineTo(x + width - radius, y);
+      context.quadraticCurveTo(x + width, y, x + width, y + radius);
+      context.lineTo(x + width, y + height - radius);
+      context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      context.lineTo(x + radius, y + height);
+      context.quadraticCurveTo(x, y + height, x, y + height - radius);
+      context.lineTo(x, y + radius);
+      context.quadraticCurveTo(x, y, x + radius, y);
+      context.closePath();
+      
+      if (stroke) {
+        context.stroke();
+      } else {
+        context.fill();
+      }
+    }
+    
+    function shadeColor(color: string, percent: number) {
+      let R = parseInt(color.substring(1, 3), 16);
+      let G = parseInt(color.substring(3, 5), 16);
+      let B = parseInt(color.substring(5, 7), 16);
+
+      R = Math.floor(R * (100 + percent) / 100);
+      G = Math.floor(G * (100 + percent) / 100);
+      B = Math.floor(B * (100 + percent) / 100);
+
+      R = (R < 255) ? R : 255;
+      G = (G < 255) ? G : 255;
+      B = (B < 255) ? B : 255;
+
+      const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
+      const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
+      const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
+
+      return "#" + RR + GG + BB;
+    }
+    
+    function hexToRgb(hex: string) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    }
+    
     const renderFrame = (timestamp: number) => {
       if (!canvas) return;
       
-      // Clear the canvas with solid color (more efficient than clearRect)
       ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Update grid cache if needed
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
         updateGridCache();
       }
       
-      // Draw grid from cache
       if (gridCacheCanvasRef.current) {
         ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
       }
@@ -298,13 +449,11 @@ const GameCanvas = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      // Use viewport culling for efficient rendering
       const viewportLeft = camera.x - canvas.width / camera.zoom / 2 - 100;
       const viewportRight = camera.x + canvas.width / camera.zoom / 2 + 100;
       const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
       const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
-      // Draw items
       if (rendererStateRef.current.items.length > 0) {
         const visibleItems = rendererStateRef.current.items.filter(item => 
           item.x >= viewportLeft && 
@@ -313,7 +462,6 @@ const GameCanvas = ({
           item.y <= viewportBottom
         );
         
-        // Batch similar items for performance
         ctx.beginPath();
         visibleItems.forEach(item => {
           ctx.fillStyle = item.color || '#FFFFFF';
@@ -321,7 +469,6 @@ const GameCanvas = ({
           ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
           ctx.fill();
           
-          // Simple highlight effect
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.beginPath();
           ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
@@ -329,9 +476,7 @@ const GameCanvas = ({
         });
       }
       
-      // Draw players
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        // Skip players outside viewport
         if (
           player.x < viewportLeft ||
           player.x > viewportRight ||
@@ -341,17 +486,14 @@ const GameCanvas = ({
           return;
         }
         
-        const playerSize = calculatePlayerSize(player);
-        const playerColor = player.color || (id === playerId ? '#FF0000' : '#FFFFFF');
+        const isCurrentPlayer = id === playerId;
         
-        // Draw queue segments
         if (player.queue && player.queue.length > 0) {
-          ctx.strokeStyle = playerColor;
+          ctx.strokeStyle = player.color || (isCurrentPlayer ? '#FF0000' : '#FFFFFF');
           ctx.lineWidth = Math.max(3, playerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
-          // Optimize queue rendering by skipping segments outside viewport
           const visibleQueue = player.queue.filter(segment => 
             segment.x >= viewportLeft && 
             segment.x <= viewportRight && 
@@ -365,125 +507,38 @@ const GameCanvas = ({
             player.y >= viewportTop && 
             player.y <= viewportBottom
           )) {
-            // ctx.beginPath();
-            // ctx.moveTo(player.x, player.y);
-            
-            // for (const segment of visibleQueue) {
-            //   ctx.lineTo(segment.x, segment.y);
-            // }
-            
-            // ctx.stroke();
-            
-            // Draw queue nodes
-            for (const segment of visibleQueue) {
-              ctx.fillStyle = playerColor;
+            ctx.beginPath();
+            visibleQueue.forEach(segment => {
+              ctx.fillStyle = player.color || (isCurrentPlayer ? '#FF0000' : '#FFFFFF');
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
               ctx.fill();
               
-              // Simple highlight
               ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
               ctx.beginPath();
               ctx.arc(segment.x - 2, segment.y - 2, 2, 0, Math.PI * 2);
               ctx.fill();
-            }
+            });
           }
         }
         
-        // Draw player head - Enhanced processor design
-        const drawPlayerHead = () => {
-          // Base color
-          ctx.fillStyle = playerColor;
-          
-          // Calculations for positioning
-          const scale = playerSize / 20;
-          const baseX = player.x - 20 * scale / 2;
-          const baseY = player.y - 20 * scale / 2;
-          const size = 20 * scale;
-          
-          // Main processor outer frame
-          ctx.fillRect(baseX, baseY, size, size);
-          
-          // Secondary frame
-          ctx.fillStyle = `${playerColor}`;
-          ctx.fillRect(baseX + size * 0.15, baseY + size * 0.15, size * 0.7, size * 0.7);
-          
-          // CPU core - dark inner square
-          ctx.fillStyle = 'rgba(0,0,0,0.5)';
-          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.25, size * 0.5, size * 0.5);
-          
-          // Circuit traces
-          ctx.fillStyle = `${playerColor}`;
-          // Horizontal traces
-          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.35, size * 0.4, size * 0.05);
-          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.45, size * 0.4, size * 0.05);
-          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.55, size * 0.4, size * 0.05);
-          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.65, size * 0.4, size * 0.05);
-          
-          // Vertical traces
-          ctx.fillRect(baseX + size * 0.35, baseY + size * 0.3, size * 0.05, size * 0.4);
-          ctx.fillRect(baseX + size * 0.45, baseY + size * 0.3, size * 0.05, size * 0.4);
-          ctx.fillRect(baseX + size * 0.55, baseY + size * 0.3, size * 0.05, size * 0.4);
-          ctx.fillRect(baseX + size * 0.65, baseY + size * 0.3, size * 0.05, size * 0.4);
-          
-          // Connection pins (outer)
-          ctx.fillStyle = 'rgba(220,220,220,0.9)';
-          // Top pins
-          ctx.fillRect(baseX + size * 0.25, baseY, size * 0.1, size * 0.15);
-          ctx.fillRect(baseX + size * 0.45, baseY, size * 0.1, size * 0.15);
-          ctx.fillRect(baseX + size * 0.65, baseY, size * 0.1, size * 0.15);
-          // Bottom pins
-          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.85, size * 0.1, size * 0.15);
-          ctx.fillRect(baseX + size * 0.45, baseY + size * 0.85, size * 0.1, size * 0.15);
-          ctx.fillRect(baseX + size * 0.65, baseY + size * 0.85, size * 0.1, size * 0.15);
-          // Left pins
-          ctx.fillRect(baseX, baseY + size * 0.25, size * 0.15, size * 0.1);
-          ctx.fillRect(baseX, baseY + size * 0.45, size * 0.15, size * 0.1);
-          ctx.fillRect(baseX, baseY + size * 0.65, size * 0.15, size * 0.1);
-          // Right pins
-          ctx.fillRect(baseX + size * 0.85, baseY + size * 0.25, size * 0.15, size * 0.1);
-          ctx.fillRect(baseX + size * 0.85, baseY + size * 0.45, size * 0.15, size * 0.1);
-          ctx.fillRect(baseX + size * 0.85, baseY + size * 0.65, size * 0.15, size * 0.1);
-          
-          // Central core highlights
-          ctx.fillStyle = 'rgba(255,255,255,0.7)';
-          ctx.fillRect(baseX + size * 0.4, baseY + size * 0.4, size * 0.2, size * 0.2);
-          
-          // Processing light pulses (animated effect)
-          const pulseIntensity = Math.sin(Date.now() / 200) * 0.5 + 0.5;
-          ctx.fillStyle = `rgba(255,255,255,${0.3 + pulseIntensity * 0.4})`;
-          ctx.fillRect(baseX + size * 0.45, baseY + size * 0.45, size * 0.1, size * 0.1);
-        };
+        drawPlayerProcessor(player, isCurrentPlayer);
         
-        drawPlayerHead();
-        
-        // Highlight current player
-        if (id === playerId) {
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 2;
-          const scale = playerSize / 20;
-          ctx.strokeRect(player.x - 20 * scale / 2, player.y - 20 * scale / 2, 20 * scale, 20 * scale);
-        }
-        
-        // Draw enhanced boost effect
         if (player.boosting) {
-          const boostColor = playerColor === '#FF0000' ? '#FF6B6B' : playerColor;
+          const boostColor = player.color === '#FF0000' ? '#FF6B6B' : player.color;
           
-          // Create pulsating glow effect
           const pulseScale = 1 + Math.sin(Date.now() / 150) * 0.2;
           
-          // Outer glow - multiple layers with different opacities
           for (let i = 1; i <= 3; i++) {
             const opacity = 0.6 - (i * 0.15);
             const size = playerSize * (1.2 + (i * 0.3)) * pulseScale;
             
-            // Radial gradient for the glow
             const gradient = ctx.createRadialGradient(
               player.x, player.y, 0,
               player.x, player.y, size
             );
-            gradient.addColorStop(0, `${boostColor}CC`); // More opaque in center
-            gradient.addColorStop(1, `${boostColor}00`); // Transparent at edges
+            gradient.addColorStop(0, `${boostColor}CC`);
+            gradient.addColorStop(1, `${boostColor}00`);
             
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -491,41 +546,27 @@ const GameCanvas = ({
             ctx.fill();
           }
           
-          // Particle effects behind the player
-          const dirX = player.direction?.x || 0;
-          const dirY = player.direction?.y || 0;
-          
           for (let i = 0; i < 7; i++) {
-            // Create random offset from the player's direction
-            const offsetAngle = (Math.random() - 0.5) * Math.PI / 2; // +/- 45 degrees
+            const offsetAngle = (Math.random() - 0.5) * Math.PI / 2;
             const distance = Math.random() * playerSize * 2 + playerSize;
             
-            // Calculate the angle based on player direction
             const baseAngle = Math.atan2(dirY, dirX);
-            const particleAngle = baseAngle + Math.PI + offsetAngle; // Particles go behind the player
+            const particleAngle = baseAngle + Math.PI + offsetAngle;
             
-            // Calculate particle position
             const particleX = player.x + Math.cos(particleAngle) * distance;
             const particleY = player.y + Math.sin(particleAngle) * distance;
             
-            // Particle size decreases with distance
             const particleSize = (playerSize / 4) * (1 - distance / (playerSize * 3));
             
-            // Random particle color variations
-            const hue = Math.random() * 60 - 30; // +/- 30 hue degrees
+            const hue = Math.random() * 60 - 30;
             ctx.fillStyle = `hsla(${hue + 30}, 100%, 70%, ${0.7 * Math.random() + 0.3})`;
             
-            // Draw the particle
             ctx.beginPath();
             ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
             ctx.fill();
           }
           
-          // Speed lines
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-          ctx.lineWidth = 2;
-          const angleBase = Math.atan2(dirY, dirX) + Math.PI; // Behind the player
-          
+          const angleBase = Math.atan2(dirY, dirX) + Math.PI;
           for (let i = 0; i < 4; i++) {
             const angleOffset = (Math.random() - 0.5) * Math.PI / 4;
             const lineAngle = angleBase + angleOffset;
@@ -536,7 +577,6 @@ const GameCanvas = ({
             const endX = player.x + Math.cos(lineAngle) * (playerSize * 0.8 + lineLength);
             const endY = player.y + Math.sin(lineAngle) * (playerSize * 0.8 + lineLength);
             
-            // Fade out effect
             const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
             gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -549,24 +589,22 @@ const GameCanvas = ({
           }
         }
         
-        // Draw player label
-        if (id === playerId) {
+        if (isCurrentPlayer) {
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - playerSize - 15);
+          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
         } else {
           const queueCount = player.queue?.length || 0;
           ctx.fillStyle = '#FFFFFF';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`${queueCount}`, player.x, player.y - playerSize - 5);
+          ctx.fillText(`${queueCount}`, player.x, player.y - calculatePlayerSize(player) - 5);
         }
       });
       
       ctx.restore();
       
-      // Draw UI overlay
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(10, 10, 200, 60);
       
@@ -582,15 +620,12 @@ const GameCanvas = ({
         ctx.fillText(`Segments: ${queueCount}`, 20, 60);
       }
       
-      // Store previous timestamp and request next frame
       previousTimeRef.current = timestamp;
       requestRef.current = requestAnimationFrame(renderFrame);
     };
     
-    // Start the animation loop
     requestRef.current = requestAnimationFrame(renderFrame);
     
-    // Cleanup
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
