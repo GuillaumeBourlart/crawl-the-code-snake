@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -487,10 +488,11 @@ const GameCanvas = ({
         }
         
         const isCurrentPlayer = id === playerId;
+        const currentPlayerSize = calculatePlayerSize(player);
         
         if (player.queue && player.queue.length > 0) {
           ctx.strokeStyle = player.color || (isCurrentPlayer ? '#FF0000' : '#FFFFFF');
-          ctx.lineWidth = Math.max(3, playerSize / 3);
+          ctx.lineWidth = Math.max(3, currentPlayerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
@@ -511,7 +513,7 @@ const GameCanvas = ({
             visibleQueue.forEach(segment => {
               ctx.fillStyle = player.color || (isCurrentPlayer ? '#FF0000' : '#FFFFFF');
               ctx.beginPath();
-              ctx.arc(segment.x, segment.y, playerSize / 2, 0, Math.PI * 2);
+              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.fill();
               
               ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
@@ -528,10 +530,11 @@ const GameCanvas = ({
           const boostColor = player.color === '#FF0000' ? '#FF6B6B' : player.color;
           
           const pulseScale = 1 + Math.sin(Date.now() / 150) * 0.2;
+          const currentSize = calculatePlayerSize(player);
           
           for (let i = 1; i <= 3; i++) {
             const opacity = 0.6 - (i * 0.15);
-            const size = playerSize * (1.2 + (i * 0.3)) * pulseScale;
+            const size = currentSize * (1.2 + (i * 0.3)) * pulseScale;
             
             const gradient = ctx.createRadialGradient(
               player.x, player.y, 0,
@@ -546,9 +549,13 @@ const GameCanvas = ({
             ctx.fill();
           }
           
+          // Get the player's current direction
+          const dirX = player.direction?.x || 0;
+          const dirY = player.direction?.y || 0;
+          
           for (let i = 0; i < 7; i++) {
             const offsetAngle = (Math.random() - 0.5) * Math.PI / 2;
-            const distance = Math.random() * playerSize * 2 + playerSize;
+            const distance = Math.random() * currentSize * 2 + currentSize;
             
             const baseAngle = Math.atan2(dirY, dirX);
             const particleAngle = baseAngle + Math.PI + offsetAngle;
@@ -556,7 +563,7 @@ const GameCanvas = ({
             const particleX = player.x + Math.cos(particleAngle) * distance;
             const particleY = player.y + Math.sin(particleAngle) * distance;
             
-            const particleSize = (playerSize / 4) * (1 - distance / (playerSize * 3));
+            const particleSize = (currentSize / 4) * (1 - distance / (currentSize * 3));
             
             const hue = Math.random() * 60 - 30;
             ctx.fillStyle = `hsla(${hue + 30}, 100%, 70%, ${0.7 * Math.random() + 0.3})`;
@@ -570,12 +577,12 @@ const GameCanvas = ({
           for (let i = 0; i < 4; i++) {
             const angleOffset = (Math.random() - 0.5) * Math.PI / 4;
             const lineAngle = angleBase + angleOffset;
-            const lineLength = playerSize * (1.5 + Math.random());
+            const lineLength = currentSize * (1.5 + Math.random());
             
-            const startX = player.x + Math.cos(lineAngle) * playerSize * 0.8;
-            const startY = player.y + Math.sin(lineAngle) * playerSize * 0.8;
-            const endX = player.x + Math.cos(lineAngle) * (playerSize * 0.8 + lineLength);
-            const endY = player.y + Math.sin(lineAngle) * (playerSize * 0.8 + lineLength);
+            const startX = player.x + Math.cos(lineAngle) * currentSize * 0.8;
+            const startY = player.y + Math.sin(lineAngle) * currentSize * 0.8;
+            const endX = player.x + Math.cos(lineAngle) * (currentSize * 0.8 + lineLength);
+            const endY = player.y + Math.sin(lineAngle) * (currentSize * 0.8 + lineLength);
             
             const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
