@@ -45,13 +45,13 @@ const GameOverDialog = ({
     const dialogX = window.innerWidth / 2;
     const dialogY = window.innerHeight / 2 - 50; // Slightly above center
     
-    // Get snake position within dialog
-    const snakeX = dialogX - 50;
-    const snakeY = dialogY;
+    // Get processor position within dialog
+    const processorX = dialogX - 50;
+    const processorY = dialogY;
     
     // Calculate direction to mouse
-    const dx = mousePosition.x - snakeX;
-    const dy = mousePosition.y - snakeY;
+    const dx = mousePosition.x - processorX;
+    const dy = mousePosition.y - processorY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     if (distance === 0) return { x: 0, y: 0 };
@@ -72,10 +72,48 @@ const GameOverDialog = ({
         <DialogHeader>
           <div className="flex items-center justify-center mb-2">
             <div className="relative w-12 h-12 mr-2">
+              {/* Processor styled circle with circuit details */}
               <div 
-                className="w-10 h-10 rounded-full animate-pulse" 
-                style={{ backgroundColor: playerColor }}
+                className="w-10 h-10 rounded-full"
+                style={{ 
+                  backgroundColor: playerColor,
+                  boxShadow: `0 0 10px ${playerColor}80`
+                }}
               />
+              
+              {/* Circuit lines */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-[1px]" 
+                style={{ backgroundColor: `${playerColor}EE` }} />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-6" 
+                style={{ backgroundColor: `${playerColor}EE` }} />
+              
+              {/* Small circuit details in corners */}
+              <div className="absolute left-2 top-2 w-2 h-2 bg-transparent">
+                <div className="absolute left-0 top-0 w-1 h-[2px]" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+                <div className="absolute left-0 top-0 w-[2px] h-1" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+              </div>
+              <div className="absolute right-2 top-2 w-2 h-2 bg-transparent">
+                <div className="absolute right-0 top-0 w-1 h-[2px]" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+                <div className="absolute right-0 top-0 w-[2px] h-1" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+              </div>
+              <div className="absolute left-2 bottom-2 w-2 h-2 bg-transparent">
+                <div className="absolute left-0 bottom-0 w-1 h-[2px]" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+                <div className="absolute left-0 bottom-0 w-[2px] h-1" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+              </div>
+              <div className="absolute right-2 bottom-2 w-2 h-2 bg-transparent">
+                <div className="absolute right-0 bottom-0 w-1 h-[2px]" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+                <div className="absolute right-0 bottom-0 w-[2px] h-1" 
+                  style={{ backgroundColor: `${playerColor}EE` }} />
+              </div>
+              
+              {/* Eyes that follow mouse */}
               <div className="absolute left-1 top-2 w-3 h-3 bg-white rounded-full">
                 <div 
                   className="absolute w-1.5 h-1.5 bg-black rounded-full"
@@ -94,6 +132,8 @@ const GameOverDialog = ({
                   }}
                 />
               </div>
+              
+              {/* Mouth */}
               <div className="absolute left-4 top-6 w-2 h-1 bg-red-500 rounded" />
             </div>
             <DialogTitle className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">

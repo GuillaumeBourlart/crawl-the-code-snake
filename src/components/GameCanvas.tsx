@@ -64,6 +64,26 @@ function shadeColor(color: string, percent: number) {
   return "#" + RR + GG + BB;
 }
 
+function darkenColor(color: string, percent: number) {
+  let R = parseInt(color.substring(1, 3), 16);
+  let G = parseInt(color.substring(3, 5), 16);
+  let B = parseInt(color.substring(5, 7), 16);
+
+  R = Math.floor(R * (100 - percent) / 100);
+  G = Math.floor(G * (100 - percent) / 100);
+  B = Math.floor(B * (100 - percent) / 100);
+
+  R = (R < 0) ? 0 : R;
+  G = (G < 0) ? 0 : G;
+  B = (B < 0) ? 0 : B;
+
+  const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
+  const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
+  const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
+
+  return "#" + RR + GG + BB;
+}
+
 function adjustPinColor(color: string) {
   const rgb = hexToRgb(color);
   if (!rgb) return 'rgba(255, 215, 0, 0.7)';
@@ -303,52 +323,90 @@ const GameCanvas = ({
     const drawPlayerProcessor = (player: Player, isCurrentPlayer: boolean) => {
       const playerSize = calculatePlayerSize(player);
       const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+      const ctx = canvasRef.current?.getContext('2d');
+      if (!ctx) return;
       
-      // Draw a simple circle for the player
+      ctx.save();
+      
       ctx.fillStyle = playerColor;
       ctx.beginPath();
       ctx.arc(player.x, player.y, playerSize / 2, 0, Math.PI * 2);
       ctx.fill();
       
-      // Draw eyes that follow the mouse
+      ctx.strokeStyle = darkenColor(playerColor, 20);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.strokeStyle = shadeColor(playerColor, 40);
+      ctx.lineWidth = 1;
+      
+      ctx.beginPath();
+      ctx.moveTo(player.x - playerSize / 3, player.y);
+      ctx.lineTo(player.x + playerSize / 3, player.y);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y - playerSize / 3);
+      ctx.lineTo(player.x, player.y + playerSize / 3);
+      ctx.stroke();
+      
+      const cornerOffset = playerSize / 4;
+      
+      ctx.beginPath();
+      ctx.moveTo(player.x - cornerOffset, player.y - cornerOffset / 2);
+      ctx.lineTo(player.x - cornerOffset, player.y - cornerOffset);
+      ctx.lineTo(player.x - cornerOffset / 2, player.y - cornerOffset);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(player.x + cornerOffset, player.y - cornerOffset / 2);
+      ctx.lineTo(player.x + cornerOffset, player.y - cornerOffset);
+      ctx.lineTo(player.x + cornerOffset / 2, player.y - cornerOffset);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(player.x - cornerOffset, player.y + cornerOffset / 2);
+      ctx.lineTo(player.x - cornerOffset, player.y + cornerOffset);
+      ctx.lineTo(player.x - cornerOffset / 2, player.y + cornerOffset);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(player.x + cornerOffset, player.y + cornerOffset / 2);
+      ctx.lineTo(player.x + cornerOffset, player.y + cornerOffset);
+      ctx.lineTo(player.x + cornerOffset / 2, player.y + cornerOffset);
+      ctx.stroke();
+      
       const eyeSize = playerSize * 0.15;
       const eyeDistance = playerSize * 0.18;
       const eyeOffsetY = -playerSize * 0.05;
       
-      // Draw white part of eyes
       ctx.fillStyle = '#FFFFFF';
       
-      // Left eye
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Right eye
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Calculate eye pupil positions that follow mouse
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
       if (isCurrentPlayer) {
         const mousePos = rendererStateRef.current.mousePosition;
         if (mousePos) {
-          // Convert mouse position to world coordinates
-          const canvasWidth = canvas.width;
-          const canvasHeight = canvas.height;
+          const canvasWidth = canvasRef.current?.width || 0;
+          const canvasHeight = canvasRef.current?.height || 0;
           
           const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
           const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
           
-          // Calculate direction to mouse
           const dx = worldMouseX - player.x;
           const dy = worldMouseY - player.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           
           if (distance > 0) {
-            // Normalize and scale for pupil movement
             const maxPupilOffset = eyeSize * 0.5;
             pupilOffsetX = (dx / distance) * maxPupilOffset;
             pupilOffsetY = (dy / distance) * maxPupilOffset;
@@ -356,38 +414,35 @@ const GameCanvas = ({
         }
       }
       
-      // Draw pupils
       ctx.fillStyle = '#000000';
       
-      // Left pupil
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
       ctx.fill();
       
-      // Right pupil
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add a small glow to the player when boosting
       if (player.boosting) {
-        const glowColor = playerColor === '#FF0000' ? '#FF6B6B' : playerColor;
+        const glowColor = playerColor;
         
-        // Create fluorescent glow
-        const glowRadius = playerSize * 1.2;
+        const glowRadius = playerSize * 0.8;
         const gradient = ctx.createRadialGradient(
-          player.x, player.y, playerSize * 0.2,
+          player.x, player.y, playerSize * 0.3,
           player.x, player.y, glowRadius
         );
         
-        gradient.addColorStop(0, `${glowColor}EE`);  // More opaque in center
-        gradient.addColorStop(1, `${glowColor}00`);  // Transparent at edges
+        gradient.addColorStop(0, `${glowColor}80`);
+        gradient.addColorStop(1, `${glowColor}00`);
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
       }
+      
+      ctx.restore();
     };
     
     function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, stroke = false) {
@@ -411,7 +466,9 @@ const GameCanvas = ({
     }
     
     const renderFrame = (timestamp: number) => {
-      if (!canvas) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return;
       
       ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -443,7 +500,6 @@ const GameCanvas = ({
           item.y <= viewportBottom
         );
         
-        ctx.beginPath();
         visibleItems.forEach(item => {
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
@@ -469,11 +525,9 @@ const GameCanvas = ({
         
         const isCurrentPlayer = id === playerId;
         const currentPlayerSize = calculatePlayerSize(player);
+        const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
         
         if (player.queue && player.queue.length > 0) {
-          // Set queue segment styles
-          const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
-          
           const visibleQueue = player.queue.filter(segment => 
             segment.x >= viewportLeft && 
             segment.x <= viewportRight && 
@@ -481,44 +535,34 @@ const GameCanvas = ({
             segment.y <= viewportBottom
           );
           
-          if (visibleQueue.length > 0 || (
-            player.x >= viewportLeft && 
-            player.x <= viewportRight && 
-            player.y >= viewportTop && 
-            player.y <= viewportBottom
-          )) {
+          if (visibleQueue.length > 0) {
             visibleQueue.forEach(segment => {
-              // Fill for queue segment
               ctx.fillStyle = player.boosting 
-                ? shadeColor(baseColor, 20) // Brighter when boosting
+                ? shadeColor(baseColor, 10)
                 : baseColor;
-                
+              
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.fill();
               
-              // White outline for queue segments
-              ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+              ctx.strokeStyle = darkenColor(baseColor, 20);
               ctx.lineWidth = 2;
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.stroke();
               
-              // Add glow effect when boosting
               if (player.boosting) {
-                const glowColor = baseColor === '#FF0000' ? '#FF6B6B' : baseColor;
-                
                 const glowGradient = ctx.createRadialGradient(
-                  segment.x, segment.y, currentPlayerSize * 0.2,
-                  segment.x, segment.y, currentPlayerSize * 0.9
+                  segment.x, segment.y, currentPlayerSize * 0.3,
+                  segment.x, segment.y, currentPlayerSize * 0.7
                 );
                 
-                glowGradient.addColorStop(0, `${glowColor}AA`);
-                glowGradient.addColorStop(1, `${glowColor}00`);
+                glowGradient.addColorStop(0, `${baseColor}50`);
+                glowGradient.addColorStop(1, `${baseColor}00`);
                 
                 ctx.fillStyle = glowGradient;
                 ctx.beginPath();
-                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.9, 0, Math.PI * 2);
+                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.7, 0, Math.PI * 2);
                 ctx.fill();
               }
             });
@@ -526,11 +570,6 @@ const GameCanvas = ({
         }
         
         drawPlayerProcessor(player, isCurrentPlayer);
-        
-        if (player.boosting) {
-          // We've removed the spark effects and replaced with fluorescent glow on player and queue
-          // The glow effects are now handled in the drawPlayerProcessor and queue rendering above
-        }
         
         if (isCurrentPlayer) {
           ctx.fillStyle = '#FFFF00';
