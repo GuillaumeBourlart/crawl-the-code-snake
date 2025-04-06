@@ -358,14 +358,14 @@ const GameCanvas = ({
             player.y >= viewportTop && 
             player.y <= viewportBottom
           )) {
-            ctx.beginPath();
-            ctx.moveTo(player.x, player.y);
+            // ctx.beginPath();
+            // ctx.moveTo(player.x, player.y);
             
-            for (const segment of visibleQueue) {
-              ctx.lineTo(segment.x, segment.y);
-            }
+            // for (const segment of visibleQueue) {
+            //   ctx.lineTo(segment.x, segment.y);
+            // }
             
-            ctx.stroke();
+            // ctx.stroke();
             
             // Draw queue nodes
             for (const segment of visibleQueue) {
