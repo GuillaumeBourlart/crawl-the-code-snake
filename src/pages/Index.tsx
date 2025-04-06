@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -50,9 +49,7 @@ const Index = () => {
     worldSize: { width: 2000, height: 2000 }
   });
   
-  // Référence pour stocker la direction actuelle
   const currentDirectionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  // Référence pour l'intervalle de mouvement
   const moveIntervalRef = useRef<number | null>(null);
 
   const isMobile = useIsMobile();
@@ -63,7 +60,6 @@ const Index = () => {
         socket.disconnect();
       }
       
-      // Nettoyer l'intervalle de mouvement lorsque le composant est démonté
       if (moveIntervalRef.current) {
         clearInterval(moveIntervalRef.current);
         moveIntervalRef.current = null;
@@ -147,7 +143,6 @@ const Index = () => {
       
       toast.success("Vous avez rejoint la partie");
       
-      // Démarrer le mouvement continu après avoir rejoint la partie
       startContinuousMovement();
     });
     
@@ -219,7 +214,6 @@ const Index = () => {
     setSocket(newSocket);
   };
   
-  // Fonction pour démarrer le mouvement continu
   const startContinuousMovement = () => {
     if (moveIntervalRef.current) {
       clearInterval(moveIntervalRef.current);
@@ -234,7 +228,6 @@ const Index = () => {
   };
   
   const handleMove = (direction: { x: number; y: number }) => {
-    // Stocker la direction actuelle dans la référence
     currentDirectionRef.current = direction;
     
     if (socket && gameStarted && playerId) {
