@@ -90,7 +90,8 @@ const GameCanvas = ({
   const rendererStateRef = useRef({
     players: {} as Record<string, Player>,
     items: [] as GameItem[],
-    gridNeedsUpdate: true
+    gridNeedsUpdate: true,
+    mousePosition: { x: 0, y: 0 }
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -115,6 +116,8 @@ const GameCanvas = ({
       const rect = canvas.getBoundingClientRect();
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
+      
+      rendererStateRef.current.mousePosition = { x: canvasX, y: canvasY };
       
       const player = gameState.players[playerId];
       if (!player) return;
