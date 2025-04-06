@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
 import { createClient } from "@supabase/supabase-js";
@@ -50,12 +49,20 @@ const Index = () => {
     worldSize: { width: 2000, height: 2000 }
   });
   
+  const currentDirectionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const moveIntervalRef = useRef<number | null>(null);
+
   const isMobile = useIsMobile();
   
   useEffect(() => {
     return () => {
       if (socket) {
         socket.disconnect();
+      }
+      
+      if (moveIntervalRef.current) {
+        clearInterval(moveIntervalRef.current);
+        moveIntervalRef.current = null;
       }
     };
   }, [socket]);
@@ -135,6 +142,8 @@ const Index = () => {
       }));
       
       toast.success("Vous avez rejoint la partie");
+      
+      startContinuousMovement();
     });
     
     newSocket.on("player_eliminated", () => {
@@ -205,30 +214,39 @@ const Index = () => {
     setSocket(newSocket);
   };
   
- 
-
+  const startContinuousMovement = () => {
+    if (moveIntervalRef.current) {
+      clearInterval(moveIntervalRef.current);
+    }
+    
+    moveIntervalRef.current = window.setInterval(() => {
+      const direction = currentDirectionRef.current;
+      if (socket && gameStarted && (direction.x !== 0 || direction.y !== 0)) {
+        handleMove(direction);
+      }
+    }, 50);
+  };
+  
   const handleMove = (direction: { x: number; y: number }) => {
-  if (socket && gameStarted && playerId) {
-    const player = gameState.players[playerId];
-    if (!player) return;
-    const speed = player.boosting ? 10 : 5;
-    const newX = player.x + direction.x * speed;
-    const newY = player.y + direction.y * speed;
-    const worldWidth = gameState.worldSize?.width || 2000;
-    const worldHeight = gameState.worldSize?.height || 2000;
-    const playerQueueLength = player.queue?.length || 0;
-    const baseSize = 20;
-    const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
-    const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
-    const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
+    currentDirectionRef.current = direction;
     
-    // Émettre l'événement move uniquement
-    socket.emit("move", { x: boundedX, y: boundedY });
-    
-    // Supprimez la mise à jour locale de gameState ici
-  }
-};
-
+    if (socket && gameStarted && playerId) {
+      const player = gameState.players[playerId];
+      if (!player) return;
+      const speed = player.boosting ? 10 : 5;
+      const newX = player.x + direction.x * speed;
+      const newY = player.y + direction.y * speed;
+      const worldWidth = gameState.worldSize?.width || 2000;
+      const worldHeight = gameState.worldSize?.height || 2000;
+      const playerQueueLength = player.queue?.length || 0;
+      const baseSize = 20;
+      const playerSize = baseSize * (1 + (playerQueueLength * 0.1));
+      const boundedX = Math.max(playerSize, Math.min(worldWidth - playerSize, newX));
+      const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
+      
+      socket.emit("move", { x: boundedX, y: boundedY });
+    }
+  };
   
   const handleBoost = () => {
     if (socket && gameStarted) {
@@ -246,14 +264,12 @@ const Index = () => {
       const otherPlayer = gameState.players[otherPlayerId];
       if (!currentPlayer || !otherPlayer) return;
       
-      // Check if it's a head-to-head collision
       const dx = currentPlayer.x - otherPlayer.x;
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
       const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
       
-      // If heads are colliding, compare sizes
       if (distance < (currentSize + otherSize) / 2) {
         const currentQueueLength = currentPlayer.queue?.length || 0;
         const otherQueueLength = otherPlayer.queue?.length || 0;
@@ -269,7 +285,6 @@ const Index = () => {
           socket.emit("eat_player", { eatenPlayer: otherPlayerId });
         }
       } else {
-        // For queue collisions, player dies regardless of size comparison
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
         setGameStarted(false);
