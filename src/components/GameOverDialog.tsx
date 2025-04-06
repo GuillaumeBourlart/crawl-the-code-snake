@@ -15,6 +15,7 @@ interface GameOverDialogProps {
   onClose: () => void;
   onRetry: () => void;
   onQuit: () => void;
+  playerColor?: string; // Add this prop to receive the player's color
 }
 
 const GameOverDialog = ({
@@ -22,13 +23,14 @@ const GameOverDialog = ({
   onClose,
   onRetry,
   onQuit,
+  playerColor = "#8B5CF6", // Default to purple if no color is provided
 }: GameOverDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-gray-800 border-gray-700 text-white">
         <DialogHeader>
           <div className="flex items-center justify-center mb-2">
-            <Cpu className="h-12 w-12 text-purple-400 animate-pulse mr-2" />
+            <Cpu className={`h-12 w-12 animate-pulse mr-2`} style={{ color: playerColor }} />
             <DialogTitle className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
               Vous avez perdu
             </DialogTitle>
