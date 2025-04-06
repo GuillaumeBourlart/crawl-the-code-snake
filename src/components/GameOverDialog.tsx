@@ -28,18 +28,18 @@ const GameOverDialog = ({
       <DialogContent className="bg-gray-800 border-gray-700 text-white">
         <DialogHeader>
           <div className="flex items-center justify-center mb-2">
-            <Cpu className="h-10 w-10 text-purple-400 mr-2" />
+            <Cpu className="h-12 w-12 text-purple-400 animate-pulse mr-2" />
             <DialogTitle className="text-2xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-              Partie terminée
+              Connexion perdue!
             </DialogTitle>
           </div>
         </DialogHeader>
         <div className="py-4 text-center space-y-3">
-          <p className="text-gray-300 text-lg">
-            Votre processeur est déconnecté!
+          <p className="text-gray-300 text-lg font-semibold">
+            Votre processeur a été déconnecté du réseau
           </p>
           <p className="text-gray-400">
-            Un autre joueur était plus puissant. Voulez-vous réessayer?
+            Un processeur rival a pris le dessus. Voulez-vous tenter de vous reconnecter?
           </p>
         </div>
         <DialogFooter className="flex justify-center gap-4 sm:gap-6">
@@ -54,7 +54,7 @@ const GameOverDialog = ({
             className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
             onClick={onRetry}
           >
-            Réessayer
+            Reconnexion
           </Button>
         </DialogFooter>
       </DialogContent>

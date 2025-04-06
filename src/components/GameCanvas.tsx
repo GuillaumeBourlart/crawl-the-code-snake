@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface Player {
@@ -286,7 +285,9 @@ const GameCanvas = ({
       ctx.fillStyle = 'rgba(30, 30, 40, 0.7)';
       roundedRect(ctx, baseX + size * 0.15, baseY + size * 0.15, size * 0.7, size * 0.7, size * 0.1);
       
-      ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+      const pinColor = isCurrentPlayer ? 'rgba(255, 215, 0, 0.7)' : adjustPinColor(playerColor);
+      ctx.fillStyle = pinColor;
+      
       for (let i = 0; i < 3; i++) {
         const padWidth = size * 0.12;
         const padHeight = size * 0.06;
@@ -332,20 +333,22 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
+      const pulseIntensity = Math.sin(Date.now() / 200) * 0.5 + 0.5;
+      const baseColorRgb = hexToRgb(playerColor);
+      
       const coreGradient = ctx.createRadialGradient(
         baseX + size * 0.5, baseY + size * 0.5, 0,
         baseX + size * 0.5, baseY + size * 0.5, size * 0.15
       );
       
-      const pulseIntensity = Math.sin(Date.now() / 200) * 0.5 + 0.5;
-      
       if (isCurrentPlayer) {
         coreGradient.addColorStop(0, `rgba(139, 92, 246, ${0.7 + pulseIntensity * 0.3})`);
         coreGradient.addColorStop(1, `rgba(59, 130, 246, ${0.3 + pulseIntensity * 0.2})`);
       } else {
-        const baseColorRgb = hexToRgb(playerColor);
-        coreGradient.addColorStop(0, `rgba(${baseColorRgb?.r}, ${baseColorRgb?.g}, ${baseColorRgb?.b}, ${0.7 + pulseIntensity * 0.3})`);
-        coreGradient.addColorStop(1, `rgba(${baseColorRgb?.r}, ${baseColorRgb?.g}, ${baseColorRgb?.b}, ${0.3 + pulseIntensity * 0.2})`);
+        if (baseColorRgb) {
+          coreGradient.addColorStop(0, `rgba(${baseColorRgb.r}, ${baseColorRgb.g}, ${baseColorRgb.b}, ${0.7 + pulseIntensity * 0.3})`);
+          coreGradient.addColorStop(1, `rgba(${baseColorRgb.r * 0.8}, ${baseColorRgb.g * 0.8}, ${baseColorRgb.b * 0.8}, ${0.3 + pulseIntensity * 0.2})`);
+        }
       }
       
       ctx.fillStyle = coreGradient;
@@ -367,7 +370,7 @@ const GameCanvas = ({
         
         ctx.fillStyle = isCurrentPlayer ? 
           `rgba(139, 92, 246, ${0.7 + pulseIntensity * 0.3})` : 
-          `rgba(255, 255, 255, ${0.7 + pulseIntensity * 0.3})`;
+          `rgba(${baseColorRgb?.r || 255}, ${baseColorRgb?.g || 255}, ${baseColorRgb?.b || 255}, ${0.7 + pulseIntensity * 0.3})`;
           
         ctx.beginPath();
         ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
@@ -491,7 +494,7 @@ const GameCanvas = ({
         const currentPlayerSize = calculatePlayerSize(player);
         
         if (player.queue && player.queue.length > 0) {
-          ctx.strokeStyle = player.color || (isCurrentPlayer ? '#FF0000' : '#FFFFFF');
+          ctx.strokeStyle = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
           ctx.lineWidth = Math.max(3, currentPlayerSize / 3);
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
@@ -509,9 +512,8 @@ const GameCanvas = ({
             player.y >= viewportTop && 
             player.y <= viewportBottom
           )) {
-            ctx.beginPath();
             visibleQueue.forEach(segment => {
-              ctx.fillStyle = player.color || (isCurrentPlayer ? '#FF0000' : '#FFFFFF');
+              ctx.fillStyle = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.fill();
@@ -549,7 +551,6 @@ const GameCanvas = ({
             ctx.fill();
           }
           
-          // Get the player's current direction
           const dirX = player.direction?.x || 0;
           const dirY = player.direction?.y || 0;
           
@@ -648,5 +649,16 @@ const GameCanvas = ({
     />
   );
 };
+
+function adjustPinColor(color: string) {
+  const rgb = hexToRgb(color);
+  if (!rgb) return 'rgba(255, 215, 0, 0.7)';
+  
+  const max = Math.max(rgb.r, rgb.g, rgb.b) / 255;
+  const min = Math.min(rgb.r, rgb.g, rgb.b) / 255;
+  const luminance = (max + min) / 2;
+  
+  return `rgba(${Math.min(255, rgb.r + 100)}, ${Math.min(255, Math.max(150, rgb.g + 50))}, 50, 0.7)`;
+}
 
 export default GameCanvas;
