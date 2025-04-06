@@ -536,7 +536,7 @@ const GameCanvas = ({
           );
           
           if (visibleQueue.length > 0) {
-            visibleQueue.forEach(segment => {
+            [...visibleQueue].reverse().forEach(segment => {
               ctx.fillStyle = player.boosting 
                 ? shadeColor(baseColor, 10)
                 : baseColor;
