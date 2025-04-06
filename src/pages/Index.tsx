@@ -226,6 +226,7 @@ const handleMove = (direction: { x: number; y: number }) => {
     const boundedY = Math.max(playerSize, Math.min(worldHeight - playerSize, newY));
     
     socket.emit("changeDirection", { direction: { x: normalizedDx, y: normalizedDy } });
+
     
     // Remettre à false après 50ms (ajustez selon vos besoins)
     setTimeout(() => {
