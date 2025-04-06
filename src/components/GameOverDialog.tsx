@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,48 @@ const GameOverDialog = ({
   onQuit,
   playerColor = "#8B5CF6",
 }: GameOverDialogProps) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+  
+  // Calculate eye position based on mouse
+  const calculateEyeOffset = () => {
+    if (!isOpen) return { x: 0, y: 0 };
+    
+    // Get dialog position (approximated to center of screen)
+    const dialogX = window.innerWidth / 2;
+    const dialogY = window.innerHeight / 2 - 50; // Slightly above center
+    
+    // Get snake position within dialog
+    const snakeX = dialogX - 50;
+    const snakeY = dialogY;
+    
+    // Calculate direction to mouse
+    const dx = mousePosition.x - snakeX;
+    const dy = mousePosition.y - snakeY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance === 0) return { x: 0, y: 0 };
+    
+    // Normalize and scale for pupil movement
+    const maxPupilOffset = 2;
+    return {
+      x: (dx / distance) * maxPupilOffset,
+      y: (dy / distance) * maxPupilOffset
+    };
+  };
+  
+  const eyeOffset = calculateEyeOffset();
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-gray-800 border-gray-700 text-white">
@@ -35,10 +77,22 @@ const GameOverDialog = ({
                 style={{ backgroundColor: playerColor }}
               />
               <div className="absolute left-1 top-2 w-3 h-3 bg-white rounded-full">
-                <div className="absolute left-1 top-1 w-1 h-1 bg-black rounded-full"/>
+                <div 
+                  className="absolute w-1.5 h-1.5 bg-black rounded-full"
+                  style={{ 
+                    left: `${1 + eyeOffset.x}px`, 
+                    top: `${1 + eyeOffset.y}px` 
+                  }}
+                />
               </div>
               <div className="absolute right-1 top-2 w-3 h-3 bg-white rounded-full">
-                <div className="absolute left-1 top-1 w-1 h-1 bg-black rounded-full"/>
+                <div 
+                  className="absolute w-1.5 h-1.5 bg-black rounded-full"
+                  style={{ 
+                    left: `${1 + eyeOffset.x}px`, 
+                    top: `${1 + eyeOffset.y}px` 
+                  }}
+                />
               </div>
               <div className="absolute left-4 top-6 w-2 h-1 bg-red-500 rounded" />
             </div>
