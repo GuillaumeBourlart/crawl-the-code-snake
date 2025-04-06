@@ -411,7 +411,7 @@ const Index = () => {
 
       <GameOverDialog 
         isOpen={showGameOverDialog}
-        onClose={() => {}}
+        onClose={() => setShowGameOverDialog(false)}
         onRetry={handlePlay}
         onQuit={handleQuitGame}
       />
