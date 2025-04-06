@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
 import { createClient } from "@supabase/supabase-js";
@@ -36,6 +36,9 @@ interface ServerGameState {
   worldSize?: { width: number; height: number };
 }
 
+const MAX_RECONNECTION_ATTEMPTS = 5;
+const RECONNECTION_DELAY = 2000;
+
 const Index = () => {
   const [socket, setSocket] = useState<any>(null);
   const [connected, setConnected] = useState(false);
@@ -48,14 +51,41 @@ const Index = () => {
     items: {},
     worldSize: { width: 2000, height: 2000 }
   });
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const reconnectTimerRef = useRef<number | null>(null);
   
   const isMobile = useIsMobile();
   
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (socket) {
+        socket.emit("clean_disconnect");
+        socket.disconnect();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (socket) socket.disconnect();
+      if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
     };
   }, [socket]);
+  
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
+      setReconnectAttempts(prev => prev + 1);
+      toast.info(`Tentative de reconnexion (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
+      reconnectTimerRef.current = window.setTimeout(() => {
+        handlePlay();
+      }, RECONNECTION_DELAY);
+    } else {
+      toast.error("Impossible de se reconnecter au serveur après plusieurs tentatives");
+      setConnecting(false);
+      setReconnectAttempts(0);
+    }
+  }, [reconnectAttempts]);
   
   const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
     const items: Record<string, GameItem> = {};
@@ -75,6 +105,11 @@ const Index = () => {
   
   const handlePlay = () => {
     setConnecting(true);
+    
+    if (socket) {
+      socket.disconnect();
+    }
+    
     const newSocket = io("https://codecrawl-production.up.railway.app", {
       transports: ["websocket"],
       upgrade: false,
@@ -87,6 +122,7 @@ const Index = () => {
       console.log("Connected to WebSocket server");
       setConnected(true);
       setConnecting(false);
+      setReconnectAttempts(0);
       toast.success("Connecté au serveur");
     });
     
@@ -94,14 +130,35 @@ const Index = () => {
       console.error("Connection error:", err);
       setConnecting(false);
       toast.error("Erreur de connexion au serveur");
+      attemptReconnect();
     });
     
-    newSocket.on("disconnect", () => {
-      console.log("Disconnected from WebSocket server");
+    newSocket.on("disconnect", (reason) => {
+      console.log("Disconnected from WebSocket server. Reason:", reason);
       setConnected(false);
       setGameStarted(false);
       setRoomId(null);
-      toast.error("Déconnecté du serveur");
+      
+      if (reason === "io server disconnect") {
+        toast.error("Déconnecté par le serveur");
+      } else if (reason === "transport close") {
+        toast.error("Connexion perdue");
+        attemptReconnect();
+      } else if (reason === "ping timeout") {
+        toast.error("Délai d'attente serveur dépassé");
+        attemptReconnect();
+      } else {
+        toast.error("Déconnecté du serveur");
+      }
+    });
+    
+    newSocket.on("error", (error) => {
+      console.error("Socket error:", error);
+      toast.error("Erreur de socket: " + error);
+      
+      if (!connected) {
+        attemptReconnect();
+      }
     });
     
     newSocket.on("joined_room", (data: { roomId: string }) => {
@@ -174,6 +231,10 @@ const Index = () => {
       newSocket.disconnect();
     });
     
+    newSocket.on("ping_request", () => {
+      newSocket.emit("pong_response");
+    });
+    
     newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
       console.log("Players update:", players);
       const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => ({
@@ -226,10 +287,6 @@ const Index = () => {
     }
   };
   
-  const handleCollectItem = (itemId: string) => {
-    console.log("Item collection is now handled server-side");
-  };
-  
   const handlePlayerCollision = (otherPlayerId: string) => {
     if (socket && gameStarted && playerId) {
       const currentPlayer = gameState.players[playerId];
@@ -279,8 +336,23 @@ const Index = () => {
             onClick={handlePlay}
             disabled={connecting}
           >
-            {connecting ? "Connexion..." : "JOUER"}
+            {connecting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Connexion...
+              </>
+            ) : (
+              "JOUER"
+            )}
           </Button>
+          {reconnectAttempts > 0 && (
+            <p className="mt-4 text-amber-400">
+              Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
+            </p>
+          )}
           <div className="absolute top-0 left-0 w-full h-full -z-10">
             {Array.from({ length: 50 }).map((_, i) => (
               <div
