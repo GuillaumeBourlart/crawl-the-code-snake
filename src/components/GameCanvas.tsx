@@ -390,37 +390,69 @@ const GameCanvas = ({
           }
         }
         
-        // Draw player head
+        // Draw player head - Enhanced processor design
         const drawPlayerHead = () => {
+          // Base color
           ctx.fillStyle = playerColor;
           
-          // Main processor square
+          // Calculations for positioning
           const scale = playerSize / 20;
           const baseX = player.x - 20 * scale / 2;
           const baseY = player.y - 20 * scale / 2;
           const size = 20 * scale;
           
+          // Main processor outer frame
           ctx.fillRect(baseX, baseY, size, size);
           
-          // Main processor inner square
-          ctx.fillRect(baseX + size * 0.2, baseY + size * 0.2, size * 0.6, size * 0.6);
+          // Secondary frame
+          ctx.fillStyle = `${playerColor}`;
+          ctx.fillRect(baseX + size * 0.15, baseY + size * 0.15, size * 0.7, size * 0.7);
           
-          // Connectors
-          ctx.fillRect(baseX + size * 0.075, baseY + size * 0.375, size * 0.125, size * 0.1); // left
-          ctx.fillRect(baseX + size * 0.8, baseY + size * 0.375, size * 0.125, size * 0.1);   // right
-          ctx.fillRect(baseX + size * 0.375, baseY + size * 0.075, size * 0.1, size * 0.125); // top
-          ctx.fillRect(baseX + size * 0.525, baseY + size * 0.075, size * 0.1, size * 0.125); // top
-          ctx.fillRect(baseX + size * 0.375, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
-          ctx.fillRect(baseX + size * 0.525, baseY + size * 0.8, size * 0.1, size * 0.125);   // bottom
+          // CPU core - dark inner square
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.25, size * 0.5, size * 0.5);
           
-          // Inner detail
-          ctx.fillStyle = 'rgba(0,0,0,0.3)';
-          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.3, size * 0.4, size * 0.4);
+          // Circuit traces
+          ctx.fillStyle = `${playerColor}`;
+          // Horizontal traces
+          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.35, size * 0.4, size * 0.05);
+          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.45, size * 0.4, size * 0.05);
+          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.55, size * 0.4, size * 0.05);
+          ctx.fillRect(baseX + size * 0.3, baseY + size * 0.65, size * 0.4, size * 0.05);
           
-          // Highlights
-          ctx.fillStyle = 'rgba(255,255,255,0.5)';
-          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.25, size * 0.05, size * 0.05);
-          ctx.fillRect(baseX + size * 0.7, baseY + size * 0.7, size * 0.05, size * 0.05);
+          // Vertical traces
+          ctx.fillRect(baseX + size * 0.35, baseY + size * 0.3, size * 0.05, size * 0.4);
+          ctx.fillRect(baseX + size * 0.45, baseY + size * 0.3, size * 0.05, size * 0.4);
+          ctx.fillRect(baseX + size * 0.55, baseY + size * 0.3, size * 0.05, size * 0.4);
+          ctx.fillRect(baseX + size * 0.65, baseY + size * 0.3, size * 0.05, size * 0.4);
+          
+          // Connection pins (outer)
+          ctx.fillStyle = 'rgba(220,220,220,0.9)';
+          // Top pins
+          ctx.fillRect(baseX + size * 0.25, baseY, size * 0.1, size * 0.15);
+          ctx.fillRect(baseX + size * 0.45, baseY, size * 0.1, size * 0.15);
+          ctx.fillRect(baseX + size * 0.65, baseY, size * 0.1, size * 0.15);
+          // Bottom pins
+          ctx.fillRect(baseX + size * 0.25, baseY + size * 0.85, size * 0.1, size * 0.15);
+          ctx.fillRect(baseX + size * 0.45, baseY + size * 0.85, size * 0.1, size * 0.15);
+          ctx.fillRect(baseX + size * 0.65, baseY + size * 0.85, size * 0.1, size * 0.15);
+          // Left pins
+          ctx.fillRect(baseX, baseY + size * 0.25, size * 0.15, size * 0.1);
+          ctx.fillRect(baseX, baseY + size * 0.45, size * 0.15, size * 0.1);
+          ctx.fillRect(baseX, baseY + size * 0.65, size * 0.15, size * 0.1);
+          // Right pins
+          ctx.fillRect(baseX + size * 0.85, baseY + size * 0.25, size * 0.15, size * 0.1);
+          ctx.fillRect(baseX + size * 0.85, baseY + size * 0.45, size * 0.15, size * 0.1);
+          ctx.fillRect(baseX + size * 0.85, baseY + size * 0.65, size * 0.15, size * 0.1);
+          
+          // Central core highlights
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.fillRect(baseX + size * 0.4, baseY + size * 0.4, size * 0.2, size * 0.2);
+          
+          // Processing light pulses (animated effect)
+          const pulseIntensity = Math.sin(Date.now() / 200) * 0.5 + 0.5;
+          ctx.fillStyle = `rgba(255,255,255,${0.3 + pulseIntensity * 0.4})`;
+          ctx.fillRect(baseX + size * 0.45, baseY + size * 0.45, size * 0.1, size * 0.1);
         };
         
         drawPlayerHead();
@@ -433,12 +465,88 @@ const GameCanvas = ({
           ctx.strokeRect(player.x - 20 * scale / 2, player.y - 20 * scale / 2, 20 * scale, 20 * scale);
         }
         
-        // Draw boost effect
+        // Draw enhanced boost effect
         if (player.boosting) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          ctx.beginPath();
-          ctx.arc(player.x, player.y, playerSize * 1.5, 0, Math.PI * 2);
-          ctx.fill();
+          const boostColor = playerColor === '#FF0000' ? '#FF6B6B' : playerColor;
+          
+          // Create pulsating glow effect
+          const pulseScale = 1 + Math.sin(Date.now() / 150) * 0.2;
+          
+          // Outer glow - multiple layers with different opacities
+          for (let i = 1; i <= 3; i++) {
+            const opacity = 0.6 - (i * 0.15);
+            const size = playerSize * (1.2 + (i * 0.3)) * pulseScale;
+            
+            // Radial gradient for the glow
+            const gradient = ctx.createRadialGradient(
+              player.x, player.y, 0,
+              player.x, player.y, size
+            );
+            gradient.addColorStop(0, `${boostColor}CC`); // More opaque in center
+            gradient.addColorStop(1, `${boostColor}00`); // Transparent at edges
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Particle effects behind the player
+          const dirX = player.direction?.x || 0;
+          const dirY = player.direction?.y || 0;
+          
+          for (let i = 0; i < 7; i++) {
+            // Create random offset from the player's direction
+            const offsetAngle = (Math.random() - 0.5) * Math.PI / 2; // +/- 45 degrees
+            const distance = Math.random() * playerSize * 2 + playerSize;
+            
+            // Calculate the angle based on player direction
+            const baseAngle = Math.atan2(dirY, dirX);
+            const particleAngle = baseAngle + Math.PI + offsetAngle; // Particles go behind the player
+            
+            // Calculate particle position
+            const particleX = player.x + Math.cos(particleAngle) * distance;
+            const particleY = player.y + Math.sin(particleAngle) * distance;
+            
+            // Particle size decreases with distance
+            const particleSize = (playerSize / 4) * (1 - distance / (playerSize * 3));
+            
+            // Random particle color variations
+            const hue = Math.random() * 60 - 30; // +/- 30 hue degrees
+            ctx.fillStyle = `hsla(${hue + 30}, 100%, 70%, ${0.7 * Math.random() + 0.3})`;
+            
+            // Draw the particle
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          // Speed lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.lineWidth = 2;
+          const angleBase = Math.atan2(dirY, dirX) + Math.PI; // Behind the player
+          
+          for (let i = 0; i < 4; i++) {
+            const angleOffset = (Math.random() - 0.5) * Math.PI / 4;
+            const lineAngle = angleBase + angleOffset;
+            const lineLength = playerSize * (1.5 + Math.random());
+            
+            const startX = player.x + Math.cos(lineAngle) * playerSize * 0.8;
+            const startY = player.y + Math.sin(lineAngle) * playerSize * 0.8;
+            const endX = player.x + Math.cos(lineAngle) * (playerSize * 0.8 + lineLength);
+            const endY = player.y + Math.sin(lineAngle) * (playerSize * 0.8 + lineLength);
+            
+            // Fade out effect
+            const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.strokeStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+          }
         }
         
         // Draw player label
