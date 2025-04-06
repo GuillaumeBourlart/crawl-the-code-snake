@@ -6,6 +6,8 @@ import { io } from "socket.io-client";
 import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import GameOverDialog from "@/components/GameOverDialog";
+import { LogOut } from "lucide-react";
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
@@ -53,6 +55,7 @@ const Index = () => {
   });
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const reconnectTimerRef = useRef<number | null>(null);
+  const [showGameOverDialog, setShowGameOverDialog] = useState(false);
   
   const isMobile = useIsMobile();
   
@@ -105,6 +108,7 @@ const Index = () => {
   
   const handlePlay = () => {
     setConnecting(true);
+    setShowGameOverDialog(false);
     
     if (socket) {
       socket.disconnect();
@@ -195,9 +199,7 @@ const Index = () => {
       console.log("You were eliminated!");
       toast.error("Vous avez été éliminé!");
       setGameStarted(false);
-      setTimeout(() => {
-        newSocket.emit("join_room");
-      }, 1500);
+      setShowGameOverDialog(true);
     });
     
     newSocket.on("player_grew", (data: { growth: number }) => {
@@ -304,9 +306,7 @@ const Index = () => {
           socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
           toast.error("Vous avez été éliminé!");
           setGameStarted(false);
-          setTimeout(() => {
-            handlePlay();
-          }, 1500);
+          setShowGameOverDialog(true);
         } else {
           socket.emit("eat_player", { eatenPlayer: otherPlayerId });
         }
@@ -314,11 +314,20 @@ const Index = () => {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
         setGameStarted(false);
-        setTimeout(() => {
-          handlePlay();
-        }, 1500);
+        setShowGameOverDialog(true);
       }
     }
+  };
+
+  const handleQuitGame = () => {
+    if (socket) {
+      socket.emit("clean_disconnect");
+      socket.disconnect();
+    }
+    setGameStarted(false);
+    setShowGameOverDialog(false);
+    setPlayerId(null);
+    setRoomId(null);
   };
 
   return (
@@ -372,6 +381,17 @@ const Index = () => {
       )}
       {gameStarted && (
         <>
+          <div className="absolute top-4 right-4 z-20">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="bg-gray-800/70 border-gray-700 text-white hover:bg-gray-700/90"
+              onClick={handleQuitGame}
+            >
+              <LogOut className="mr-1 h-4 w-4" />
+              Quitter
+            </Button>
+          </div>
           <GameCanvas
             gameState={{
               ...gameState,
@@ -388,6 +408,13 @@ const Index = () => {
           {isMobile && <MobileControls onMove={handleMove} onBoostStart={handleBoostStart} onBoostStop={handleBoostStop} />}
         </>
       )}
+
+      <GameOverDialog 
+        isOpen={showGameOverDialog}
+        onClose={() => {}}
+        onRetry={handlePlay}
+        onQuit={handleQuitGame}
+      />
     </div>
   );
 };
