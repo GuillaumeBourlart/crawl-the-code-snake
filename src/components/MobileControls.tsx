@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface MobileControlsProps {
@@ -11,6 +10,8 @@ const MobileControls = ({ onMove, onBoost }: MobileControlsProps) => {
   const joystickKnobRef = useRef<HTMLDivElement>(null);
   const [joystickActive, setJoystickActive] = useState(false);
   const [touchId, setTouchId] = useState<number | null>(null);
+  const [boostTouchId, setBoostTouchId] = useState<number | null>(null);
+  const boostIntervalRef = useRef<number | null>(null);
   
   useEffect(() => {
     const joystick = joystickRef.current;
@@ -112,8 +113,40 @@ const MobileControls = ({ onMove, onBoost }: MobileControlsProps) => {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
+      if (boostIntervalRef.current !== null) {
+        window.clearInterval(boostIntervalRef.current);
+      }
     };
-  }, [onMove, joystickActive, touchId]);
+  }, [onMove, joystickActive, touchId, boostTouchId]);
+  
+  const handleBoostStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    
+    // Store the touch ID
+    const touch = e.touches[0];
+    setBoostTouchId(touch.identifier);
+    
+    // Immediately trigger the first boost
+    onBoost();
+    
+    // Set up continuous boosting
+    if (boostIntervalRef.current !== null) {
+      window.clearInterval(boostIntervalRef.current);
+    }
+    
+    // Set the interval to continuously trigger boost every 200ms while pressed
+    boostIntervalRef.current = window.setInterval(() => {
+      onBoost();
+    }, 200);
+  };
+  
+  const handleBoostEnd = () => {
+    setBoostTouchId(null);
+    if (boostIntervalRef.current !== null) {
+      window.clearInterval(boostIntervalRef.current);
+      boostIntervalRef.current = null;
+    }
+  };
   
   return (
     <div className="fixed bottom-0 left-0 w-full pointer-events-none">
@@ -121,7 +154,9 @@ const MobileControls = ({ onMove, onBoost }: MobileControlsProps) => {
         {/* Boost button */}
         <button
           className="w-20 h-20 rounded-full bg-blue-500/60 flex items-center justify-center text-white font-bold text-sm pointer-events-auto active:bg-blue-700/60 active:scale-95 transition-all"
-          onTouchStart={onBoost}
+          onTouchStart={handleBoostStart}
+          onTouchEnd={handleBoostEnd}
+          onTouchCancel={handleBoostEnd}
         >
           BOOST
         </button>
