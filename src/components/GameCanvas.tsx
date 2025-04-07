@@ -102,6 +102,34 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
   _joystickDirection = direction;
 };
 
+function roundedRect(
+  ctx: CanvasRenderingContext2D, 
+  x: number, 
+  y: number, 
+  width: number, 
+  height: number, 
+  radius: number,
+  stroke = false
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  
+  if (stroke) {
+    ctx.stroke();
+  } else {
+    ctx.fill();
+  }
+}
+
 const GameCanvas = ({ 
   gameState, 
   playerId, 
@@ -303,7 +331,6 @@ const GameCanvas = ({
     
     resizeCanvas();
     
-    // Store the resize function in the ref so we can remove it in the cleanup
     if (resizeListenerRef.current) {
       window.removeEventListener('resize', resizeListenerRef.current);
     }
@@ -318,7 +345,6 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // Create a smooth gradient background that covers the entire canvas
       const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
       bgGradient.addColorStop(0, '#13162c');
       bgGradient.addColorStop(1, '#101425');
@@ -331,31 +357,22 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      // Draw hexagon pattern with less opacity to reduce scintillation
-      gridCtx.strokeStyle = 'rgba(100, 100, 255, 0.08)';
-      gridCtx.lineWidth = 1;
-      
-      // Calculate how many hexagons we need to fill the entire viewport plus some margin
-      const hexSize = 40; // Size of hexagons
+      const hexSize = 40;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
       
-      // Calculate visible area in world coordinates
       const visibleWidth = gridCanvas.width / camera.zoom;
       const visibleHeight = gridCanvas.height / camera.zoom;
       
-      // Add margin to ensure full coverage
       const marginFactor = 2;
       const rowsNeeded = Math.ceil(visibleHeight * marginFactor / hexHeight);
       const colsNeeded = Math.ceil(visibleWidth * marginFactor / (hexWidth * 0.75));
       
-      // Calculate starting position to ensure grid covers entire viewport
       const startX = camera.x - visibleWidth * marginFactor / 2;
       const startY = camera.y - visibleHeight * marginFactor / 2;
       const endX = camera.x + visibleWidth * marginFactor / 2;
       const endY = camera.y + visibleHeight * marginFactor / 2;
       
-      // Draw expanded grid of hexagons to ensure full coverage
       for (let y = startY; y < endY; y += hexHeight) {
         let rowOffset = 0;
         for (let x = startX; x < endX; x += hexWidth * 0.75) {
@@ -374,7 +391,6 @@ const GameCanvas = ({
           }
           gridCtx.closePath();
           
-          // Reduce random highlighting to minimize scintillation
           if (Math.random() < 0.02) {
             gridCtx.fillStyle = 'rgba(100, 150, 255, 0.05)';
             gridCtx.fill();
@@ -385,19 +401,13 @@ const GameCanvas = ({
         }
       }
       
-      // Add fewer, larger static particles instead of many small ones
-      const particles = 100; // Reduced number of particles
-      gridCtx.globalAlpha = 0.3; // Lower opacity for all particles
+      const particles = 100;
+      gridCtx.globalAlpha = 0.3;
       
-      // Use a fixed set of particles with static positions to prevent flickering
       for (let i = 0; i < particles; i++) {
-        // Use deterministic positions based on particle index
-        // This creates a fixed pattern that won't change between renders
         const seed = i * 1000;
         const x = (Math.sin(seed) * 0.5 + 0.5) * gameState.worldSize.width;
         const y = (Math.cos(seed) * 0.5 + 0.5) * gameState.worldSize.height;
-        
-        // Vary sizes slightly but keep them larger
         const size = 1 + (i % 4);
         
         gridCtx.fillStyle = 'rgba(180, 210, 255, 0.4)';
@@ -406,9 +416,8 @@ const GameCanvas = ({
         gridCtx.fill();
       }
       
-      // Add a few static glow spots with lower opacity
-      for (let i = 0; i < 5; i++) {
-        // Fixed positions based on index
+      const glowParticles = 5;
+      for (let i = 0; i < glowParticles; i++) {
         const seed = i * 2000;
         const x = (Math.sin(seed) * 0.5 + 0.5) * gameState.worldSize.width;
         const y = (Math.cos(seed) * 0.5 + 0.5) * gameState.worldSize.height;
@@ -425,47 +434,40 @@ const GameCanvas = ({
         gridCtx.fill();
       }
       
-      // Draw game boundary with more subtle tech-inspired border
       gridCtx.strokeStyle = 'rgba(80, 140, 240, 0.4)';
       gridCtx.lineWidth = 2;
       gridCtx.setLineDash([15, 5]);
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Add corner decorations with lower intensity
       const cornerSize = 50;
       gridCtx.strokeStyle = 'rgba(100, 180, 255, 0.4)';
       gridCtx.lineWidth = 1.5;
       gridCtx.setLineDash([]);
       
-      // Top-left corner
       gridCtx.beginPath();
       gridCtx.moveTo(0, cornerSize);
       gridCtx.lineTo(0, 0);
       gridCtx.lineTo(cornerSize, 0);
       gridCtx.stroke();
       
-      // Top-right corner
       gridCtx.beginPath();
       gridCtx.moveTo(gameState.worldSize.width - cornerSize, 0);
       gridCtx.lineTo(gameState.worldSize.width, 0);
       gridCtx.lineTo(gameState.worldSize.width, cornerSize);
       gridCtx.stroke();
       
-      // Bottom-left corner
       gridCtx.beginPath();
       gridCtx.moveTo(0, gameState.worldSize.height - cornerSize);
       gridCtx.lineTo(0, gameState.worldSize.height);
       gridCtx.lineTo(cornerSize, gameState.worldSize.height);
       gridCtx.stroke();
       
-      // Bottom-right corner
       gridCtx.beginPath();
       gridCtx.moveTo(gameState.worldSize.width - cornerSize, gameState.worldSize.height);
       gridCtx.lineTo(gameState.worldSize.width, gameState.worldSize.height);
       gridCtx.lineTo(gameState.worldSize.width, gameState.worldSize.height - cornerSize);
       gridCtx.stroke();
       
-      // Add a more subtle border glow
       const borderGlow = gridCtx.createLinearGradient(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       borderGlow.addColorStop(0, 'rgba(70, 130, 240, 0.2)');
       borderGlow.addColorStop(0.5, 'rgba(100, 150, 255, 0.25)');
@@ -732,3 +734,262 @@ const GameCanvas = ({
       ctx.fill();
       
       if (player.boosting) {
+        const thrusterLength = playerSize * 0.6;
+        const thrusterWidth = playerSize * 0.4;
+        
+        const direction = player.direction || { x: 0, y: 0 };
+        const thrusterX = player.x - direction.x * (chipSize / 2 + thrusterLength / 2);
+        const thrusterY = player.y - direction.y * (chipSize / 2 + thrusterLength / 2);
+        
+        const flameGradient = ctx.createRadialGradient(
+          thrusterX, thrusterY, 0,
+          thrusterX, thrusterY, thrusterLength
+        );
+        flameGradient.addColorStop(0, 'rgba(255, 200, 50, 0.9)');
+        flameGradient.addColorStop(0.4, 'rgba(255, 100, 50, 0.7)');
+        flameGradient.addColorStop(1, 'rgba(255, 50, 50, 0)');
+        
+        ctx.fillStyle = flameGradient;
+        ctx.beginPath();
+        ctx.ellipse(
+          thrusterX, 
+          thrusterY, 
+          thrusterWidth / 2, 
+          thrusterLength / 2, 
+          Math.atan2(direction.y, direction.x) + Math.PI / 2, 
+          0, 
+          Math.PI * 2
+        );
+        ctx.fill();
+        
+        for (let i = 0; i < 2; i++) {
+          const particleSize = 2 + Math.random() * 3;
+          const particleSpeed = 2 + Math.random() * 3;
+          const particleAngle = Math.atan2(direction.y, direction.x) + (Math.random() - 0.5) * 0.8;
+          
+          rendererStateRef.current.boostParticles.push({
+            x: thrusterX + Math.cos(particleAngle) * thrusterLength * 0.3,
+            y: thrusterY + Math.sin(particleAngle) * thrusterLength * 0.3,
+            vx: -Math.cos(particleAngle) * particleSpeed,
+            vy: -Math.sin(particleAngle) * particleSpeed,
+            size: particleSize,
+            alpha: 0.7 + Math.random() * 0.3,
+            color: Math.random() > 0.3 ? '#FF5500' : '#FFAA00'
+          });
+        }
+      }
+      
+      ctx.restore();
+    };
+    
+    const drawQueueSegment = (segment: { x: number; y: number }, index: number, player: Player, isCurrentPlayer: boolean) => {
+      if (!ctx) return;
+      
+      const playerSize = calculatePlayerSize(player);
+      const segmentSize = playerSize * 0.75;
+      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+      
+      ctx.save();
+      ctx.globalAlpha = Math.max(0.4, 1 - (index * 0.05));
+      
+      const glowGradient = ctx.createRadialGradient(
+        segment.x, segment.y, 0,
+        segment.x, segment.y, segmentSize
+      );
+      glowGradient.addColorStop(0, `rgba(${hexToRgb(playerColor)?.r || 100}, ${hexToRgb(playerColor)?.g || 100}, ${hexToRgb(playerColor)?.b || 255}, 0.2)`);
+      glowGradient.addColorStop(1, 'rgba(50, 50, 200, 0)');
+      
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(segment.x, segment.y, segmentSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      const segmentGradient = ctx.createRadialGradient(
+        segment.x, segment.y, 0,
+        segment.x, segment.y, segmentSize * 0.7
+      );
+      segmentGradient.addColorStop(0, shadeColor(playerColor, 10));
+      segmentGradient.addColorStop(1, darkenColor(playerColor, 20));
+      
+      ctx.fillStyle = segmentGradient;
+      ctx.beginPath();
+      ctx.arc(segment.x, segment.y, segmentSize * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      
+      const patternCount = 3;
+      for (let i = 0; i < patternCount; i++) {
+        const angle = (Math.PI * 2 / patternCount) * i;
+        const startX = segment.x + Math.cos(angle) * (segmentSize * 0.3);
+        const startY = segment.y + Math.sin(angle) * (segmentSize * 0.3);
+        const endX = segment.x + Math.cos(angle) * (segmentSize * 0.6);
+        const endY = segment.y + Math.sin(angle) * (segmentSize * 0.6);
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    };
+    
+    const drawItem = (item: GameItem) => {
+      if (!ctx) return;
+      
+      ctx.save();
+      
+      const time = Date.now() / 1000;
+      const pulseScale = 1 + 0.1 * Math.sin(time * 4);
+      const itemSize = 12 * pulseScale;
+      
+      const glowGradient = ctx.createRadialGradient(
+        item.x, item.y, 0,
+        item.x, item.y, itemSize * 2
+      );
+      glowGradient.addColorStop(0, item.color.replace(')', ', 0.6)').replace('rgb', 'rgba'));
+      glowGradient.addColorStop(1, item.color.replace(')', ', 0)').replace('rgb', 'rgba'));
+      
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, itemSize * 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      const shineGradient = ctx.createRadialGradient(
+        item.x, item.y, 0,
+        item.x, item.y, itemSize
+      );
+      shineGradient.addColorStop(0, '#FFFFFF');
+      shineGradient.addColorStop(0.3, item.color);
+      shineGradient.addColorStop(1, darkenColor(item.color, 30));
+      
+      ctx.fillStyle = shineGradient;
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, itemSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.strokeStyle = item.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, itemSize * 1.2, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '8px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.value.toString(), item.x, item.y);
+      
+      ctx.restore();
+    };
+    
+    const updateBoostParticles = (deltaTime: number) => {
+      const particles = rendererStateRef.current.boostParticles;
+      
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * deltaTime;
+        p.y += p.vy * deltaTime;
+        p.alpha -= 0.02 * deltaTime;
+        
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+    };
+    
+    const drawBoostParticles = () => {
+      if (!ctx) return;
+      const particles = rendererStateRef.current.boostParticles;
+      
+      ctx.save();
+      
+      for (const p of particles) {
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    };
+    
+    const render = (timestamp: number) => {
+      if (!ctx || !canvas) return;
+      
+      if (!previousTimeRef.current) {
+        previousTimeRef.current = timestamp;
+      }
+      
+      const deltaTime = (timestamp - previousTimeRef.current) / 16;
+      previousTimeRef.current = timestamp;
+      
+      updateBoostParticles(deltaTime);
+      
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.save();
+      
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+      
+      if (rendererStateRef.current.gridNeedsUpdate) {
+        updateGridCache();
+      }
+      
+      if (gridCacheCanvasRef.current) {
+        const gridWidth = gridCacheCanvasRef.current.width / camera.zoom;
+        const gridHeight = gridCacheCanvasRef.current.height / camera.zoom;
+        
+        ctx.drawImage(
+          gridCacheCanvasRef.current,
+          0, 0, gridCacheCanvasRef.current.width, gridCacheCanvasRef.current.height,
+          camera.x - gridWidth / 2, camera.y - gridHeight / 2, gridWidth, gridHeight
+        );
+      }
+      
+      for (const item of rendererStateRef.current.items) {
+        drawItem(item);
+      }
+      
+      for (const [id, player] of Object.entries(rendererStateRef.current.players)) {
+        if (player.queue && player.queue.length > 0) {
+          player.queue.forEach((segment, index) => {
+            drawQueueSegment(segment, index, player, id === playerId);
+          });
+        }
+        
+        drawPlayerProcessor(player, id === playerId);
+      }
+      
+      drawBoostParticles();
+      
+      ctx.restore();
+      
+      requestRef.current = requestAnimationFrame(render);
+    };
+    
+    requestRef.current = requestAnimationFrame(render);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      
+      if (resizeListenerRef.current) {
+        window.removeEventListener('resize', resizeListenerRef.current);
+      }
+    };
+  }, [camera, gameState.worldSize, isMobile, playerId, calculatePlayerSize]);
+  
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="absolute top-0 left-0 w-full h-full"
+    />
+  );
+};
+
+export default GameCanvas;
