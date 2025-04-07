@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -310,12 +311,32 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
-      bgGradient.addColorStop(0, '#13162c');
-      bgGradient.addColorStop(1, '#101425');
-      gridCtx.fillStyle = bgGradient;
+      // New stylish background
+      const width = gridCanvas.width;
+      const height = gridCanvas.height;
       
-      gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+      // Create a dark gradient background
+      const bgGradient = gridCtx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, Math.max(width, height)
+      );
+      bgGradient.addColorStop(0, '#1e1b4b');  // Dark indigo at center
+      bgGradient.addColorStop(0.7, '#0f172a'); // Dark blue
+      bgGradient.addColorStop(1, '#020617');   // Almost black at edges
+      
+      gridCtx.fillStyle = bgGradient;
+      gridCtx.fillRect(0, 0, width, height);
+      
+      // Add a subtle vignette effect
+      const vignetteGradient = gridCtx.createRadialGradient(
+        width/2, height/2, height * 0.5,
+        width/2, height/2, Math.max(width, height) * 0.9
+      );
+      vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
+      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+      
+      gridCtx.fillStyle = vignetteGradient;
+      gridCtx.fillRect(0, 0, width, height);
       
       gridCtx.save();
       
@@ -329,9 +350,11 @@ const GameCanvas = ({
       const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       
-      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
+      // Draw stylish grid
+      gridCtx.strokeStyle = 'rgba(60, 80, 140, 0.2)';
       gridCtx.lineWidth = 1;
       
+      // Horizontal grid lines
       gridCtx.beginPath();
       for (let y = startY; y <= endY; y += gridSize) {
         gridCtx.moveTo(startX, y);
@@ -339,6 +362,7 @@ const GameCanvas = ({
       }
       gridCtx.stroke();
       
+      // Vertical grid lines
       gridCtx.beginPath();
       for (let x = startX; x <= endX; x += gridSize) {
         gridCtx.moveTo(x, startY);
@@ -346,7 +370,20 @@ const GameCanvas = ({
       }
       gridCtx.stroke();
       
-      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+      // Add subtle grid points at intersections
+      gridCtx.fillStyle = 'rgba(100, 150, 255, 0.1)';
+      for (let x = startX; x <= endX; x += gridSize) {
+        for (let y = startY; y <= endY; y += gridSize) {
+          // Random size for some variety
+          const pointSize = Math.random() < 0.1 ? 3 : 1;
+          gridCtx.beginPath();
+          gridCtx.arc(x, y, pointSize, 0, Math.PI * 2);
+          gridCtx.fill();
+        }
+      }
+      
+      // World border
+      gridCtx.strokeStyle = 'rgba(220, 60, 80, 0.5)';
       gridCtx.lineWidth = 2;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
@@ -651,11 +688,32 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      bgGradient.addColorStop(0, '#13162c');
-      bgGradient.addColorStop(1, '#101425');
+      // Apply the stylish background
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Create a dark gradient background
+      const bgGradient = ctx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, Math.max(width, height)
+      );
+      bgGradient.addColorStop(0, '#1e1b4b');  // Dark indigo at center
+      bgGradient.addColorStop(0.7, '#0f172a'); // Dark blue
+      bgGradient.addColorStop(1, '#020617');   // Almost black at edges
+      
       ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
+      
+      // Add a subtle vignette effect
+      const vignetteGradient = ctx.createRadialGradient(
+        width/2, height/2, height * 0.5,
+        width/2, height/2, Math.max(width, height) * 0.9
+      );
+      vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
+      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+      
+      ctx.fillStyle = vignetteGradient;
+      ctx.fillRect(0, 0, width, height);
       
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
         updateGridCache();
