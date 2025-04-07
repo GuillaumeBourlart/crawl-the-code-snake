@@ -328,11 +328,9 @@ const GameCanvas = ({
       
       ctx.save();
       
-      // Draw the processor chip with enhanced detail
       const chipSize = playerSize * 0.9;
       const cornerRadius = chipSize * 0.15;
       
-      // Draw main chip background with subtle gradient
       const gradient = ctx.createLinearGradient(
         player.x - chipSize/2, 
         player.y - chipSize/2, 
@@ -345,7 +343,6 @@ const GameCanvas = ({
       ctx.fillStyle = gradient;
       roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius);
       
-      // Draw processor notch (little indent on top)
       const notchWidth = chipSize * 0.3;
       const notchHeight = chipSize * 0.08;
       ctx.fillStyle = darkenColor(playerColor, 40);
@@ -358,17 +355,14 @@ const GameCanvas = ({
       ctx.closePath();
       ctx.fill();
       
-      // Enhanced border with double line effect
       ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
       roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius, true);
       
-      // Inner subtle border
       ctx.strokeStyle = shadeColor(playerColor, 10);
       ctx.lineWidth = 1;
       roundedRect(ctx, player.x - chipSize/2 + 3, player.y - chipSize/2 + 3, chipSize - 6, chipSize - 6, cornerRadius / 1.5, true);
       
-      // Draw inner square (chip core) with texture pattern
       const innerSize = chipSize * 0.65;
       const coreGradient = ctx.createRadialGradient(
         player.x, player.y, innerSize * 0.1,
@@ -380,11 +374,6 @@ const GameCanvas = ({
       ctx.fillStyle = coreGradient;
       roundedRect(ctx, player.x - innerSize/2, player.y - innerSize/2, innerSize, innerSize, cornerRadius/2);
       
-      // Circuit pattern on chip core (subtle lines)
-      ctx.strokeStyle = `${playerColor}50`;
-      ctx.lineWidth = 0.5;
-      
-      // Horizontal circuit lines
       const linesCount = 3;
       const lineSpacing = innerSize / (linesCount + 1);
       
@@ -395,7 +384,6 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Vertical circuit lines
       for (let i = 1; i <= linesCount; i++) {
         ctx.beginPath();
         ctx.moveTo(player.x - innerSize/2 + i * lineSpacing, player.y - innerSize/2 + 5);
@@ -403,11 +391,9 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Draw circuit pins coming out from the chip with improved design
       const pinLength = playerSize * 0.25;
       const pinWidth = playerSize * 0.07;
       
-      // Pin base color with gradient
       const pinGradient = ctx.createLinearGradient(
         player.x - chipSize/2, player.y - chipSize/2,
         player.x + chipSize/2, player.y + chipSize/2
@@ -416,14 +402,12 @@ const GameCanvas = ({
       pinGradient.addColorStop(1, darkenColor(playerColor, 30));
       ctx.fillStyle = pinGradient;
       
-      // Top pins (skip middle for eyes)
       const numberOfPins = 5;
       const pinSpacing = chipSize / (numberOfPins + 1);
       
       for (let i = 1; i <= numberOfPins; i++) {
-        if (i === 2 || i === 4) continue; // Skip pins for eyes
+        if (i === 2 || i === 4) continue;
         
-        // Top pins with metal tips
         ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
@@ -432,7 +416,6 @@ const GameCanvas = ({
           pinLength
         );
         
-        // Metal tip
         ctx.fillStyle = "#AAA";
         ctx.fillRect(
           player.x - chipSize/2 + i * pinSpacing - pinWidth/2 - 1,
@@ -441,7 +424,6 @@ const GameCanvas = ({
           3
         );
         
-        // Bottom pins with metal tips
         ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
@@ -450,7 +432,6 @@ const GameCanvas = ({
           pinLength
         );
         
-        // Metal tip
         ctx.fillStyle = "#AAA";
         ctx.fillRect(
           player.x - chipSize/2 + i * pinSpacing - pinWidth/2 - 1,
@@ -460,12 +441,10 @@ const GameCanvas = ({
         );
       }
       
-      // Side pins (fewer on sides)
       const sidePinCount = 3;
       const sidePinSpacing = chipSize / (sidePinCount + 1);
       
       for (let i = 1; i <= sidePinCount; i++) {
-        // Left pins
         ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x - chipSize/2 - pinLength,
@@ -474,7 +453,6 @@ const GameCanvas = ({
           pinWidth
         );
         
-        // Metal tip
         ctx.fillStyle = "#AAA";
         ctx.fillRect(
           player.x - chipSize/2 - pinLength,
@@ -483,7 +461,6 @@ const GameCanvas = ({
           pinWidth + 2
         );
         
-        // Right pins
         ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x + chipSize/2,
@@ -492,7 +469,6 @@ const GameCanvas = ({
           pinWidth
         );
         
-        // Metal tip
         ctx.fillStyle = "#AAA";
         ctx.fillRect(
           player.x + chipSize/2 + pinLength - 3,
@@ -502,12 +478,10 @@ const GameCanvas = ({
         );
       }
       
-      // Draw eyes (more realistic with reflections)
       const eyeSize = playerSize * 0.15;
       const eyeDistance = playerSize * 0.20;
       const eyeOffsetY = -playerSize * 0.05;
       
-      // Draw eye whites with slight gradient
       const eyeGradient = ctx.createRadialGradient(
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.2,
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize
@@ -520,20 +494,17 @@ const GameCanvas = ({
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Eye border
       ctx.strokeStyle = "#AAAAAA";
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Right eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Eye border
       ctx.strokeStyle = "#AAAAAA";
       ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -564,7 +535,6 @@ const GameCanvas = ({
         }
       }
       
-      // Draw pupils with reflections
       const pupilGradient = ctx.createRadialGradient(
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6
@@ -581,7 +551,6 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add eye glints (light reflections)
       ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
@@ -704,9 +673,7 @@ const GameCanvas = ({
           );
           
           if (visibleQueue.length > 0) {
-            // Draw in reverse order so the first segment is on top
             [...visibleQueue].reverse().forEach(segment => {
-              // Create a subtle gradient for queue segments
               const segmentGradient = ctx.createRadialGradient(
                 segment.x, segment.y, 0,
                 segment.x, segment.y, currentPlayerSize / 2
@@ -720,7 +687,6 @@ const GameCanvas = ({
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.fill();
               
-              // Enhanced border with small shadow effect
               ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
               ctx.shadowBlur = 2;
               ctx.shadowOffsetX = 1;
@@ -763,4 +729,35 @@ const GameCanvas = ({
           ctx.textAlign = 'center';
           ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
         } else {
-          ctx
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
+        }
+      });
+      
+      ctx.restore();
+      
+      requestRef.current = requestAnimationFrame(renderFrame);
+    };
+    
+    requestRef.current = requestAnimationFrame(renderFrame);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [camera, gameState, playerId]);
+  
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0"
+      style={{ touchAction: 'none' }}
+    />
+  );
+};
+
+export default GameCanvas;
