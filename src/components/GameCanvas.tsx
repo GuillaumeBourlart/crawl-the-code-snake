@@ -128,6 +128,7 @@ const GameCanvas = ({
     boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const resizeListenerRef = useRef<(() => void) | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -301,6 +302,8 @@ const GameCanvas = ({
       rendererStateRef.current.gridNeedsUpdate = true;
     };
     
+    resizeListenerRef.current = resizeCanvas;
+    
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
@@ -334,7 +337,10 @@ const GameCanvas = ({
     return () => {
       const particles = document.querySelectorAll('.particle');
       particles.forEach(particle => particle.remove());
-      window.removeEventListener('resize', resizeCanvas);
+      
+      if (resizeListenerRef.current) {
+        window.removeEventListener('resize', resizeListenerRef.current);
+      }
     };
   }, []);
   
@@ -928,7 +934,6 @@ const GameCanvas = ({
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
-      window.removeEventListener('resize', resizeCanvas);
     };
   }, [camera, gameState, playerId, isMobile]);
   
