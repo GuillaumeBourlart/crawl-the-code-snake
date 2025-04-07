@@ -124,7 +124,8 @@ const GameCanvas = ({
     items: [] as GameItem[],
     gridNeedsUpdate: true,
     mousePosition: { x: 0, y: 0 },
-    joystickDirection: { x: 0, y: 0 }
+    joystickDirection: { x: 0, y: 0 },
+    boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -668,6 +669,40 @@ const GameCanvas = ({
       const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
       const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
+      const boostParticles = rendererStateRef.current.boostParticles;
+      for (let i = boostParticles.length - 1; i >= 0; i--) {
+        const particle = boostParticles[i];
+        
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        particle.size *= 0.92;
+        particle.alpha *= 0.92;
+        
+        if (particle.size < 0.5 || particle.alpha < 0.05) {
+          boostParticles.splice(i, 1);
+          continue;
+        }
+        
+        if (particle.x >= viewportLeft && 
+            particle.x <= viewportRight && 
+            particle.y >= viewportTop && 
+            particle.y <= viewportBottom) {
+          const particleGradient = ctx.createRadialGradient(
+            particle.x, particle.y, 0,
+            particle.x, particle.y, particle.size
+          );
+          
+          particleGradient.addColorStop(0, `${particle.color}${Math.floor(particle.alpha * 255).toString(16).padStart(2, '0')}`);
+          particleGradient.addColorStop(1, `${particle.color}00`);
+          
+          ctx.fillStyle = particleGradient;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
       if (rendererStateRef.current.items.length > 0) {
         const visibleItems = rendererStateRef.current.items.filter(item => 
           item.x >= viewportLeft && 
@@ -743,17 +778,21 @@ const GameCanvas = ({
               ctx.shadowOffsetY = 0;
               
               if (player.boosting) {
+                const time = Date.now() / 300;
+                const pulseFactor = 0.2 * Math.sin(time + segment.x * 0.01) + 0.8;
+                
                 const glowGradient = ctx.createRadialGradient(
                   segment.x, segment.y, currentPlayerSize * 0.3,
-                  segment.x, segment.y, currentPlayerSize * 0.6
+                  segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor
                 );
                 
-                glowGradient.addColorStop(0, `${baseColor}20`);
+                glowGradient.addColorStop(0, `${baseColor}40`);
+                glowGradient.addColorStop(0.5, `${baseColor}20`);
                 glowGradient.addColorStop(1, `${baseColor}00`);
                 
                 ctx.fillStyle = glowGradient;
                 ctx.beginPath();
-                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.7, 0, Math.PI * 2);
+                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor, 0, Math.PI * 2);
                 ctx.fill();
               }
             });
