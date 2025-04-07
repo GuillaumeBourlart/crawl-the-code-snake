@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -310,44 +311,8 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // Create a cosmic background gradient
-      const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
-      bgGradient.addColorStop(0, 'hsl(var(--canvas-bg-1))');
-      bgGradient.addColorStop(1, 'hsl(var(--canvas-bg-2))');
-      
-      gridCtx.fillStyle = bgGradient;
+      gridCtx.fillStyle = '#121212';
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
-      
-      // Add some nebula-like effects
-      const nebulaCount = 5;
-      for (let i = 0; i < nebulaCount; i++) {
-        const x = Math.random() * gridCanvas.width;
-        const y = Math.random() * gridCanvas.height;
-        const radius = Math.random() * 200 + 100;
-        
-        const nebulaGradient = gridCtx.createRadialGradient(x, y, 0, x, y, radius);
-        const hue = 220 + Math.random() * 60;
-        nebulaGradient.addColorStop(0, `hsla(${hue}, 80%, 30%, 0.05)`);
-        nebulaGradient.addColorStop(0.5, `hsla(${hue}, 70%, 20%, 0.03)`);
-        nebulaGradient.addColorStop(1, 'hsla(0, 0%, 0%, 0)');
-        
-        gridCtx.fillStyle = nebulaGradient;
-        gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
-      }
-      
-      // Add stars
-      const starCount = 300;
-      for (let i = 0; i < starCount; i++) {
-        const x = Math.random() * gridCanvas.width;
-        const y = Math.random() * gridCanvas.height;
-        const size = Math.random() * 2;
-        const opacity = Math.random() * 0.5 + 0.3;
-        
-        gridCtx.fillStyle = `hsla(${Math.random() > 0.5 ? 'var(--canvas-star-1)' : 'var(--canvas-star-2)'}, ${opacity})`;
-        gridCtx.beginPath();
-        gridCtx.arc(x, y, size, 0, Math.PI * 2);
-        gridCtx.fill();
-      }
       
       gridCtx.save();
       
@@ -361,8 +326,7 @@ const GameCanvas = ({
       const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       
-      // Enhanced grid style
-      gridCtx.strokeStyle = 'hsla(var(--canvas-grid-1), 0.3)';
+      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
       gridCtx.lineWidth = 1;
       
       gridCtx.beginPath();
@@ -379,17 +343,9 @@ const GameCanvas = ({
       }
       gridCtx.stroke();
       
-      // Enhanced world border with glowing effect
-      gridCtx.strokeStyle = 'hsla(var(--canvas-grid-2), 0.8)';
-      gridCtx.lineWidth = 3;
+      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+      gridCtx.lineWidth = 2;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      // Add inner glow border
-      gridCtx.strokeStyle = 'hsla(265, 80%, 60%, 0.4)';
-      gridCtx.lineWidth = 8;
-      gridCtx.globalAlpha = 0.3;
-      gridCtx.strokeRect(-5, -5, gameState.worldSize.width + 10, gameState.worldSize.height + 10);
-      gridCtx.globalAlpha = 1;
       
       gridCtx.restore();
       
