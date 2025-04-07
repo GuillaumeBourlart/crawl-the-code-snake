@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -128,7 +129,6 @@ const GameCanvas = ({
     boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const resizeListenerRef = useRef<(() => void) | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -290,7 +290,6 @@ const GameCanvas = ({
     }
     
     const resizeCanvas = () => {
-      if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       
@@ -302,58 +301,8 @@ const GameCanvas = ({
       rendererStateRef.current.gridNeedsUpdate = true;
     };
     
-    resizeListenerRef.current = resizeCanvas;
-    
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-    
-    const createParticles = () => {
-      const gameContainer = document.querySelector('.game-container');
-      if (!gameContainer) return;
-      
-      for (let i = 0; i < 50; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        
-        const size = Math.random() * 4 + 1;
-        const posX = Math.random() * 100;
-        const posY = Math.random() * 100;
-        const duration = Math.random() * 20 + 10;
-        const delay = Math.random() * 10;
-        
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.left = `${posX}%`;
-        particle.style.top = `${posY}%`;
-        particle.style.opacity = `${Math.random() * 0.5 + 0.1}`;
-        particle.style.animation = `float ${duration}s ${delay}s infinite linear`;
-        
-        gameContainer.appendChild(particle);
-      }
-    };
-    
-    createParticles();
-    
-    return () => {
-      const particles = document.querySelectorAll('.particle');
-      particles.forEach(particle => particle.remove());
-      
-      if (resizeListenerRef.current) {
-        window.removeEventListener('resize', resizeListenerRef.current);
-      }
-    };
-  }, []);
-  
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
-    
-    if (!gridCacheCanvasRef.current) {
-      gridCacheCanvasRef.current = document.createElement('canvas');
-    }
     
     const updateGridCache = () => {
       const gridCanvas = gridCacheCanvasRef.current;
@@ -362,7 +311,7 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      gridCtx.fillStyle = 'rgba(10, 10, 20, 0.95)';
+      gridCtx.fillStyle = '#121212';
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
       
       gridCtx.save();
@@ -377,15 +326,7 @@ const GameCanvas = ({
       const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       
-      const gradientSize = 200;
-      const gridGradient = gridCtx.createRadialGradient(
-        camera.x, camera.y, 0,
-        camera.x, camera.y, gradientSize * camera.zoom
-      );
-      gridGradient.addColorStop(0, 'rgba(80, 70, 120, 0.1)');
-      gridGradient.addColorStop(1, 'rgba(30, 30, 50, 0.05)');
-      
-      gridCtx.strokeStyle = 'rgba(80, 80, 120, 0.2)';
+      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
       gridCtx.lineWidth = 1;
       
       gridCtx.beginPath();
@@ -402,26 +343,9 @@ const GameCanvas = ({
       }
       gridCtx.stroke();
       
-      gridCtx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
-      gridCtx.lineWidth = 4;
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      gridCtx.shadowColor = 'rgba(139, 92, 246, 0.6)';
-      gridCtx.shadowBlur = 15;
-      gridCtx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       gridCtx.lineWidth = 2;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      gridCtx.shadowBlur = 0;
-      
-      const bgGradient = gridCtx.createRadialGradient(
-        gameState.worldSize.width / 2, gameState.worldSize.height / 2, 0,
-        gameState.worldSize.width / 2, gameState.worldSize.height / 2, gameState.worldSize.width / 1.5
-      );
-      bgGradient.addColorStop(0, 'rgba(30, 30, 60, 0.05)');
-      bgGradient.addColorStop(1, 'rgba(10, 10, 30, 0.1)');
-      
-      gridCtx.fillStyle = bgGradient;
-      gridCtx.fillRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
       gridCtx.restore();
       
@@ -724,7 +648,7 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      ctx.fillStyle = 'rgba(10, 10, 20, 0.95)';
+      ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
@@ -746,6 +670,7 @@ const GameCanvas = ({
       const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
       const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
+      // Render boost particles
       const boostParticles = rendererStateRef.current.boostParticles;
       for (let i = boostParticles.length - 1; i >= 0; i--) {
         const particle = boostParticles[i];
@@ -780,6 +705,7 @@ const GameCanvas = ({
         }
       }
       
+      // Render items only if they are in viewport
       if (rendererStateRef.current.items.length > 0) {
         const visibleItems = rendererStateRef.current.items.filter(item => 
           item.x >= viewportLeft && 
@@ -801,12 +727,16 @@ const GameCanvas = ({
         });
       }
       
+      // Render all players regardless of viewport position
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        // Removed the viewport check that was here to render all players
+        
         const isCurrentPlayer = id === playerId;
         const currentPlayerSize = calculatePlayerSize(player);
         const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
         
         if (player.queue && player.queue.length > 0) {
+          // Only render queue segments that are in viewport for performance
           const visibleQueue = player.queue.filter(segment => 
             segment.x >= viewportLeft && 
             segment.x <= viewportRight && 
@@ -867,28 +797,34 @@ const GameCanvas = ({
           }
         }
         
+        // Always draw player head regardless of viewport position
         drawPlayerProcessor(player, isCurrentPlayer);
         
+        // Add an arrow indicator for off-screen players
         if (
           player.x < viewportLeft ||
           player.x > viewportRight ||
           player.y < viewportTop ||
           player.y > viewportBottom
         ) {
+          // Calculate angle to offscreen player
           const dx = player.x - camera.x;
           const dy = player.y - camera.y;
           const angle = Math.atan2(dy, dx);
           
+          // Calculate position on screen edge
           const edgeRadius = Math.min(canvas.width, canvas.height) / 2 / camera.zoom * 0.9;
           const edgeX = camera.x + Math.cos(angle) * edgeRadius;
           const edgeY = camera.y + Math.sin(angle) * edgeRadius;
           
+          // Draw directional arrow
           ctx.save();
           ctx.translate(edgeX, edgeY);
           ctx.rotate(angle);
           
           const arrowSize = 15 / camera.zoom;
           
+          // Draw arrow body with player color
           ctx.fillStyle = player.color || '#FFFFFF';
           ctx.beginPath();
           ctx.moveTo(arrowSize, 0);
@@ -897,10 +833,12 @@ const GameCanvas = ({
           ctx.closePath();
           ctx.fill();
           
+          // Draw arrow outline
           ctx.strokeStyle = '#000000';
           ctx.lineWidth = 1 / camera.zoom;
           ctx.stroke();
           
+          // Draw distance indicator
           const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
           ctx.fillStyle = '#FFFFFF';
           ctx.font = `${12 / camera.zoom}px Arial`;
@@ -934,17 +872,16 @@ const GameCanvas = ({
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
+      window.removeEventListener('resize', resizeCanvas);
     };
   }, [camera, gameState, playerId, isMobile]);
   
   return (
-    <div className="game-container glow-effect">
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 grid-lines"
-        style={{ touchAction: 'none' }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0"
+      style={{ touchAction: 'none' }}
+    />
   );
 };
 

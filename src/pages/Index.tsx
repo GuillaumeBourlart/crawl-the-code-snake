@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -355,17 +354,17 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 bg-black/40 backdrop-blur-lg rounded-xl border border-purple-500/20 shadow-lg animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-500">
+        <div className="z-10 flex flex-col items-center justify-center p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-lg animate-fade-in">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
             Code Crawl
           </h1>
-          <p className="text-purple-100 mb-8 text-center max-w-md">
+          <p className="text-gray-300 mb-8 text-center max-w-md">
             Naviguez avec votre processeur, collectez des fragments de code et évitez les collisions avec les traces des autres joueurs.
           </p>
           <Button
-            className="px-8 py-6 text-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="px-8 py-6 text-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
             onClick={handlePlay}
             disabled={connecting}
           >
@@ -390,13 +389,13 @@ const Index = () => {
             {Array.from({ length: 50 }).map((_, i) => (
               <div
                 key={i}
-                className="absolute rounded-full bg-purple-500/10"
+                className="absolute rounded-full bg-blue-500/10"
                 style={{
-                  width: `${Math.random() * 20 + 5}px`,
-                  height: `${Math.random() * 20 + 5}px`,
+                  width: `${Math.random() * 10 + 5}px`,
+                  height: `${Math.random() * 10 + 5}px`,
                   top: `${Math.random() * 100}%`,
                   left: `${Math.random() * 100}%`,
-                  animation: `float ${Math.random() * 15 + 10}s infinite linear, pulse ${Math.random() * 4 + 2}s infinite alternate`
+                  animation: `float ${Math.random() * 10 + 5}s infinite linear`
                 }}
               />
             ))}
@@ -409,7 +408,7 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-black/50 backdrop-blur-md border-purple-500/30 text-white hover:bg-purple-900/30"
+              className="bg-gray-800/70 border-gray-700 text-white hover:bg-gray-700/90"
               onClick={handleQuitGame}
             >
               <LogOut className="mr-1 h-4 w-4" />
