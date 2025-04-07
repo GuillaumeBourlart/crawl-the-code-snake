@@ -763,4 +763,4 @@ const GameCanvas = ({
           ctx.textAlign = 'center';
           ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
         } else {
-          const queueCount =
+          ctx
