@@ -61,11 +61,9 @@ const Index = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: isMobile ? 0.7 : 1 });
 
-  // --- Nouveauté pour la direction ---
-  // Ref pour stocker la dernière direction connue
+  // Reference to store the last known direction
   const lastDirectionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   
-  // Dans handleMouseMove, mettre à jour lastDirectionRef
   const handleMouseMove = (e: MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -73,7 +71,7 @@ const Index = () => {
     const canvasX = e.clientX - rect.left;
     const canvasY = e.clientY - rect.top;
     
-    // Calculer la position dans le monde
+    // Calculate position in the world
     const player = gameState.players[playerId!];
     if (!player) return;
     const worldX = (canvasX / canvas.width) * canvas.width / camera.zoom + camera.x - canvas.width / (2 * camera.zoom);
@@ -83,21 +81,21 @@ const Index = () => {
     const length = Math.sqrt(dx * dx + dy * dy);
     if (length > 0) {
       const normalized = { x: dx / length, y: dy / length };
-      lastDirectionRef.current = normalized;  // Mémoriser la dernière direction
-      // On envoie aussi via onMove pour le comportement immédiat
-      onMove(normalized);
+      lastDirectionRef.current = normalized;  // Store the last direction
+      onMove(normalized); // Send the move immediately for responsive behavior
     }
   };
   
-  // Émettre l'événement changeDirection toutes les 50ms avec la dernière direction connue
+  // Emit the changeDirection event every 50ms with the last known direction
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !gameStarted) return;
+    
     const interval = setInterval(() => {
       socket.emit("changeDirection", { direction: lastDirectionRef.current });
     }, 50);
+    
     return () => clearInterval(interval);
-  }, [socket]);
-  // --- Fin nouveauté ---
+  }, [socket, gameStarted]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -297,8 +295,9 @@ const Index = () => {
     setSocket(newSocket);
   };
   
-  const handleMove = (direction: { x: number; y: number }) => {
-    if (socket && gameStarted && playerId) {
+  const onMove = (direction: { x: number; y: number }) => {
+    lastDirectionRef.current = direction;
+    if (socket && gameStarted) {
       socket.emit("changeDirection", { direction });
     }
   };
@@ -430,14 +429,14 @@ const Index = () => {
               worldSize: gameState.worldSize || { width: 2000, height: 2000 }
             }}
             playerId={playerId}
-            onMove={handleMove}
+            onMove={onMove}
             onBoostStart={handleBoostStart}
             onBoostStop={handleBoostStop}
             onPlayerCollision={handlePlayerCollision}
           />
           {isMobile && (
             <MobileControls 
-              onMove={handleMove} 
+              onMove={onMove} 
               onBoostStart={handleBoostStart} 
               onBoostStop={handleBoostStop}
               onJoystickMove={handleJoystickMove}
