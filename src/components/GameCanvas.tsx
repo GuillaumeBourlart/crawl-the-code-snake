@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -311,7 +310,11 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      gridCtx.fillStyle = '#121212';
+      const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
+      bgGradient.addColorStop(0, '#13162c');
+      bgGradient.addColorStop(1, '#101425');
+      gridCtx.fillStyle = bgGradient;
+      
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
       
       gridCtx.save();
@@ -648,7 +651,10 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      ctx.fillStyle = '#121212';
+      const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      bgGradient.addColorStop(0, '#13162c');
+      bgGradient.addColorStop(1, '#101425');
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
