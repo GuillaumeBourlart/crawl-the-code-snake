@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import GameCanvas, { handleJoystickDirection } from "@/components/GameCanvas";
+import GameCanvas from "@/components/GameCanvas";
 import { createClient } from "@supabase/supabase-js";
 import { io } from "socket.io-client";
 import MobileControls from "@/components/MobileControls";
@@ -331,9 +331,8 @@ const Index = () => {
   };
 
   const handleJoystickMove = (direction: { x: number; y: number }) => {
-    if (window && (window as any).handleJoystickDirection) {
-      (window as any).handleJoystickDirection(direction);
-    }
+    // No need to call window.handleJoystickDirection here anymore
+    // The MobileControls component will handle this directly
   };
 
   return (

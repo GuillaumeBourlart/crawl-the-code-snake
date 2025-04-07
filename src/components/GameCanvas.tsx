@@ -96,6 +96,12 @@ function adjustPinColor(color: string) {
   return `rgba(${Math.min(255, rgb.r + 100)}, ${Math.min(255, Math.max(150, rgb.g + 50))}, 50, 0.7)`;
 }
 
+let _joystickDirection = { x: 0, y: 0 };
+
+export const handleJoystickDirection = (direction: { x: number; y: number }) => {
+  _joystickDirection = direction;
+};
+
 const GameCanvas = ({ 
   gameState, 
   playerId, 
@@ -122,13 +128,22 @@ const GameCanvas = ({
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
-  const handleJoystickDirection = (direction: { x: number; y: number }) => {
-    rendererStateRef.current.joystickDirection = direction;
-  };
-  
-  if (window) {
-    (window as any).handleJoystickDirection = handleJoystickDirection;
-  }
+  useEffect(() => {
+    if (window) {
+      (window as any).handleJoystickDirection = handleJoystickDirection;
+    }
+    
+    const updateJoystickDirection = () => {
+      rendererStateRef.current.joystickDirection = _joystickDirection;
+      requestAnimationFrame(updateJoystickDirection);
+    };
+    
+    const animationId = requestAnimationFrame(updateJoystickDirection);
+    
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
   
   useEffect(() => {
     if (!playerId || !gameState.players[playerId]) return;
@@ -784,5 +799,4 @@ const GameCanvas = ({
   );
 };
 
-export { handleJoystickDirection };
 export default GameCanvas;

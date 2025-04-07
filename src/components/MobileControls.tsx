@@ -1,4 +1,6 @@
+
 import { useEffect, useRef, useState } from "react";
+import { handleJoystickDirection } from "./GameCanvas";
 
 interface MobileControlsProps {
   onMove: (direction: { x: number; y: number }) => void;
@@ -50,7 +52,10 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop, onJoystickMove }: M
       // Send movement direction
       onMove({ x: dirX, y: dirY });
       
-      // Send joystick direction for eye movement
+      // Call the imported handleJoystickDirection for eye movement
+      handleJoystickDirection({ x: dirX, y: dirY });
+      
+      // Also call the optional onJoystickMove if provided
       if (onJoystickMove) {
         onJoystickMove({ x: dirX, y: dirY });
       }
@@ -101,6 +106,10 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop, onJoystickMove }: M
           setJoystickActive(false);
           setTouchId(null);
           onMove({ x: 0, y: 0 });
+          
+          // Reset eye direction as well
+          handleJoystickDirection({ x: 0, y: 0 });
+          
           if (onJoystickMove) {
             onJoystickMove({ x: 0, y: 0 });
           }
