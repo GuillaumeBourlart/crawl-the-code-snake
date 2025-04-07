@@ -318,6 +318,39 @@ const GameCanvas = ({
       gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
+      // Draw honeycomb pattern across the background
+      const hexSize = 40; // Size of each hexagon
+      const hexHeight = hexSize * Math.sqrt(3);
+      const hexWidth = hexSize * 2;
+      const rows = Math.ceil(height / (hexHeight * 0.75)) + 2;
+      const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
+      
+      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)'; // Subtle blue outline
+      gridCtx.lineWidth = 1;
+      
+      for (let row = -2; row < rows; row++) {
+        for (let col = -2; col < cols; col++) {
+          const centerX = col * hexWidth * 0.75;
+          const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+          
+          // Draw hexagon
+          gridCtx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = centerX + hexSize * Math.cos(angle);
+            const y = centerY + hexSize * Math.sin(angle);
+            
+            if (i === 0) {
+              gridCtx.moveTo(x, y);
+            } else {
+              gridCtx.lineTo(x, y);
+            }
+          }
+          gridCtx.closePath();
+          gridCtx.stroke();
+        }
+      }
+      
       // Add twinkling stars
       const numberOfStars = 300;
       for (let i = 0; i < numberOfStars; i++) {
@@ -799,14 +832,11 @@ const GameCanvas = ({
       
       // Render all players regardless of viewport position
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        // Removed the viewport check that was here to render all players
-        
         const isCurrentPlayer = id === playerId;
         const currentPlayerSize = calculatePlayerSize(player);
         const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
         
         if (player.queue && player.queue.length > 0) {
-          // Only render queue segments that are in viewport for performance
           const visibleQueue = player.queue.filter(segment => 
             segment.x >= viewportLeft && 
             segment.x <= viewportRight && 
@@ -867,34 +897,28 @@ const GameCanvas = ({
           }
         }
         
-        // Always draw player head regardless of viewport position
         drawPlayerProcessor(player, isCurrentPlayer);
         
-        // Add an arrow indicator for off-screen players
         if (
           player.x < viewportLeft ||
           player.x > viewportRight ||
           player.y < viewportTop ||
           player.y > viewportBottom
         ) {
-          // Calculate angle to offscreen player
           const dx = player.x - camera.x;
           const dy = player.y - camera.y;
           const angle = Math.atan2(dy, dx);
           
-          // Calculate position on screen edge
           const edgeRadius = Math.min(canvas.width, canvas.height) / 2 / camera.zoom * 0.9;
           const edgeX = camera.x + Math.cos(angle) * edgeRadius;
           const edgeY = camera.y + Math.sin(angle) * edgeRadius;
           
-          // Draw directional arrow
           ctx.save();
           ctx.translate(edgeX, edgeY);
           ctx.rotate(angle);
           
           const arrowSize = 15 / camera.zoom;
           
-          // Draw arrow body with player color
           ctx.fillStyle = player.color || '#FFFFFF';
           ctx.beginPath();
           ctx.moveTo(arrowSize, 0);
@@ -903,12 +927,10 @@ const GameCanvas = ({
           ctx.closePath();
           ctx.fill();
           
-          // Draw arrow outline
           ctx.strokeStyle = '#000000';
           ctx.lineWidth = 1 / camera.zoom;
           ctx.stroke();
           
-          // Draw distance indicator
           const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
           ctx.fillStyle = '#FFFFFF';
           ctx.font = `${12 / camera.zoom}px Arial`;
