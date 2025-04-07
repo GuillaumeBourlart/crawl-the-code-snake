@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -127,6 +128,7 @@ const GameCanvas = ({
     joystickDirection: { x: 0, y: 0 }
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const directionIntervalRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -155,6 +157,33 @@ const GameCanvas = ({
       y: player.y
     }));
   }, [gameState, playerId]);
+  
+  // Cette fonction envoie la direction actuelle au serveur
+  const sendCurrentDirection = () => {
+    if (!playerId || !gameState.players[playerId]) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const mousePos = rendererStateRef.current.mousePosition;
+    const player = gameState.players[playerId];
+    
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    
+    const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
+    const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
+    
+    const dx = worldMouseX - player.x;
+    const dy = worldMouseY - player.y;
+    
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length > 0) {
+      const normalizedDx = dx / length;
+      const normalizedDy = dy / length;
+      onMove({ x: normalizedDx, y: normalizedDy });
+    }
+  };
   
   useEffect(() => {
     if (!playerId) return;
@@ -198,10 +227,21 @@ const GameCanvas = ({
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     
+    // Démarrer l'intervalle qui envoie la direction périodiquement
+    if (directionIntervalRef.current === null) {
+      directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100); // Envoyer tous les 0.1 secondes
+    }
+    
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      
+      // Nettoyer l'intervalle lors du démontage
+      if (directionIntervalRef.current !== null) {
+        window.clearInterval(directionIntervalRef.current);
+        directionIntervalRef.current = null;
+      }
     };
   }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera]);
   
