@@ -264,16 +264,9 @@ const Index = () => {
     setSocket(newSocket);
   };
   
-  const moveThrottleRef = useRef(false);
-  
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
-      if (moveThrottleRef.current) return;
-      moveThrottleRef.current = true;
       socket.emit("changeDirection", { direction });
-      setTimeout(() => {
-        moveThrottleRef.current = false;
-      }, 50);
     }
   };
   
