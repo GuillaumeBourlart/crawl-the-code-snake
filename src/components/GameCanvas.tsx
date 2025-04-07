@@ -328,38 +328,103 @@ const GameCanvas = ({
       
       ctx.save();
       
-      // Draw the processor chip background
+      // Draw the processor chip with enhanced detail
       const chipSize = playerSize * 0.9;
       const cornerRadius = chipSize * 0.15;
       
-      // Draw main chip background
-      ctx.fillStyle = playerColor;
+      // Draw main chip background with subtle gradient
+      const gradient = ctx.createLinearGradient(
+        player.x - chipSize/2, 
+        player.y - chipSize/2, 
+        player.x + chipSize/2, 
+        player.y + chipSize/2
+      );
+      gradient.addColorStop(0, playerColor);
+      gradient.addColorStop(1, shadeColor(playerColor, -15));
+      
+      ctx.fillStyle = gradient;
       roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius);
       
-      // Draw border
+      // Draw processor notch (little indent on top)
+      const notchWidth = chipSize * 0.3;
+      const notchHeight = chipSize * 0.08;
+      ctx.fillStyle = darkenColor(playerColor, 40);
+      ctx.beginPath();
+      ctx.moveTo(player.x - notchWidth/2, player.y - chipSize/2);
+      ctx.lineTo(player.x + notchWidth/2, player.y - chipSize/2);
+      ctx.lineTo(player.x + notchWidth/2, player.y - chipSize/2 + notchHeight);
+      ctx.lineTo(player.x, player.y - chipSize/2 + notchHeight*1.5);
+      ctx.lineTo(player.x - notchWidth/2, player.y - chipSize/2 + notchHeight);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Enhanced border with double line effect
       ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
-      ctx.beginPath();
       roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius, true);
       
-      // Draw inner square (chip core)
-      const innerSize = chipSize * 0.6;
-      ctx.fillStyle = shadeColor(playerColor, 10);
+      // Inner subtle border
+      ctx.strokeStyle = shadeColor(playerColor, 10);
+      ctx.lineWidth = 1;
+      roundedRect(ctx, player.x - chipSize/2 + 3, player.y - chipSize/2 + 3, chipSize - 6, chipSize - 6, cornerRadius / 1.5, true);
+      
+      // Draw inner square (chip core) with texture pattern
+      const innerSize = chipSize * 0.65;
+      const coreGradient = ctx.createRadialGradient(
+        player.x, player.y, innerSize * 0.1,
+        player.x, player.y, innerSize * 0.7
+      );
+      coreGradient.addColorStop(0, shadeColor(playerColor, 20));
+      coreGradient.addColorStop(1, shadeColor(playerColor, -10));
+      
+      ctx.fillStyle = coreGradient;
       roundedRect(ctx, player.x - innerSize/2, player.y - innerSize/2, innerSize, innerSize, cornerRadius/2);
       
-      // Draw circuit pins coming out from the chip
-      const pinLength = playerSize * 0.3;
-      const pinWidth = playerSize * 0.06;
-      ctx.fillStyle = darkenColor(playerColor, 15);
+      // Circuit pattern on chip core (subtle lines)
+      ctx.strokeStyle = `${playerColor}50`;
+      ctx.lineWidth = 0.5;
       
-      // Top pins
+      // Horizontal circuit lines
+      const linesCount = 3;
+      const lineSpacing = innerSize / (linesCount + 1);
+      
+      for (let i = 1; i <= linesCount; i++) {
+        ctx.beginPath();
+        ctx.moveTo(player.x - innerSize/2 + 5, player.y - innerSize/2 + i * lineSpacing);
+        ctx.lineTo(player.x + innerSize/2 - 5, player.y - innerSize/2 + i * lineSpacing);
+        ctx.stroke();
+      }
+      
+      // Vertical circuit lines
+      for (let i = 1; i <= linesCount; i++) {
+        ctx.beginPath();
+        ctx.moveTo(player.x - innerSize/2 + i * lineSpacing, player.y - innerSize/2 + 5);
+        ctx.lineTo(player.x - innerSize/2 + i * lineSpacing, player.y + innerSize/2 - 5);
+        ctx.stroke();
+      }
+      
+      // Draw circuit pins coming out from the chip with improved design
+      const pinLength = playerSize * 0.25;
+      const pinWidth = playerSize * 0.07;
+      
+      // Pin base color with gradient
+      const pinGradient = ctx.createLinearGradient(
+        player.x - chipSize/2, player.y - chipSize/2,
+        player.x + chipSize/2, player.y + chipSize/2
+      );
+      pinGradient.addColorStop(0, shadeColor(playerColor, -20));
+      pinGradient.addColorStop(1, darkenColor(playerColor, 30));
+      ctx.fillStyle = pinGradient;
+      
+      // Top pins (skip middle for eyes)
       const numberOfPins = 5;
       const pinSpacing = chipSize / (numberOfPins + 1);
       
       for (let i = 1; i <= numberOfPins; i++) {
-        if (i === 3) continue; // Skip middle pin on top to make room for eyes
+        if (i === 2 || i === 4) continue; // Skip pins for eyes
         
-        // Top pins
+        // Top pins with metal tips
+        ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
           player.y - chipSize/2 - pinLength,
@@ -367,12 +432,31 @@ const GameCanvas = ({
           pinLength
         );
         
-        // Bottom pins
+        // Metal tip
+        ctx.fillStyle = "#AAA";
+        ctx.fillRect(
+          player.x - chipSize/2 + i * pinSpacing - pinWidth/2 - 1,
+          player.y - chipSize/2 - pinLength,
+          pinWidth + 2,
+          3
+        );
+        
+        // Bottom pins with metal tips
+        ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
           player.y + chipSize/2,
           pinWidth,
           pinLength
+        );
+        
+        // Metal tip
+        ctx.fillStyle = "#AAA";
+        ctx.fillRect(
+          player.x - chipSize/2 + i * pinSpacing - pinWidth/2 - 1,
+          player.y + chipSize/2 + pinLength - 3,
+          pinWidth + 2,
+          3
         );
       }
       
@@ -382,6 +466,7 @@ const GameCanvas = ({
       
       for (let i = 1; i <= sidePinCount; i++) {
         // Left pins
+        ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x - chipSize/2 - pinLength,
           player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2,
@@ -389,29 +474,71 @@ const GameCanvas = ({
           pinWidth
         );
         
+        // Metal tip
+        ctx.fillStyle = "#AAA";
+        ctx.fillRect(
+          player.x - chipSize/2 - pinLength,
+          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2 - 1,
+          3,
+          pinWidth + 2
+        );
+        
         // Right pins
+        ctx.fillStyle = pinGradient;
         ctx.fillRect(
           player.x + chipSize/2,
           player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2,
           pinLength,
           pinWidth
         );
+        
+        // Metal tip
+        ctx.fillStyle = "#AAA";
+        ctx.fillRect(
+          player.x + chipSize/2 + pinLength - 3,
+          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2 - 1,
+          3,
+          pinWidth + 2
+        );
       }
       
-      // Draw eyes
+      // Draw eyes (more realistic with reflections)
       const eyeSize = playerSize * 0.15;
       const eyeDistance = playerSize * 0.20;
       const eyeOffsetY = -playerSize * 0.05;
       
-      ctx.fillStyle = '#FFFFFF';
+      // Draw eye whites with slight gradient
+      const eyeGradient = ctx.createRadialGradient(
+        player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.2,
+        player.x - eyeDistance, player.y + eyeOffsetY, eyeSize
+      );
+      eyeGradient.addColorStop(0, "#FFFFFF");
+      eyeGradient.addColorStop(1, "#E0E0E0");
       
+      ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
+      // Eye border
+      ctx.strokeStyle = "#AAAAAA";
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Right eye
+      ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Eye border
+      ctx.strokeStyle = "#AAAAAA";
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
+      ctx.stroke();
       
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
@@ -437,8 +564,15 @@ const GameCanvas = ({
         }
       }
       
-      ctx.fillStyle = '#000000';
+      // Draw pupils with reflections
+      const pupilGradient = ctx.createRadialGradient(
+        player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
+        player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6
+      );
+      pupilGradient.addColorStop(0, "#444444");
+      pupilGradient.addColorStop(1, "#000000");
       
+      ctx.fillStyle = pupilGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
       ctx.fill();
@@ -447,19 +581,30 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
       ctx.fill();
       
+      // Add eye glints (light reflections)
+      ctx.fillStyle = "#FFFFFF";
+      ctx.beginPath();
+      ctx.arc(player.x - eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(player.x + eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      
       if (player.boosting) {
         const glowColor = playerColor;
         
-        const glowRadius = playerSize * 0.8;
-        const gradient = ctx.createRadialGradient(
-          player.x, player.y, playerSize * 0.3,
+        const glowRadius = playerSize * 0.9;
+        const boostGradient = ctx.createRadialGradient(
+          player.x, player.y, playerSize * 0.5,
           player.x, player.y, glowRadius
         );
         
-        gradient.addColorStop(0, `${glowColor}50`);
-        gradient.addColorStop(1, `${glowColor}00`);
+        boostGradient.addColorStop(0, `${glowColor}40`);
+        boostGradient.addColorStop(0.5, `${glowColor}20`);
+        boostGradient.addColorStop(1, `${glowColor}00`);
         
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = boostGradient;
         ctx.beginPath();
         ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
@@ -559,14 +704,27 @@ const GameCanvas = ({
           );
           
           if (visibleQueue.length > 0) {
+            // Draw in reverse order so the first segment is on top
             [...visibleQueue].reverse().forEach(segment => {
-              ctx.fillStyle = player.boosting 
-                ? shadeColor(baseColor, 10)
-                : baseColor;
+              // Create a subtle gradient for queue segments
+              const segmentGradient = ctx.createRadialGradient(
+                segment.x, segment.y, 0,
+                segment.x, segment.y, currentPlayerSize / 2
+              );
+              segmentGradient.addColorStop(0, shadeColor(baseColor, 10));
+              segmentGradient.addColorStop(1, baseColor);
+              
+              ctx.fillStyle = segmentGradient;
               
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.fill();
+              
+              // Enhanced border with small shadow effect
+              ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
+              ctx.shadowBlur = 2;
+              ctx.shadowOffsetX = 1;
+              ctx.shadowOffsetY = 1;
               
               ctx.strokeStyle = darkenColor(baseColor, 30);
               ctx.lineWidth = 2;
@@ -574,13 +732,18 @@ const GameCanvas = ({
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.stroke();
               
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+              
               if (player.boosting) {
                 const glowGradient = ctx.createRadialGradient(
                   segment.x, segment.y, currentPlayerSize * 0.3,
-                  segment.x, segment.y, currentPlayerSize * 0.7
+                  segment.x, segment.y, currentPlayerSize * 0.6
                 );
                 
-                glowGradient.addColorStop(0, `${baseColor}30`);
+                glowGradient.addColorStop(0, `${baseColor}20`);
                 glowGradient.addColorStop(1, `${baseColor}00`);
                 
                 ctx.fillStyle = glowGradient;
@@ -600,51 +763,4 @@ const GameCanvas = ({
           ctx.textAlign = 'center';
           ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
         } else {
-          const queueCount = player.queue?.length || 0;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`${queueCount}`, player.x, player.y - calculatePlayerSize(player) - 5);
-        }
-      });
-      
-      ctx.restore();
-      
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(10, 10, 200, 60);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '16px Arial';
-      
-      const playerCount = Object.keys(rendererStateRef.current.players).length;
-      ctx.fillText(`Players: ${playerCount}`, 20, 30);
-      
-      if (playerId && rendererStateRef.current.players[playerId]) {
-        const player = rendererStateRef.current.players[playerId];
-        const queueCount = player.queue?.length || 0;
-        ctx.fillText(`Segments: ${queueCount}`, 20, 60);
-      }
-      
-      previousTimeRef.current = timestamp;
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [gameState.worldSize, playerId, camera]);
-  
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute top-0 left-0 w-full h-full touch-none"
-    />
-  );
-};
-
-export default GameCanvas;
+          const queueCount =

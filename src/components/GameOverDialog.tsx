@@ -72,45 +72,109 @@ const GameOverDialog = ({
         <DialogHeader>
           <div className="flex items-center justify-center mb-2">
             <div className="relative w-16 h-16 mr-2">
-              {/* Processor chip base */}
+              {/* Main processor chip with improved design */}
               <div 
-                className="w-12 h-12 rounded-md absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                className="w-12 h-12 rounded-md absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
                 style={{ 
                   backgroundColor: playerColor,
-                  boxShadow: `0 0 10px ${playerColor}80`
+                  boxShadow: `0 0 10px ${playerColor}80`,
+                  borderWidth: "2px",
+                  borderColor: `${playerColor}70`,
+                  borderStyle: "solid"
                 }}
-              />
+              >
+                {/* Processor notch */}
+                <div 
+                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-1.5"
+                  style={{ 
+                    backgroundColor: `${playerColor}00`,
+                    borderBottomLeftRadius: "4px",
+                    borderBottomRightRadius: "4px",
+                    borderLeft: `4px solid ${playerColor}40`,
+                    borderRight: `4px solid ${playerColor}40`,
+                    borderBottom: `4px solid ${playerColor}40`,
+                  }}
+                />
+                
+                {/* Circuit pattern (subtle lines) */}
+                <div className="absolute inset-1 opacity-30">
+                  <div className="absolute top-1/4 left-0 w-full h-px bg-white" />
+                  <div className="absolute top-2/4 left-0 w-full h-px bg-white" />
+                  <div className="absolute top-3/4 left-0 w-full h-px bg-white" />
+                  <div className="absolute left-1/4 top-0 h-full w-px bg-white" />
+                  <div className="absolute left-2/4 top-0 h-full w-px bg-white" />
+                  <div className="absolute left-3/4 top-0 h-full w-px bg-white" />
+                </div>
+              </div>
               
-              {/* Inner processor core */}
+              {/* Inner processor core with improved design */}
               <div 
-                className="w-8 h-8 rounded-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                className="w-8 h-8 rounded-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
                 style={{ 
-                  backgroundColor: `${playerColor}DD`,
+                  background: `linear-gradient(135deg, ${playerColor} 0%, ${playerColor}DD 100%)`,
+                  boxShadow: "inset 0 0 5px rgba(0,0,0,0.3)",
+                  borderWidth: "1px",
+                  borderColor: `${playerColor}90`,
+                  borderStyle: "solid"
                 }}
               />
               
-              {/* Processor pins */}
-              {/* Top pins */}
-              <div className="absolute left-[calc(50%-12px)] top-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute left-[calc(50%-4px)] top-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute left-[calc(50%+4px)] top-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-
-              {/* Bottom pins */}
-              <div className="absolute left-[calc(50%-12px)] bottom-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute left-[calc(50%-4px)] bottom-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute left-[calc(50%+4px)] bottom-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute left-[calc(50%+12px)] bottom-0 w-1.5 h-3" style={{ backgroundColor: playerColor }} />
-
-              {/* Left pins */}
-              <div className="absolute left-0 top-[calc(50%-8px)] h-1.5 w-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute left-0 top-[calc(50%+8px)] h-1.5 w-3" style={{ backgroundColor: playerColor }} />
-
-              {/* Right pins */}
-              <div className="absolute right-0 top-[calc(50%-8px)] h-1.5 w-3" style={{ backgroundColor: playerColor }} />
-              <div className="absolute right-0 top-[calc(50%+8px)] h-1.5 w-3" style={{ backgroundColor: playerColor }} />
+              {/* Enhanced processor pins */}
+              {/* Top pins with metal tips */}
+              <div className="absolute left-[calc(50%-12px)] top-0 w-1.5 h-3 flex flex-col">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute left-[calc(50%-4px)] top-0 w-1.5 h-3 flex flex-col">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute left-[calc(50%+4px)] top-0 w-1.5 h-3 flex flex-col">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
               
-              {/* Eyes */}
-              <div className="absolute left-[calc(50%-6px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full">
+              {/* Bottom pins with metal tips */}
+              <div className="absolute left-[calc(50%-12px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute left-[calc(50%-4px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute left-[calc(50%+4px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute left-[calc(50%+12px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
+                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
+              </div>
+              
+              {/* Left pins with metal tips */}
+              <div className="absolute left-0 top-[calc(50%-8px)] h-1.5 w-3 flex flex-row">
+                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute left-0 top-[calc(50%+8px)] h-1.5 w-3 flex flex-row">
+                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
+              </div>
+              
+              {/* Right pins with metal tips */}
+              <div className="absolute right-0 top-[calc(50%-8px)] h-1.5 w-3 flex flex-row-reverse">
+                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
+              </div>
+              <div className="absolute right-0 top-[calc(50%+8px)] h-1.5 w-3 flex flex-row-reverse">
+                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
+                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
+              </div>
+              
+              {/* Enhanced eyes with reflections */}
+              <div className="absolute left-[calc(50%-6px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200" />
                 <div 
                   className="absolute w-2 h-2 bg-black rounded-full"
                   style={{ 
@@ -118,13 +182,30 @@ const GameOverDialog = ({
                     top: `${0.5 + eyeOffset.y}px` 
                   }}
                 />
+                {/* Eye glint (light reflection) */}
+                <div 
+                  className="absolute w-1 h-1 bg-white rounded-full opacity-80"
+                  style={{ 
+                    left: `${0.2 + eyeOffset.x}px`, 
+                    top: `${0.2 + eyeOffset.y}px` 
+                  }}
+                />
               </div>
-              <div className="absolute left-[calc(50%+3px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full">
+              <div className="absolute left-[calc(50%+3px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200" />
                 <div 
                   className="absolute w-2 h-2 bg-black rounded-full"
                   style={{ 
                     left: `${0.5 + eyeOffset.x}px`, 
                     top: `${0.5 + eyeOffset.y}px` 
+                  }}
+                />
+                {/* Eye glint (light reflection) */}
+                <div 
+                  className="absolute w-1 h-1 bg-white rounded-full opacity-80"
+                  style={{ 
+                    left: `${0.2 + eyeOffset.x}px`, 
+                    top: `${0.2 + eyeOffset.y}px` 
                   }}
                 />
               </div>
