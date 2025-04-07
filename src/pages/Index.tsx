@@ -10,7 +10,7 @@ import GameOverDialog from "@/components/GameOverDialog";
 import { LogOut } from "lucide-react";
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
+const supabaseKey = "YOUR_SUPABASE_KEY";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface ServerPlayer {
@@ -58,7 +58,47 @@ const Index = () => {
   const [showGameOverDialog, setShowGameOverDialog] = useState(false);
   
   const isMobile = useIsMobile();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: isMobile ? 0.7 : 1 });
+
+  // --- Nouveauté pour la direction ---
+  // Ref pour stocker la dernière direction connue
+  const lastDirectionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   
+  // Dans handleMouseMove, mettre à jour lastDirectionRef
+  const handleMouseMove = (e: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    
+    // Calculer la position dans le monde
+    const player = gameState.players[playerId!];
+    if (!player) return;
+    const worldX = (canvasX / canvas.width) * canvas.width / camera.zoom + camera.x - canvas.width / (2 * camera.zoom);
+    const worldY = (canvasY / canvas.height) * canvas.height / camera.zoom + camera.y - canvas.height / (2 * camera.zoom);
+    const dx = worldX - player.x;
+    const dy = worldY - player.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length > 0) {
+      const normalized = { x: dx / length, y: dy / length };
+      lastDirectionRef.current = normalized;  // Mémoriser la dernière direction
+      // On envoie aussi via onMove pour le comportement immédiat
+      onMove(normalized);
+    }
+  };
+  
+  // Émettre l'événement changeDirection toutes les 50ms avec la dernière direction connue
+  useEffect(() => {
+    if (!socket) return;
+    const interval = setInterval(() => {
+      socket.emit("changeDirection", { direction: lastDirectionRef.current });
+    }, 50);
+    return () => clearInterval(interval);
+  }, [socket]);
+  // --- Fin nouveauté ---
+
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (socket) {
@@ -66,9 +106,7 @@ const Index = () => {
         socket.disconnect();
       }
     };
-    
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       if (socket) socket.disconnect();
@@ -142,7 +180,6 @@ const Index = () => {
       setConnected(false);
       setGameStarted(false);
       setRoomId(null);
-      
       if (reason === "io server disconnect") {
         toast.error("Déconnecté par le serveur");
       } else if (reason === "transport close") {
@@ -159,7 +196,6 @@ const Index = () => {
     newSocket.on("error", (error) => {
       console.error("Socket error:", error);
       toast.error("Erreur de socket: " + error);
-      
       if (!connected) {
         attemptReconnect();
       }
@@ -170,12 +206,10 @@ const Index = () => {
       setRoomId(data.roomId);
       setPlayerId(newSocket.id);
       setGameStarted(true);
-      
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       const worldSize = { width: 2000, height: 2000 };
       const randomItems = generateRandomItems(50, worldSize);
-      
       setGameState(prevState => ({
         ...prevState,
         players: {
@@ -191,7 +225,6 @@ const Index = () => {
         items: randomItems,
         worldSize
       }));
-      
       toast.success("Vous avez rejoint la partie");
     });
     
@@ -264,16 +297,9 @@ const Index = () => {
     setSocket(newSocket);
   };
   
-  const moveThrottleRef = useRef(false);
-  
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
-      if (moveThrottleRef.current) return;
-      moveThrottleRef.current = true;
       socket.emit("changeDirection", { direction });
-      setTimeout(() => {
-        moveThrottleRef.current = false;
-      }, 50);
     }
   };
   
@@ -331,8 +357,7 @@ const Index = () => {
   };
 
   const handleJoystickMove = (direction: { x: number; y: number }) => {
-    // No need to call window.handleJoystickDirection here anymore
-    // The MobileControls component will handle this directly
+    // Le composant MobileControls gère directement la direction pour la manette
   };
 
   return (
@@ -420,7 +445,6 @@ const Index = () => {
           )}
         </>
       )}
-
       <GameOverDialog 
         isOpen={showGameOverDialog}
         onClose={() => setShowGameOverDialog(false)}
