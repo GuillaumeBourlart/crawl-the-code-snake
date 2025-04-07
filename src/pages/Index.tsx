@@ -58,6 +58,10 @@ const Index = () => {
   const [showGameOverDialog, setShowGameOverDialog] = useState(false);
   
   const isMobile = useIsMobile();
+  const moveThrottleRef = useRef(false);
+  const lastDirectionRef = useRef({ x: 0, y: 0 });
+  const directionIntervalRef = useRef<number | null>(null);
+  const mouseActiveRef = useRef(false);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -73,8 +77,46 @@ const Index = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+      if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
     };
   }, [socket]);
+
+  useEffect(() => {
+    if (gameStarted && socket && playerId) {
+      directionIntervalRef.current = window.setInterval(() => {
+        if (!mouseActiveRef.current && (lastDirectionRef.current.x !== 0 || lastDirectionRef.current.y !== 0)) {
+          socket.emit("changeDirection", { direction: lastDirectionRef.current });
+        }
+      }, 50);
+
+      const handleMouseEnter = () => {
+        mouseActiveRef.current = true;
+      };
+
+      const handleMouseLeave = () => {
+        mouseActiveRef.current = false;
+      };
+
+      window.addEventListener('mouseenter', handleMouseEnter);
+      window.addEventListener('mouseleave', handleMouseLeave);
+
+      return () => {
+        if (directionIntervalRef.current) {
+          window.clearInterval(directionIntervalRef.current);
+          directionIntervalRef.current = null;
+        }
+        window.removeEventListener('mouseenter', handleMouseEnter);
+        window.removeEventListener('mouseleave', handleMouseLeave);
+      };
+    }
+    
+    return () => {
+      if (directionIntervalRef.current) {
+        window.clearInterval(directionIntervalRef.current);
+        directionIntervalRef.current = null;
+      }
+    };
+  }, [gameStarted, socket, playerId]);
   
   const attemptReconnect = useCallback(() => {
     if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
@@ -264,9 +306,10 @@ const Index = () => {
     setSocket(newSocket);
   };
   
-  const moveThrottleRef = useRef(false);
-  
   const handleMove = (direction: { x: number; y: number }) => {
+    lastDirectionRef.current = direction;
+    mouseActiveRef.current = true;
+    
     if (socket && gameStarted && playerId) {
       if (moveThrottleRef.current) return;
       moveThrottleRef.current = true;
@@ -331,8 +374,7 @@ const Index = () => {
   };
 
   const handleJoystickMove = (direction: { x: number; y: number }) => {
-    // No need to call window.handleJoystickDirection here anymore
-    // The MobileControls component will handle this directly
+    lastDirectionRef.current = direction;
   };
 
   return (
