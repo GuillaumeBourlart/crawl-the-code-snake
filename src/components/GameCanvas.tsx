@@ -158,7 +158,6 @@ const GameCanvas = ({
     }));
   }, [gameState, playerId]);
 
-  // Regular direction sending logic
   const sendCurrentDirection = () => {
     if (!playerId || !gameState.players[playerId] || !rendererStateRef.current.mouseIsOverCanvas) return;
     
@@ -196,13 +195,11 @@ const GameCanvas = ({
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
       
-      // Check if mouse is within canvas boundaries
       const isOverCanvas = canvasX >= 0 && canvasX <= rect.width && canvasY >= 0 && canvasY <= rect.height;
       rendererStateRef.current.mouseIsOverCanvas = isOverCanvas;
       
       rendererStateRef.current.mousePosition = { x: canvasX, y: canvasY };
       
-      // Initial direction calculation on mouse move
       const player = gameState.players[playerId];
       if (!player || !isOverCanvas) return;
       
@@ -223,16 +220,14 @@ const GameCanvas = ({
     const handleMouseEnter = () => {
       rendererStateRef.current.mouseIsOverCanvas = true;
       
-      // Start sending direction periodically when mouse enters canvas
       if (directionIntervalRef.current === null) {
-        directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100); // 0.1 seconds
+        directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100);
       }
     };
     
     const handleMouseLeave = () => {
       rendererStateRef.current.mouseIsOverCanvas = false;
       
-      // Clear the interval when mouse leaves canvas
       if (directionIntervalRef.current !== null) {
         window.clearInterval(directionIntervalRef.current);
         directionIntervalRef.current = null;
@@ -257,9 +252,8 @@ const GameCanvas = ({
       canvas.addEventListener('mouseleave', handleMouseLeave);
     }
     
-    // Start the interval initially if needed
     if (directionIntervalRef.current === null) {
-      directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100); // 0.1 seconds
+      directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100);
     }
     
     return () => {
@@ -272,7 +266,6 @@ const GameCanvas = ({
         canvas.removeEventListener('mouseleave', handleMouseLeave);
       }
       
-      // Clean up interval on unmount
       if (directionIntervalRef.current !== null) {
         window.clearInterval(directionIntervalRef.current);
         directionIntervalRef.current = null;
@@ -764,4 +757,64 @@ const GameCanvas = ({
         });
       }
       
-      Object.entries(
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        const isVisible = 
+          player.x >= viewportLeft && 
+          player.x <= viewportRight && 
+          player.y >= viewportTop && 
+          player.y <= viewportBottom;
+        
+        if (isVisible) {
+          drawPlayerProcessor(player, id === playerId);
+        }
+        
+        if (player.queue && player.queue.length > 0) {
+          const color = player.color || (id === playerId ? '#8B5CF6' : '#FFFFFF');
+          
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          
+          ctx.moveTo(player.x, player.y);
+          
+          player.queue.forEach(segment => {
+            ctx.lineTo(segment.x, segment.y);
+          });
+          
+          ctx.stroke();
+          
+          player.queue.forEach(segment => {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(segment.x, segment.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+      });
+      
+      ctx.restore();
+      
+      previousTimeRef.current = timestamp;
+      requestRef.current = requestAnimationFrame(renderFrame);
+    };
+    
+    requestRef.current = requestAnimationFrame(renderFrame);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [gameState, playerId, camera]);
+  
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full touch-none"
+      style={{ imageRendering: 'pixelated' }}
+    />
+  );
+};
+
+export default GameCanvas;
