@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -311,34 +310,41 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // New stylish background
+      // Pure black background
       const width = gridCanvas.width;
       const height = gridCanvas.height;
       
-      // Create a dark gradient background
-      const bgGradient = gridCtx.createRadialGradient(
-  width / 2, height / 2, 0,
-  width / 2, height / 2, Math.max(width, height)
-);
-bgGradient.addColorStop(0, '#240046');  // Nouveau : violet profond au centre
-bgGradient.addColorStop(0.5, '#3c096c');  // Nouveau : violet moyen en transition
-bgGradient.addColorStop(1, '#03001e');    // Nouveau : bords très sombres
-
-      
-      gridCtx.fillStyle = bgGradient;
+      // Fill with solid black
+      gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
-      // Add a subtle vignette effect
-      const vignetteGradient = gridCtx.createRadialGradient(
-  width / 2, height / 2, height * 0.5,
-  width / 2, height / 2, Math.max(width, height) * 0.9
-);
-vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
-vignetteGradient.addColorStop(0.8, 'rgba(0,0,0,0.3)');
-vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.8)');
-
+      // Add twinkling stars
+      const numberOfStars = 300;
+      for (let i = 0; i < numberOfStars; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const size = Math.random() * 1.5;
+        const brightness = Math.random() * 0.7 + 0.3;
+        
+        // Create twinkling effect by varying opacity based on time
+        const timeOffset = Math.random() * 2 * Math.PI;
+        const twinkleOpacity = 0.3 + 0.7 * Math.sin(Date.now() * 0.001 + timeOffset);
+        
+        gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
+        gridCtx.beginPath();
+        gridCtx.arc(x, y, size, 0, Math.PI * 2);
+        gridCtx.fill();
+      }
       
-      gridCtx.fillStyle = vignetteGradient;
+      // Create a subtle glow in the center
+      const centerGlow = gridCtx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, height * 0.4
+      );
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.2)');
+      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      gridCtx.fillStyle = centerGlow;
       gridCtx.fillRect(0, 0, width, height);
       
       gridCtx.save();
@@ -347,52 +353,29 @@ vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.8)');
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      const gridSize = 50;
-      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      // Draw neon world border
+      const borderWidth = 4;
+      const borderGlow = 15;
       
-      // Draw stylish grid
-      gridCtx.strokeStyle = 'rgba(0, 255, 240, 0.15)';
-
-      gridCtx.lineWidth = 1;
-      gridCtx.shadowColor = 'rgba(0, 255, 240, 0.2)';
-gridCtx.shadowBlur = 0;
-
+      // Draw outer glow
+      gridCtx.shadowColor = 'rgba(0, 255, 255, 0.8)';
+      gridCtx.shadowBlur = borderGlow;
+      gridCtx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+      gridCtx.lineWidth = borderWidth + borderGlow;
+      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Horizontal grid lines
-      gridCtx.beginPath();
-      for (let y = startY; y <= endY; y += gridSize) {
-        gridCtx.moveTo(startX, y);
-        gridCtx.lineTo(endX, y);
-      }
-      gridCtx.stroke();
+      // Draw inner neon line
+      gridCtx.shadowBlur = 0;
+      gridCtx.strokeStyle = '#00ffff';
+      gridCtx.lineWidth = borderWidth;
+      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Vertical grid lines
-      gridCtx.beginPath();
-      for (let x = startX; x <= endX; x += gridSize) {
-        gridCtx.moveTo(x, startY);
-        gridCtx.lineTo(x, endY);
-      }
-      gridCtx.stroke();
+      // Add additional neon glow pulse effect
+      const time = Date.now() * 0.001;
+      const pulseIntensity = 0.5 + 0.5 * Math.sin(time);
       
-      // Add subtle grid points at intersections
-      gridCtx.fillStyle = 'rgba(150, 200, 255, 0.15)';
-
-      for (let x = startX; x <= endX; x += gridSize) {
-        for (let y = startY; y <= endY; y += gridSize) {
-          // Random size for some variety
-          const pointSize = Math.random() < 0.1 ? 3 : 1;
-          gridCtx.beginPath();
-          gridCtx.arc(x, y, pointSize, 0, Math.PI * 2);
-          gridCtx.fill();
-        }
-      }
-      
-      // World border
-      gridCtx.strokeStyle = 'rgba(220, 60, 80, 0.5)';
-      gridCtx.lineWidth = 2;
+      gridCtx.strokeStyle = `rgba(0, 255, 255, ${0.3 * pulseIntensity})`;
+      gridCtx.lineWidth = borderWidth + 10;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
       gridCtx.restore();
@@ -696,31 +679,46 @@ gridCtx.shadowBlur = 0;
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      // Apply the stylish background
+      // Pure black background
       const width = canvas.width;
       const height = canvas.height;
       
-      // Create a dark gradient background
-      const bgGradient = ctx.createRadialGradient(
-        width/2, height/2, 0,
-        width/2, height/2, Math.max(width, height)
-      );
-      bgGradient.addColorStop(0, '#1e1b4b');  // Dark indigo at center
-      bgGradient.addColorStop(0.7, '#0f172a'); // Dark blue
-      bgGradient.addColorStop(1, '#020617');   // Almost black at edges
-      
-      ctx.fillStyle = bgGradient;
+      // Fill with solid black
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      // Add a subtle vignette effect
-      const vignetteGradient = ctx.createRadialGradient(
-        width/2, height/2, height * 0.5,
-        width/2, height/2, Math.max(width, height) * 0.9
-      );
-      vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
-      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+      // Add twinkling stars that change over time
+      const numberOfStars = 200;
+      const time = Date.now() * 0.001;
       
-      ctx.fillStyle = vignetteGradient;
+      for (let i = 0; i < numberOfStars; i++) {
+        const seed = i * 5237; // Use a constant seed for each star's position
+        const x = ((Math.sin(seed) + 1) / 2) * width;
+        const y = ((Math.cos(seed * 1.5) + 1) / 2) * height;
+        
+        // Create twinkling effect
+        const twinkleSpeed = 0.5 + (seed % 2) * 0.5;
+        const twinklePhase = time * twinkleSpeed + seed;
+        const twinkleAmount = 0.3 + 0.7 * Math.sin(twinklePhase);
+        
+        const size = (0.5 + Math.sin(seed * 3) * 0.5) * 1.5;
+        const opacity = twinkleAmount * 0.7;
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Create a subtle glow in the center
+      const centerGlow = ctx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, height * 0.4
+      );
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
+      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.fillStyle = centerGlow;
       ctx.fillRect(0, 0, width, height);
       
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
