@@ -124,9 +124,11 @@ const GameCanvas = ({
     items: [] as GameItem[],
     gridNeedsUpdate: true,
     mousePosition: { x: 0, y: 0 },
-    joystickDirection: { x: 0, y: 0 }
+    joystickDirection: { x: 0, y: 0 },
+    mouseIsOverCanvas: false
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const directionIntervalRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -155,6 +157,33 @@ const GameCanvas = ({
       y: player.y
     }));
   }, [gameState, playerId]);
+
+  // Regular direction sending logic
+  const sendCurrentDirection = () => {
+    if (!playerId || !gameState.players[playerId] || !rendererStateRef.current.mouseIsOverCanvas) return;
+    
+    const mousePos = rendererStateRef.current.mousePosition;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const player = gameState.players[playerId];
+    
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    
+    const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
+    const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
+    
+    const dx = worldMouseX - player.x;
+    const dy = worldMouseY - player.y;
+    
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length > 0) {
+      const normalizedDx = dx / length;
+      const normalizedDy = dy / length;
+      onMove({ x: normalizedDx, y: normalizedDy });
+    }
+  };
   
   useEffect(() => {
     if (!playerId) return;
@@ -167,10 +196,15 @@ const GameCanvas = ({
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
       
+      // Check if mouse is within canvas boundaries
+      const isOverCanvas = canvasX >= 0 && canvasX <= rect.width && canvasY >= 0 && canvasY <= rect.height;
+      rendererStateRef.current.mouseIsOverCanvas = isOverCanvas;
+      
       rendererStateRef.current.mousePosition = { x: canvasX, y: canvasY };
       
+      // Initial direction calculation on mouse move
       const player = gameState.players[playerId];
-      if (!player) return;
+      if (!player || !isOverCanvas) return;
       
       const worldX = (canvasX / canvas.width) * canvas.width / camera.zoom + camera.x - canvas.width / camera.zoom / 2;
       const worldY = (canvasY / canvas.height) * canvas.height / camera.zoom + camera.y - canvas.height / camera.zoom / 2;
@@ -186,6 +220,25 @@ const GameCanvas = ({
       }
     };
     
+    const handleMouseEnter = () => {
+      rendererStateRef.current.mouseIsOverCanvas = true;
+      
+      // Start sending direction periodically when mouse enters canvas
+      if (directionIntervalRef.current === null) {
+        directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100); // 0.1 seconds
+      }
+    };
+    
+    const handleMouseLeave = () => {
+      rendererStateRef.current.mouseIsOverCanvas = false;
+      
+      // Clear the interval when mouse leaves canvas
+      if (directionIntervalRef.current !== null) {
+        window.clearInterval(directionIntervalRef.current);
+        directionIntervalRef.current = null;
+      }
+    };
+    
     const handleMouseDown = () => {
       onBoostStart();
     };
@@ -198,10 +251,32 @@ const GameCanvas = ({
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('mouseenter', handleMouseEnter);
+      canvas.addEventListener('mouseleave', handleMouseLeave);
+    }
+    
+    // Start the interval initially if needed
+    if (directionIntervalRef.current === null) {
+      directionIntervalRef.current = window.setInterval(sendCurrentDirection, 100); // 0.1 seconds
+    }
+    
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      
+      if (canvas) {
+        canvas.removeEventListener('mouseenter', handleMouseEnter);
+        canvas.removeEventListener('mouseleave', handleMouseLeave);
+      }
+      
+      // Clean up interval on unmount
+      if (directionIntervalRef.current !== null) {
+        window.clearInterval(directionIntervalRef.current);
+        directionIntervalRef.current = null;
+      }
     };
   }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera]);
   
@@ -689,114 +764,4 @@ const GameCanvas = ({
         });
       }
       
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        if (
-          player.x < viewportLeft ||
-          player.x > viewportRight ||
-          player.y < viewportTop ||
-          player.y > viewportBottom
-        ) {
-          return;
-        }
-        
-        const isCurrentPlayer = id === playerId;
-        const currentPlayerSize = calculatePlayerSize(player);
-        const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
-        
-        if (player.queue && player.queue.length > 0) {
-          const visibleQueue = player.queue.filter(segment => 
-            segment.x >= viewportLeft && 
-            segment.x <= viewportRight && 
-            segment.y >= viewportTop && 
-            segment.y <= viewportBottom
-          );
-          
-          if (visibleQueue.length > 0) {
-            [...visibleQueue].reverse().forEach(segment => {
-              const segmentGradient = ctx.createRadialGradient(
-                segment.x, segment.y, 0,
-                segment.x, segment.y, currentPlayerSize / 2
-              );
-              segmentGradient.addColorStop(0, shadeColor(baseColor, 10));
-              segmentGradient.addColorStop(1, baseColor);
-              
-              ctx.fillStyle = segmentGradient;
-              
-              ctx.beginPath();
-              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
-              ctx.fill();
-              
-              ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
-              ctx.shadowBlur = 2;
-              ctx.shadowOffsetX = 1;
-              ctx.shadowOffsetY = 1;
-              
-              ctx.strokeStyle = darkenColor(baseColor, 30);
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
-              ctx.stroke();
-              
-              ctx.shadowColor = 'transparent';
-              ctx.shadowBlur = 0;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 0;
-              
-              if (player.boosting) {
-                const glowGradient = ctx.createRadialGradient(
-                  segment.x, segment.y, currentPlayerSize * 0.3,
-                  segment.x, segment.y, currentPlayerSize * 0.6
-                );
-                
-                glowGradient.addColorStop(0, `${baseColor}20`);
-                glowGradient.addColorStop(1, `${baseColor}00`);
-                
-                ctx.fillStyle = glowGradient;
-                ctx.beginPath();
-                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.7, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            });
-          }
-        }
-        
-        drawPlayerProcessor(player, isCurrentPlayer);
-        
-        if (isCurrentPlayer) {
-          ctx.fillStyle = '#FFFF00';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
-        } else {
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
-        }
-      });
-      
-      ctx.restore();
-      
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [camera, gameState, playerId, isMobile]);
-  
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0"
-      style={{ touchAction: 'none' }}
-    />
-  );
-};
-
-export default GameCanvas;
+      Object.entries(
