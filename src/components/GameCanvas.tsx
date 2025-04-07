@@ -129,6 +129,7 @@ const GameCanvas = ({
     boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const resizeListenerRef = useRef<(() => void) | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -302,7 +303,14 @@ const GameCanvas = ({
     };
     
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    
+    // Store the resize function in the ref so we can remove it in the cleanup
+    if (resizeListenerRef.current) {
+      window.removeEventListener('resize', resizeListenerRef.current);
+    }
+    
+    resizeListenerRef.current = resizeCanvas;
+    window.addEventListener('resize', resizeListenerRef.current);
     
     const updateGridCache = () => {
       const gridCanvas = gridCacheCanvasRef.current;
@@ -311,7 +319,11 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      gridCtx.fillStyle = '#121212';
+      // Create a background gradient
+      const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
+      bgGradient.addColorStop(0, '#0c0c1d');
+      bgGradient.addColorStop(1, '#1a1a30');
+      gridCtx.fillStyle = bgGradient;
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
       
       gridCtx.save();
@@ -320,31 +332,56 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      const gridSize = 50;
-      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      // Draw subtle stars instead of grid lines
+      const starCount = 500;
+      gridCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       
-      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
-      gridCtx.lineWidth = 1;
-      
-      gridCtx.beginPath();
-      for (let y = startY; y <= endY; y += gridSize) {
-        gridCtx.moveTo(startX, y);
-        gridCtx.lineTo(endX, y);
+      for (let i = 0; i < starCount; i++) {
+        const x = Math.random() * gameState.worldSize.width;
+        const y = Math.random() * gameState.worldSize.height;
+        const size = Math.random() * 1.5;
+        const opacity = Math.random() * 0.7 + 0.3;
+        
+        gridCtx.globalAlpha = opacity;
+        gridCtx.beginPath();
+        gridCtx.arc(x, y, size, 0, Math.PI * 2);
+        gridCtx.fill();
       }
-      gridCtx.stroke();
       
-      gridCtx.beginPath();
-      for (let x = startX; x <= endX; x += gridSize) {
-        gridCtx.moveTo(x, startY);
-        gridCtx.lineTo(x, endY);
+      // Create a subtle nebula effect
+      for (let i = 0; i < 5; i++) {
+        const x = Math.random() * gameState.worldSize.width;
+        const y = Math.random() * gameState.worldSize.height;
+        const radius = Math.random() * 200 + 100;
+        
+        const nebulaGradient = gridCtx.createRadialGradient(x, y, 0, x, y, radius);
+        
+        // Random nebula colors
+        const hue = Math.floor(Math.random() * 360);
+        nebulaGradient.addColorStop(0, `hsla(${hue}, 80%, 50%, 0.1)`);
+        nebulaGradient.addColorStop(0.5, `hsla(${hue}, 70%, 40%, 0.05)`);
+        nebulaGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        gridCtx.fillStyle = nebulaGradient;
+        gridCtx.beginPath();
+        gridCtx.arc(x, y, radius, 0, Math.PI * 2);
+        gridCtx.fill();
       }
-      gridCtx.stroke();
       
-      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+      // Draw game boundary
+      gridCtx.strokeStyle = 'rgba(120, 120, 255, 0.5)';
       gridCtx.lineWidth = 2;
+      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      
+      // Add a subtle glow to the border
+      const borderGlow = gridCtx.createLinearGradient(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      borderGlow.addColorStop(0, 'rgba(100, 100, 255, 0.2)');
+      borderGlow.addColorStop(0.5, 'rgba(150, 150, 255, 0.3)');
+      borderGlow.addColorStop(1, 'rgba(100, 100, 255, 0.2)');
+      
+      gridCtx.strokeStyle = borderGlow;
+      gridCtx.lineWidth = 5;
+      gridCtx.globalAlpha = 0.3;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
       gridCtx.restore();
@@ -648,7 +685,7 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      ctx.fillStyle = '#121212';
+      ctx.fillStyle = '#0c0c1d';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
@@ -872,7 +909,10 @@ const GameCanvas = ({
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
-      window.removeEventListener('resize', resizeCanvas);
+      
+      if (resizeListenerRef.current) {
+        window.removeEventListener('resize', resizeListenerRef.current);
+      }
     };
   }, [camera, gameState, playerId, isMobile]);
   
