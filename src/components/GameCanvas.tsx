@@ -317,23 +317,26 @@ const GameCanvas = ({
       
       // Create a dark gradient background
       const bgGradient = gridCtx.createRadialGradient(
-        width/2, height/2, 0,
-        width/2, height/2, Math.max(width, height)
-      );
-      bgGradient.addColorStop(0, '#1e1b4b');  // Dark indigo at center
-      bgGradient.addColorStop(0.7, '#0f172a'); // Dark blue
-      bgGradient.addColorStop(1, '#020617');   // Almost black at edges
+  width / 2, height / 2, 0,
+  width / 2, height / 2, Math.max(width, height)
+);
+bgGradient.addColorStop(0, '#240046');  // Nouveau : violet profond au centre
+bgGradient.addColorStop(0.5, '#3c096c');  // Nouveau : violet moyen en transition
+bgGradient.addColorStop(1, '#03001e');    // Nouveau : bords très sombres
+
       
       gridCtx.fillStyle = bgGradient;
       gridCtx.fillRect(0, 0, width, height);
       
       // Add a subtle vignette effect
       const vignetteGradient = gridCtx.createRadialGradient(
-        width/2, height/2, height * 0.5,
-        width/2, height/2, Math.max(width, height) * 0.9
-      );
-      vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
-      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+  width / 2, height / 2, height * 0.5,
+  width / 2, height / 2, Math.max(width, height) * 0.9
+);
+vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
+vignetteGradient.addColorStop(0.8, 'rgba(0,0,0,0.3)');
+vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.8)');
+
       
       gridCtx.fillStyle = vignetteGradient;
       gridCtx.fillRect(0, 0, width, height);
@@ -351,8 +354,12 @@ const GameCanvas = ({
       const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       
       // Draw stylish grid
-      gridCtx.strokeStyle = 'rgba(60, 80, 140, 0.2)';
+      gridCtx.strokeStyle = 'rgba(0, 255, 240, 0.15)';
+
       gridCtx.lineWidth = 1;
+      gridCtx.shadowColor = 'rgba(0, 255, 240, 0.2)';
+gridCtx.shadowBlur = 0;
+
       
       // Horizontal grid lines
       gridCtx.beginPath();
@@ -371,7 +378,8 @@ const GameCanvas = ({
       gridCtx.stroke();
       
       // Add subtle grid points at intersections
-      gridCtx.fillStyle = 'rgba(100, 150, 255, 0.1)';
+      gridCtx.fillStyle = 'rgba(150, 200, 255, 0.15)';
+
       for (let x = startX; x <= endX; x += gridSize) {
         for (let y = startY; y <= endY; y += gridSize) {
           // Random size for some variety
