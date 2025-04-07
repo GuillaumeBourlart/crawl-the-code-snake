@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -319,10 +318,17 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // Create a background gradient
+      // Create a hexagon pattern background
+      const hexSize = 40; // Size of hexagons
+      const hexHeight = hexSize * Math.sqrt(3);
+      const hexWidth = hexSize * 2;
+      const rows = Math.ceil(gridCanvas.height / hexHeight) + 2;
+      const cols = Math.ceil(gridCanvas.width / (hexWidth * 0.75)) + 2;
+      
+      // Create a subtle gradient background
       const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
-      bgGradient.addColorStop(0, '#0c0c1d');
-      bgGradient.addColorStop(1, '#1a1a30');
+      bgGradient.addColorStop(0, '#202040');
+      bgGradient.addColorStop(1, '#192035');
       gridCtx.fillStyle = bgGradient;
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
       
@@ -332,56 +338,123 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      // Draw subtle stars instead of grid lines
-      const starCount = 500;
-      gridCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      // Draw hexagon pattern in the background
+      gridCtx.strokeStyle = 'rgba(100, 100, 255, 0.15)';
+      gridCtx.lineWidth = 1;
       
-      for (let i = 0; i < starCount; i++) {
+      const startX = -gameState.worldSize.width / 2;
+      const startY = -gameState.worldSize.height / 2;
+      
+      for (let row = -rows; row < rows * 2; row++) {
+        for (let col = -cols; col < cols * 2; col++) {
+          const x = startX + col * hexWidth * 0.75;
+          const y = startY + row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+          
+          gridCtx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = Math.PI / 3 * i;
+            const hx = x + hexSize * Math.cos(angle);
+            const hy = y + hexSize * Math.sin(angle);
+            if (i === 0) {
+              gridCtx.moveTo(hx, hy);
+            } else {
+              gridCtx.lineTo(hx, hy);
+            }
+          }
+          gridCtx.closePath();
+          
+          // Add variety to hexagons
+          if (Math.random() < 0.05) {
+            gridCtx.fillStyle = 'rgba(100, 150, 255, 0.1)';
+            gridCtx.fill();
+          }
+          
+          gridCtx.stroke();
+        }
+      }
+      
+      // Add some random glowing particles
+      const particles = 300;
+      for (let i = 0; i < particles; i++) {
         const x = Math.random() * gameState.worldSize.width;
         const y = Math.random() * gameState.worldSize.height;
-        const size = Math.random() * 1.5;
-        const opacity = Math.random() * 0.7 + 0.3;
+        const size = Math.random() * 2 + 0.5;
+        const opacity = Math.random() * 0.6 + 0.2;
         
         gridCtx.globalAlpha = opacity;
+        gridCtx.fillStyle = 'rgba(180, 210, 255, 1)';
         gridCtx.beginPath();
         gridCtx.arc(x, y, size, 0, Math.PI * 2);
         gridCtx.fill();
       }
       
-      // Create a subtle nebula effect
-      for (let i = 0; i < 5; i++) {
+      // Add subtle glow spots
+      for (let i = 0; i < 8; i++) {
         const x = Math.random() * gameState.worldSize.width;
         const y = Math.random() * gameState.worldSize.height;
-        const radius = Math.random() * 200 + 100;
+        const radius = Math.random() * 150 + 100;
         
-        const nebulaGradient = gridCtx.createRadialGradient(x, y, 0, x, y, radius);
+        const glowGradient = gridCtx.createRadialGradient(x, y, 0, x, y, radius);
+        glowGradient.addColorStop(0, 'rgba(100, 150, 255, 0.1)');
+        glowGradient.addColorStop(0.7, 'rgba(70, 100, 200, 0.03)');
+        glowGradient.addColorStop(1, 'rgba(50, 50, 150, 0)');
         
-        // Random nebula colors
-        const hue = Math.floor(Math.random() * 360);
-        nebulaGradient.addColorStop(0, `hsla(${hue}, 80%, 50%, 0.1)`);
-        nebulaGradient.addColorStop(0.5, `hsla(${hue}, 70%, 40%, 0.05)`);
-        nebulaGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        gridCtx.fillStyle = nebulaGradient;
+        gridCtx.fillStyle = glowGradient;
         gridCtx.beginPath();
         gridCtx.arc(x, y, radius, 0, Math.PI * 2);
         gridCtx.fill();
       }
       
-      // Draw game boundary
-      gridCtx.strokeStyle = 'rgba(120, 120, 255, 0.5)';
-      gridCtx.lineWidth = 2;
+      // Draw game boundary with a tech-inspired border
+      gridCtx.strokeStyle = 'rgba(80, 140, 240, 0.6)';
+      gridCtx.lineWidth = 3;
+      gridCtx.setLineDash([15, 5]);
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      
+      // Add corner decorations
+      const cornerSize = 50;
+      gridCtx.strokeStyle = 'rgba(100, 180, 255, 0.7)';
+      gridCtx.lineWidth = 2;
+      gridCtx.setLineDash([]);
+      
+      // Top-left corner
+      gridCtx.beginPath();
+      gridCtx.moveTo(0, cornerSize);
+      gridCtx.lineTo(0, 0);
+      gridCtx.lineTo(cornerSize, 0);
+      gridCtx.stroke();
+      
+      // Top-right corner
+      gridCtx.beginPath();
+      gridCtx.moveTo(gameState.worldSize.width - cornerSize, 0);
+      gridCtx.lineTo(gameState.worldSize.width, 0);
+      gridCtx.lineTo(gameState.worldSize.width, cornerSize);
+      gridCtx.stroke();
+      
+      // Bottom-left corner
+      gridCtx.beginPath();
+      gridCtx.moveTo(0, gameState.worldSize.height - cornerSize);
+      gridCtx.lineTo(0, gameState.worldSize.height);
+      gridCtx.lineTo(cornerSize, gameState.worldSize.height);
+      gridCtx.stroke();
+      
+      // Bottom-right corner
+      gridCtx.beginPath();
+      gridCtx.moveTo(gameState.worldSize.width - cornerSize, gameState.worldSize.height);
+      gridCtx.lineTo(gameState.worldSize.width, gameState.worldSize.height);
+      gridCtx.lineTo(gameState.worldSize.width, gameState.worldSize.height - cornerSize);
+      gridCtx.stroke();
       
       // Add a subtle glow to the border
       const borderGlow = gridCtx.createLinearGradient(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      borderGlow.addColorStop(0, 'rgba(100, 100, 255, 0.2)');
-      borderGlow.addColorStop(0.5, 'rgba(150, 150, 255, 0.3)');
-      borderGlow.addColorStop(1, 'rgba(100, 100, 255, 0.2)');
+      borderGlow.addColorStop(0, 'rgba(70, 130, 240, 0.3)');
+      borderGlow.addColorStop(0.5, 'rgba(100, 150, 255, 0.4)');
+      borderGlow.addColorStop(1, 'rgba(70, 130, 240, 0.3)');
       
       gridCtx.strokeStyle = borderGlow;
-      gridCtx.lineWidth = 5;
+      gridCtx.lineWidth = 6;
       gridCtx.globalAlpha = 0.3;
+      gridCtx.setLineDash([20, 10]);
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
       gridCtx.restore();
