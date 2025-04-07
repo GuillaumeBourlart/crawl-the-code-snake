@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -102,34 +103,6 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
   _joystickDirection = direction;
 };
 
-function roundedRect(
-  ctx: CanvasRenderingContext2D, 
-  x: number, 
-  y: number, 
-  width: number, 
-  height: number, 
-  radius: number,
-  stroke = false
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  
-  if (stroke) {
-    ctx.stroke();
-  } else {
-    ctx.fill();
-  }
-}
-
 const GameCanvas = ({ 
   gameState, 
   playerId, 
@@ -156,7 +129,6 @@ const GameCanvas = ({
     boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const resizeListenerRef = useRef<(() => void) | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -330,13 +302,7 @@ const GameCanvas = ({
     };
     
     resizeCanvas();
-    
-    if (resizeListenerRef.current) {
-      window.removeEventListener('resize', resizeListenerRef.current);
-    }
-    
-    resizeListenerRef.current = resizeCanvas;
-    window.addEventListener('resize', resizeListenerRef.current);
+    window.addEventListener('resize', resizeCanvas);
     
     const updateGridCache = () => {
       const gridCanvas = gridCacheCanvasRef.current;
@@ -345,10 +311,7 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      const bgGradient = gridCtx.createLinearGradient(0, 0, gridCanvas.width, gridCanvas.height);
-      bgGradient.addColorStop(0, '#13162c');
-      bgGradient.addColorStop(1, '#101425');
-      gridCtx.fillStyle = bgGradient;
+      gridCtx.fillStyle = '#121212';
       gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
       
       gridCtx.save();
@@ -357,126 +320,31 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      const hexSize = 40;
-      const hexHeight = hexSize * Math.sqrt(3);
-      const hexWidth = hexSize * 2;
+      const gridSize = 50;
+      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
+      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
+      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
+      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
       
-      const visibleWidth = gridCanvas.width / camera.zoom;
-      const visibleHeight = gridCanvas.height / camera.zoom;
+      gridCtx.strokeStyle = 'rgba(50, 50, 50, 0.5)';
+      gridCtx.lineWidth = 1;
       
-      const marginFactor = 2;
-      const rowsNeeded = Math.ceil(visibleHeight * marginFactor / hexHeight);
-      const colsNeeded = Math.ceil(visibleWidth * marginFactor / (hexWidth * 0.75));
-      
-      const startX = camera.x - visibleWidth * marginFactor / 2;
-      const startY = camera.y - visibleHeight * marginFactor / 2;
-      const endX = camera.x + visibleWidth * marginFactor / 2;
-      const endY = camera.y + visibleHeight * marginFactor / 2;
-      
-      for (let y = startY; y < endY; y += hexHeight) {
-        let rowOffset = 0;
-        for (let x = startX; x < endX; x += hexWidth * 0.75) {
-          const offsetY = rowOffset % 2 === 0 ? 0 : hexHeight / 2;
-          
-          gridCtx.beginPath();
-          for (let i = 0; i < 6; i++) {
-            const angle = Math.PI / 3 * i;
-            const hx = x + hexSize * Math.cos(angle);
-            const hy = y + offsetY + hexSize * Math.sin(angle);
-            if (i === 0) {
-              gridCtx.moveTo(hx, hy);
-            } else {
-              gridCtx.lineTo(hx, hy);
-            }
-          }
-          gridCtx.closePath();
-          
-          if (Math.random() < 0.02) {
-            gridCtx.fillStyle = 'rgba(100, 150, 255, 0.05)';
-            gridCtx.fill();
-          }
-          
-          gridCtx.stroke();
-          rowOffset++;
-        }
+      gridCtx.beginPath();
+      for (let y = startY; y <= endY; y += gridSize) {
+        gridCtx.moveTo(startX, y);
+        gridCtx.lineTo(endX, y);
       }
+      gridCtx.stroke();
       
-      const particles = 100;
-      gridCtx.globalAlpha = 0.3;
-      
-      for (let i = 0; i < particles; i++) {
-        const seed = i * 1000;
-        const x = (Math.sin(seed) * 0.5 + 0.5) * gameState.worldSize.width;
-        const y = (Math.cos(seed) * 0.5 + 0.5) * gameState.worldSize.height;
-        const size = 1 + (i % 4);
-        
-        gridCtx.fillStyle = 'rgba(180, 210, 255, 0.4)';
-        gridCtx.beginPath();
-        gridCtx.arc(x, y, size, 0, Math.PI * 2);
-        gridCtx.fill();
+      gridCtx.beginPath();
+      for (let x = startX; x <= endX; x += gridSize) {
+        gridCtx.moveTo(x, startY);
+        gridCtx.lineTo(x, endY);
       }
+      gridCtx.stroke();
       
-      const glowParticles = 5;
-      for (let i = 0; i < glowParticles; i++) {
-        const seed = i * 2000;
-        const x = (Math.sin(seed) * 0.5 + 0.5) * gameState.worldSize.width;
-        const y = (Math.cos(seed) * 0.5 + 0.5) * gameState.worldSize.height;
-        const radius = 120 + (i * 20);
-        
-        const glowGradient = gridCtx.createRadialGradient(x, y, 0, x, y, radius);
-        glowGradient.addColorStop(0, 'rgba(100, 150, 255, 0.05)');
-        glowGradient.addColorStop(0.7, 'rgba(70, 100, 200, 0.02)');
-        glowGradient.addColorStop(1, 'rgba(50, 50, 150, 0)');
-        
-        gridCtx.fillStyle = glowGradient;
-        gridCtx.beginPath();
-        gridCtx.arc(x, y, radius, 0, Math.PI * 2);
-        gridCtx.fill();
-      }
-      
-      gridCtx.strokeStyle = 'rgba(80, 140, 240, 0.4)';
+      gridCtx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       gridCtx.lineWidth = 2;
-      gridCtx.setLineDash([15, 5]);
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      const cornerSize = 50;
-      gridCtx.strokeStyle = 'rgba(100, 180, 255, 0.4)';
-      gridCtx.lineWidth = 1.5;
-      gridCtx.setLineDash([]);
-      
-      gridCtx.beginPath();
-      gridCtx.moveTo(0, cornerSize);
-      gridCtx.lineTo(0, 0);
-      gridCtx.lineTo(cornerSize, 0);
-      gridCtx.stroke();
-      
-      gridCtx.beginPath();
-      gridCtx.moveTo(gameState.worldSize.width - cornerSize, 0);
-      gridCtx.lineTo(gameState.worldSize.width, 0);
-      gridCtx.lineTo(gameState.worldSize.width, cornerSize);
-      gridCtx.stroke();
-      
-      gridCtx.beginPath();
-      gridCtx.moveTo(0, gameState.worldSize.height - cornerSize);
-      gridCtx.lineTo(0, gameState.worldSize.height);
-      gridCtx.lineTo(cornerSize, gameState.worldSize.height);
-      gridCtx.stroke();
-      
-      gridCtx.beginPath();
-      gridCtx.moveTo(gameState.worldSize.width - cornerSize, gameState.worldSize.height);
-      gridCtx.lineTo(gameState.worldSize.width, gameState.worldSize.height);
-      gridCtx.lineTo(gameState.worldSize.width, gameState.worldSize.height - cornerSize);
-      gridCtx.stroke();
-      
-      const borderGlow = gridCtx.createLinearGradient(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      borderGlow.addColorStop(0, 'rgba(70, 130, 240, 0.2)');
-      borderGlow.addColorStop(0.5, 'rgba(100, 150, 255, 0.25)');
-      borderGlow.addColorStop(1, 'rgba(70, 130, 240, 0.2)');
-      
-      gridCtx.strokeStyle = borderGlow;
-      gridCtx.lineWidth = 4;
-      gridCtx.globalAlpha = 0.2;
-      gridCtx.setLineDash([20, 10]);
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
       gridCtx.restore();
@@ -734,200 +602,62 @@ const GameCanvas = ({
       ctx.fill();
       
       if (player.boosting) {
-        const thrusterLength = playerSize * 0.6;
-        const thrusterWidth = playerSize * 0.4;
+        const glowColor = playerColor;
         
-        const direction = player.direction || { x: 0, y: 0 };
-        const thrusterX = player.x - direction.x * (chipSize / 2 + thrusterLength / 2);
-        const thrusterY = player.y - direction.y * (chipSize / 2 + thrusterLength / 2);
-        
-        const flameGradient = ctx.createRadialGradient(
-          thrusterX, thrusterY, 0,
-          thrusterX, thrusterY, thrusterLength
+        const glowRadius = playerSize * 0.9;
+        const boostGradient = ctx.createRadialGradient(
+          player.x, player.y, playerSize * 0.5,
+          player.x, player.y, glowRadius
         );
-        flameGradient.addColorStop(0, 'rgba(255, 200, 50, 0.9)');
-        flameGradient.addColorStop(0.4, 'rgba(255, 100, 50, 0.7)');
-        flameGradient.addColorStop(1, 'rgba(255, 50, 50, 0)');
         
-        ctx.fillStyle = flameGradient;
+        boostGradient.addColorStop(0, `${glowColor}40`);
+        boostGradient.addColorStop(0.5, `${glowColor}20`);
+        boostGradient.addColorStop(1, `${glowColor}00`);
+        
+        ctx.fillStyle = boostGradient;
         ctx.beginPath();
-        ctx.ellipse(
-          thrusterX, 
-          thrusterY, 
-          thrusterWidth / 2, 
-          thrusterLength / 2, 
-          Math.atan2(direction.y, direction.x) + Math.PI / 2, 
-          0, 
-          Math.PI * 2
-        );
-        ctx.fill();
-        
-        for (let i = 0; i < 2; i++) {
-          const particleSize = 2 + Math.random() * 3;
-          const particleSpeed = 2 + Math.random() * 3;
-          const particleAngle = Math.atan2(direction.y, direction.x) + (Math.random() - 0.5) * 0.8;
-          
-          rendererStateRef.current.boostParticles.push({
-            x: thrusterX + Math.cos(particleAngle) * thrusterLength * 0.3,
-            y: thrusterY + Math.sin(particleAngle) * thrusterLength * 0.3,
-            vx: -Math.cos(particleAngle) * particleSpeed,
-            vy: -Math.sin(particleAngle) * particleSpeed,
-            size: particleSize,
-            alpha: 0.7 + Math.random() * 0.3,
-            color: Math.random() > 0.3 ? '#FF5500' : '#FFAA00'
-          });
-        }
-      }
-      
-      ctx.restore();
-    };
-    
-    const drawQueueSegment = (segment: { x: number; y: number }, index: number, player: Player, isCurrentPlayer: boolean) => {
-      if (!ctx) return;
-      
-      const playerSize = calculatePlayerSize(player);
-      const segmentSize = playerSize * 0.75;
-      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
-      
-      ctx.save();
-      ctx.globalAlpha = Math.max(0.4, 1 - (index * 0.05));
-      
-      const glowGradient = ctx.createRadialGradient(
-        segment.x, segment.y, 0,
-        segment.x, segment.y, segmentSize
-      );
-      glowGradient.addColorStop(0, `rgba(${hexToRgb(playerColor)?.r || 100}, ${hexToRgb(playerColor)?.g || 100}, ${hexToRgb(playerColor)?.b || 255}, 0.2)`);
-      glowGradient.addColorStop(1, 'rgba(50, 50, 200, 0)');
-      
-      ctx.fillStyle = glowGradient;
-      ctx.beginPath();
-      ctx.arc(segment.x, segment.y, segmentSize, 0, Math.PI * 2);
-      ctx.fill();
-      
-      const segmentGradient = ctx.createRadialGradient(
-        segment.x, segment.y, 0,
-        segment.x, segment.y, segmentSize * 0.7
-      );
-      segmentGradient.addColorStop(0, shadeColor(playerColor, 10));
-      segmentGradient.addColorStop(1, darkenColor(playerColor, 20));
-      
-      ctx.fillStyle = segmentGradient;
-      ctx.beginPath();
-      ctx.arc(segment.x, segment.y, segmentSize * 0.7, 0, Math.PI * 2);
-      ctx.fill();
-      
-      const patternCount = 3;
-      for (let i = 0; i < patternCount; i++) {
-        const angle = (Math.PI * 2 / patternCount) * i;
-        const startX = segment.x + Math.cos(angle) * (segmentSize * 0.3);
-        const startY = segment.y + Math.sin(angle) * (segmentSize * 0.3);
-        const endX = segment.x + Math.cos(angle) * (segmentSize * 0.6);
-        const endY = segment.y + Math.sin(angle) * (segmentSize * 0.6);
-        
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-      }
-      
-      ctx.restore();
-    };
-    
-    const drawItem = (item: GameItem) => {
-      if (!ctx) return;
-      
-      ctx.save();
-      
-      const time = Date.now() / 1000;
-      const pulseScale = 1 + 0.1 * Math.sin(time * 4);
-      const itemSize = 12 * pulseScale;
-      
-      const glowGradient = ctx.createRadialGradient(
-        item.x, item.y, 0,
-        item.x, item.y, itemSize * 2
-      );
-      glowGradient.addColorStop(0, item.color.replace(')', ', 0.6)').replace('rgb', 'rgba'));
-      glowGradient.addColorStop(1, item.color.replace(')', ', 0)').replace('rgb', 'rgba'));
-      
-      ctx.fillStyle = glowGradient;
-      ctx.beginPath();
-      ctx.arc(item.x, item.y, itemSize * 2, 0, Math.PI * 2);
-      ctx.fill();
-      
-      const shineGradient = ctx.createRadialGradient(
-        item.x, item.y, 0,
-        item.x, item.y, itemSize
-      );
-      shineGradient.addColorStop(0, '#FFFFFF');
-      shineGradient.addColorStop(0.3, item.color);
-      shineGradient.addColorStop(1, darkenColor(item.color, 30));
-      
-      ctx.fillStyle = shineGradient;
-      ctx.beginPath();
-      ctx.arc(item.x, item.y, itemSize, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = item.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(item.x, item.y, itemSize * 1.2, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '8px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.value.toString(), item.x, item.y);
-      
-      ctx.restore();
-    };
-    
-    const updateBoostParticles = (deltaTime: number) => {
-      const particles = rendererStateRef.current.boostParticles;
-      
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx * deltaTime;
-        p.y += p.vy * deltaTime;
-        p.alpha -= 0.02 * deltaTime;
-        
-        if (p.alpha <= 0) {
-          particles.splice(i, 1);
-        }
-      }
-    };
-    
-    const drawBoostParticles = () => {
-      if (!ctx) return;
-      const particles = rendererStateRef.current.boostParticles;
-      
-      ctx.save();
-      
-      for (const p of particles) {
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
       }
       
       ctx.restore();
     };
     
-    const render = (timestamp: number) => {
-      if (!ctx || !canvas) return;
+    function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, stroke = false) {
+      context.beginPath();
+      context.moveTo(x + radius, y);
+      context.lineTo(x + width - radius, y);
+      context.quadraticCurveTo(x + width, y, x + width, y + radius);
+      context.lineTo(x + width, y + height - radius);
+      context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      context.lineTo(x + radius, y + height);
+      context.quadraticCurveTo(x, y + height, x, y + height - radius);
+      context.lineTo(x, y + radius);
+      context.quadraticCurveTo(x, y, x + radius, y);
+      context.closePath();
       
-      if (!previousTimeRef.current) {
-        previousTimeRef.current = timestamp;
+      if (stroke) {
+        context.stroke();
+      } else {
+        context.fill();
       }
+    }
+    
+    const renderFrame = (timestamp: number) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return;
       
-      const deltaTime = (timestamp - previousTimeRef.current) / 16;
-      previousTimeRef.current = timestamp;
-      
-      updateBoostParticles(deltaTime);
-      
-      ctx.fillStyle = '#000000';
+      ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
+        updateGridCache();
+      }
+      
+      if (gridCacheCanvasRef.current) {
+        ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
+      }
       
       ctx.save();
       
@@ -935,59 +665,222 @@ const GameCanvas = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      if (rendererStateRef.current.gridNeedsUpdate) {
-        updateGridCache();
-      }
+      const viewportLeft = camera.x - canvas.width / camera.zoom / 2 - 100;
+      const viewportRight = camera.x + canvas.width / camera.zoom / 2 + 100;
+      const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
+      const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
-      if (gridCacheCanvasRef.current) {
-        const gridWidth = gridCacheCanvasRef.current.width / camera.zoom;
-        const gridHeight = gridCacheCanvasRef.current.height / camera.zoom;
+      // Render boost particles
+      const boostParticles = rendererStateRef.current.boostParticles;
+      for (let i = boostParticles.length - 1; i >= 0; i--) {
+        const particle = boostParticles[i];
         
-        ctx.drawImage(
-          gridCacheCanvasRef.current,
-          0, 0, gridCacheCanvasRef.current.width, gridCacheCanvasRef.current.height,
-          camera.x - gridWidth / 2, camera.y - gridHeight / 2, gridWidth, gridHeight
-        );
-      }
-      
-      for (const item of rendererStateRef.current.items) {
-        drawItem(item);
-      }
-      
-      for (const [id, player] of Object.entries(rendererStateRef.current.players)) {
-        if (player.queue && player.queue.length > 0) {
-          player.queue.forEach((segment, index) => {
-            drawQueueSegment(segment, index, player, id === playerId);
-          });
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        particle.size *= 0.92;
+        particle.alpha *= 0.92;
+        
+        if (particle.size < 0.5 || particle.alpha < 0.05) {
+          boostParticles.splice(i, 1);
+          continue;
         }
         
-        drawPlayerProcessor(player, id === playerId);
+        if (particle.x >= viewportLeft && 
+            particle.x <= viewportRight && 
+            particle.y >= viewportTop && 
+            particle.y <= viewportBottom) {
+          const particleGradient = ctx.createRadialGradient(
+            particle.x, particle.y, 0,
+            particle.x, particle.y, particle.size
+          );
+          
+          particleGradient.addColorStop(0, `${particle.color}${Math.floor(particle.alpha * 255).toString(16).padStart(2, '0')}`);
+          particleGradient.addColorStop(1, `${particle.color}00`);
+          
+          ctx.fillStyle = particleGradient;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       
-      drawBoostParticles();
+      // Render items only if they are in viewport
+      if (rendererStateRef.current.items.length > 0) {
+        const visibleItems = rendererStateRef.current.items.filter(item => 
+          item.x >= viewportLeft && 
+          item.x <= viewportRight && 
+          item.y >= viewportTop && 
+          item.y <= viewportBottom
+        );
+        
+        visibleItems.forEach(item => {
+          ctx.fillStyle = item.color || '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.beginPath();
+          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      
+      // Render all players regardless of viewport position
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        // Removed the viewport check that was here to render all players
+        
+        const isCurrentPlayer = id === playerId;
+        const currentPlayerSize = calculatePlayerSize(player);
+        const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+        
+        if (player.queue && player.queue.length > 0) {
+          // Only render queue segments that are in viewport for performance
+          const visibleQueue = player.queue.filter(segment => 
+            segment.x >= viewportLeft && 
+            segment.x <= viewportRight && 
+            segment.y >= viewportTop && 
+            segment.y <= viewportBottom
+          );
+          
+          if (visibleQueue.length > 0) {
+            [...visibleQueue].reverse().forEach(segment => {
+              const segmentGradient = ctx.createRadialGradient(
+                segment.x, segment.y, 0,
+                segment.x, segment.y, currentPlayerSize / 2
+              );
+              segmentGradient.addColorStop(0, shadeColor(baseColor, 10));
+              segmentGradient.addColorStop(1, baseColor);
+              
+              ctx.fillStyle = segmentGradient;
+              
+              ctx.beginPath();
+              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
+              ctx.fill();
+              
+              ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
+              ctx.shadowBlur = 2;
+              ctx.shadowOffsetX = 1;
+              ctx.shadowOffsetY = 1;
+              
+              ctx.strokeStyle = darkenColor(baseColor, 30);
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
+              ctx.stroke();
+              
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+              
+              if (player.boosting) {
+                const time = Date.now() / 300;
+                const pulseFactor = 0.2 * Math.sin(time + segment.x * 0.01) + 0.8;
+                
+                const glowGradient = ctx.createRadialGradient(
+                  segment.x, segment.y, currentPlayerSize * 0.3,
+                  segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor
+                );
+                
+                glowGradient.addColorStop(0, `${baseColor}40`);
+                glowGradient.addColorStop(0.5, `${baseColor}20`);
+                glowGradient.addColorStop(1, `${baseColor}00`);
+                
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            });
+          }
+        }
+        
+        // Always draw player head regardless of viewport position
+        drawPlayerProcessor(player, isCurrentPlayer);
+        
+        // Add an arrow indicator for off-screen players
+        if (
+          player.x < viewportLeft ||
+          player.x > viewportRight ||
+          player.y < viewportTop ||
+          player.y > viewportBottom
+        ) {
+          // Calculate angle to offscreen player
+          const dx = player.x - camera.x;
+          const dy = player.y - camera.y;
+          const angle = Math.atan2(dy, dx);
+          
+          // Calculate position on screen edge
+          const edgeRadius = Math.min(canvas.width, canvas.height) / 2 / camera.zoom * 0.9;
+          const edgeX = camera.x + Math.cos(angle) * edgeRadius;
+          const edgeY = camera.y + Math.sin(angle) * edgeRadius;
+          
+          // Draw directional arrow
+          ctx.save();
+          ctx.translate(edgeX, edgeY);
+          ctx.rotate(angle);
+          
+          const arrowSize = 15 / camera.zoom;
+          
+          // Draw arrow body with player color
+          ctx.fillStyle = player.color || '#FFFFFF';
+          ctx.beginPath();
+          ctx.moveTo(arrowSize, 0);
+          ctx.lineTo(-arrowSize / 2, arrowSize / 2);
+          ctx.lineTo(-arrowSize / 2, -arrowSize / 2);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Draw arrow outline
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1 / camera.zoom;
+          ctx.stroke();
+          
+          // Draw distance indicator
+          const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `${12 / camera.zoom}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`${distance}`, 0, arrowSize + 15 / camera.zoom);
+          
+          ctx.restore();
+        }
+        
+        if (isCurrentPlayer) {
+          ctx.fillStyle = '#FFFF00';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
+        } else {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
+        }
+      });
       
       ctx.restore();
       
-      requestRef.current = requestAnimationFrame(render);
+      requestRef.current = requestAnimationFrame(renderFrame);
     };
     
-    requestRef.current = requestAnimationFrame(render);
+    requestRef.current = requestAnimationFrame(renderFrame);
     
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
-      
-      if (resizeListenerRef.current) {
-        window.removeEventListener('resize', resizeListenerRef.current);
-      }
+      window.removeEventListener('resize', resizeCanvas);
     };
-  }, [camera, gameState.worldSize, isMobile, playerId, calculatePlayerSize]);
+  }, [camera, gameState, playerId, isMobile]);
   
   return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute top-0 left-0 w-full h-full"
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0"
+      style={{ touchAction: 'none' }}
     />
   );
 };
