@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -669,6 +670,7 @@ const GameCanvas = ({
       const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
       const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
+      // Render boost particles
       const boostParticles = rendererStateRef.current.boostParticles;
       for (let i = boostParticles.length - 1; i >= 0; i--) {
         const particle = boostParticles[i];
@@ -703,6 +705,7 @@ const GameCanvas = ({
         }
       }
       
+      // Render items only if they are in viewport
       if (rendererStateRef.current.items.length > 0) {
         const visibleItems = rendererStateRef.current.items.filter(item => 
           item.x >= viewportLeft && 
@@ -724,21 +727,16 @@ const GameCanvas = ({
         });
       }
       
+      // Render all players regardless of viewport position
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        if (
-          player.x < viewportLeft ||
-          player.x > viewportRight ||
-          player.y < viewportTop ||
-          player.y > viewportBottom
-        ) {
-          return;
-        }
+        // Removed the viewport check that was here to render all players
         
         const isCurrentPlayer = id === playerId;
         const currentPlayerSize = calculatePlayerSize(player);
         const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
         
         if (player.queue && player.queue.length > 0) {
+          // Only render queue segments that are in viewport for performance
           const visibleQueue = player.queue.filter(segment => 
             segment.x >= viewportLeft && 
             segment.x <= viewportRight && 
@@ -799,7 +797,56 @@ const GameCanvas = ({
           }
         }
         
+        // Always draw player head regardless of viewport position
         drawPlayerProcessor(player, isCurrentPlayer);
+        
+        // Add an arrow indicator for off-screen players
+        if (
+          player.x < viewportLeft ||
+          player.x > viewportRight ||
+          player.y < viewportTop ||
+          player.y > viewportBottom
+        ) {
+          // Calculate angle to offscreen player
+          const dx = player.x - camera.x;
+          const dy = player.y - camera.y;
+          const angle = Math.atan2(dy, dx);
+          
+          // Calculate position on screen edge
+          const edgeRadius = Math.min(canvas.width, canvas.height) / 2 / camera.zoom * 0.9;
+          const edgeX = camera.x + Math.cos(angle) * edgeRadius;
+          const edgeY = camera.y + Math.sin(angle) * edgeRadius;
+          
+          // Draw directional arrow
+          ctx.save();
+          ctx.translate(edgeX, edgeY);
+          ctx.rotate(angle);
+          
+          const arrowSize = 15 / camera.zoom;
+          
+          // Draw arrow body with player color
+          ctx.fillStyle = player.color || '#FFFFFF';
+          ctx.beginPath();
+          ctx.moveTo(arrowSize, 0);
+          ctx.lineTo(-arrowSize / 2, arrowSize / 2);
+          ctx.lineTo(-arrowSize / 2, -arrowSize / 2);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Draw arrow outline
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1 / camera.zoom;
+          ctx.stroke();
+          
+          // Draw distance indicator
+          const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `${12 / camera.zoom}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`${distance}`, 0, arrowSize + 15 / camera.zoom);
+          
+          ctx.restore();
+        }
         
         if (isCurrentPlayer) {
           ctx.fillStyle = '#FFFF00';
