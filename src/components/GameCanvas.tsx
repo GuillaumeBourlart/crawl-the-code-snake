@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -126,11 +125,9 @@ const GameCanvas = ({
     gridNeedsUpdate: true,
     mousePosition: { x: 0, y: 0 },
     joystickDirection: { x: 0, y: 0 },
-    boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[],
-    mouseIsOverCanvas: false
+    boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const directionIntervalRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (window) {
@@ -159,33 +156,6 @@ const GameCanvas = ({
       y: player.y
     }));
   }, [gameState, playerId]);
-
-  // Regular direction sending logic
-  const sendCurrentDirection = () => {
-    if (!playerId || !gameState.players[playerId] || !rendererStateRef.current.mouseIsOverCanvas) return;
-    
-    const mousePos = rendererStateRef.current.mousePosition;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const player = gameState.players[playerId];
-    
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    
-    const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
-    const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
-    
-    const dx = worldMouseX - player.x;
-    const dy = worldMouseY - player.y;
-    
-    const length = Math.sqrt(dx * dx + dy * dy);
-    if (length > 0) {
-      const normalizedDx = dx / length;
-      const normalizedDy = dy / length;
-      onMove({ x: normalizedDx, y: normalizedDy });
-    }
-  };
   
   useEffect(() => {
     if (!playerId) return;
@@ -198,15 +168,10 @@ const GameCanvas = ({
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
       
-      // Check if mouse is within canvas boundaries
-      const isOverCanvas = canvasX >= 0 && canvasX <= rect.width && canvasY >= 0 && canvasY <= rect.height;
-      rendererStateRef.current.mouseIsOverCanvas = isOverCanvas;
-      
       rendererStateRef.current.mousePosition = { x: canvasX, y: canvasY };
       
-      // Initial direction calculation on mouse move
       const player = gameState.players[playerId];
-      if (!player || !isOverCanvas) return;
+      if (!player) return;
       
       const worldX = (canvasX / canvas.width) * canvas.width / camera.zoom + camera.x - canvas.width / camera.zoom / 2;
       const worldY = (canvasY / canvas.height) * canvas.height / camera.zoom + camera.y - canvas.height / camera.zoom / 2;
@@ -222,25 +187,6 @@ const GameCanvas = ({
       }
     };
     
-    const handleMouseEnter = () => {
-      rendererStateRef.current.mouseIsOverCanvas = true;
-      
-      // Start sending direction periodically when mouse enters canvas
-      if (directionIntervalRef.current === null) {
-        directionIntervalRef.current = window.setInterval(sendCurrentDirection, 50); // 50ms interval
-      }
-    };
-    
-    const handleMouseLeave = () => {
-      rendererStateRef.current.mouseIsOverCanvas = false;
-      
-      // Clear the interval when mouse leaves canvas
-      if (directionIntervalRef.current !== null) {
-        window.clearInterval(directionIntervalRef.current);
-        directionIntervalRef.current = null;
-      }
-    };
-    
     const handleMouseDown = () => {
       onBoostStart();
     };
@@ -253,32 +199,10 @@ const GameCanvas = ({
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.addEventListener('mouseenter', handleMouseEnter);
-      canvas.addEventListener('mouseleave', handleMouseLeave);
-    }
-    
-    // Start the interval initially if needed
-    if (directionIntervalRef.current === null) {
-      directionIntervalRef.current = window.setInterval(sendCurrentDirection, 50); // 50ms interval
-    }
-    
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
-      
-      if (canvas) {
-        canvas.removeEventListener('mouseenter', handleMouseEnter);
-        canvas.removeEventListener('mouseleave', handleMouseLeave);
-      }
-      
-      // Clean up interval on unmount
-      if (directionIntervalRef.current !== null) {
-        window.clearInterval(directionIntervalRef.current);
-        directionIntervalRef.current = null;
-      }
     };
   }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera]);
   

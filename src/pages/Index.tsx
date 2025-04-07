@@ -56,8 +56,6 @@ const Index = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const [showGameOverDialog, setShowGameOverDialog] = useState(false);
-  const directionIntervalRef = useRef<number | null>(null);
-  const currentDirectionRef = useRef<{ x: number, y: number } | null>(null);
   
   const isMobile = useIsMobile();
   
@@ -75,7 +73,6 @@ const Index = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
-      if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
     };
   }, [socket]);
   
@@ -265,41 +262,18 @@ const Index = () => {
     
     newSocket.emit("join_room");
     setSocket(newSocket);
-    
-    startDirectionInterval(newSocket);
   };
   
-  const startDirectionInterval = (socket: any) => {
-    if (directionIntervalRef.current) {
-      window.clearInterval(directionIntervalRef.current);
-    }
-    
-    directionIntervalRef.current = window.setInterval(() => {
-      if (gameStarted && currentDirectionRef.current) {
-        socket.emit("changeDirection", { direction: currentDirectionRef.current });
-      }
-    }, 50);
-  };
-  
-  useEffect(() => {
-    if (gameStarted && socket) {
-      startDirectionInterval(socket);
-    } else if (!gameStarted && directionIntervalRef.current) {
-      window.clearInterval(directionIntervalRef.current);
-      directionIntervalRef.current = null;
-    }
-    
-    return () => {
-      if (directionIntervalRef.current) {
-        window.clearInterval(directionIntervalRef.current);
-        directionIntervalRef.current = null;
-      }
-    };
-  }, [gameStarted, socket]);
+  const moveThrottleRef = useRef(false);
   
   const handleMove = (direction: { x: number; y: number }) => {
     if (socket && gameStarted && playerId) {
-      currentDirectionRef.current = direction;
+      if (moveThrottleRef.current) return;
+      moveThrottleRef.current = true;
+      socket.emit("changeDirection", { direction });
+      setTimeout(() => {
+        moveThrottleRef.current = false;
+      }, 50);
     }
   };
   
@@ -357,6 +331,8 @@ const Index = () => {
   };
 
   const handleJoystickMove = (direction: { x: number; y: number }) => {
+    // No need to call window.handleJoystickDirection here anymore
+    // The MobileControls component will handle this directly
   };
 
   return (
