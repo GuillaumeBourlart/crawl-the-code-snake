@@ -50,6 +50,14 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Game canvas background colors */
+    --canvas-bg-1: 240 67% 8%;
+    --canvas-bg-2: 260 67% 12%;
+    --canvas-grid-1: 250 60% 15%;
+    --canvas-grid-2: 260 60% 8%;
+    --canvas-star-1: 290 80% 80%;
+    --canvas-star-2: 220 70% 70%;
   }
 
   .dark {
@@ -88,6 +96,14 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Game canvas background colors - dark mode */
+    --canvas-bg-1: 240 67% 4%;
+    --canvas-bg-2: 260 67% 7%;
+    --canvas-grid-1: 250 60% 10%;
+    --canvas-grid-2: 260 60% 5%;
+    --canvas-star-1: 290 80% 60%;
+    --canvas-star-2: 220 70% 50%;
   }
 }
 
@@ -146,7 +162,49 @@
   }
 }
 
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes cosmic-drift {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
 canvas {
   display: block;
   touch-action: none;
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(135deg, hsl(var(--canvas-bg-1)), hsl(var(--canvas-bg-2)));
+  background-size: 400% 400%;
+  animation: cosmic-drift 15s ease infinite alternate;
 }
+
+/* Enhanced canvas background with cosmic pattern */
+canvas::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(120, 50, 255, 0.15) 0%, transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(50, 120, 255, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+
