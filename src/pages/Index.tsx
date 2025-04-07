@@ -61,7 +61,6 @@ const Index = () => {
   const moveThrottleRef = useRef(false);
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
-  const mouseActiveRef = useRef(false);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -84,29 +83,16 @@ const Index = () => {
   useEffect(() => {
     if (gameStarted && socket && playerId) {
       directionIntervalRef.current = window.setInterval(() => {
-        if (!mouseActiveRef.current && (lastDirectionRef.current.x !== 0 || lastDirectionRef.current.y !== 0)) {
+        if (lastDirectionRef.current.x !== 0 || lastDirectionRef.current.y !== 0) {
           socket.emit("changeDirection", { direction: lastDirectionRef.current });
         }
       }, 50);
-
-      const handleMouseEnter = () => {
-        mouseActiveRef.current = true;
-      };
-
-      const handleMouseLeave = () => {
-        mouseActiveRef.current = false;
-      };
-
-      window.addEventListener('mouseenter', handleMouseEnter);
-      window.addEventListener('mouseleave', handleMouseLeave);
 
       return () => {
         if (directionIntervalRef.current) {
           window.clearInterval(directionIntervalRef.current);
           directionIntervalRef.current = null;
         }
-        window.removeEventListener('mouseenter', handleMouseEnter);
-        window.removeEventListener('mouseleave', handleMouseLeave);
       };
     }
     
@@ -308,16 +294,6 @@ const Index = () => {
   
   const handleMove = (direction: { x: number; y: number }) => {
     lastDirectionRef.current = direction;
-    mouseActiveRef.current = true;
-    
-    if (socket && gameStarted && playerId) {
-      if (moveThrottleRef.current) return;
-      moveThrottleRef.current = true;
-      socket.emit("changeDirection", { direction });
-      setTimeout(() => {
-        moveThrottleRef.current = false;
-      }, 50);
-    }
   };
   
   const handleBoostStart = () => {
