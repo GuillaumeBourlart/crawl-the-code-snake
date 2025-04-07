@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Player {
   id?: string;
@@ -104,16 +105,30 @@ const GameCanvas = ({
   onPlayerCollision 
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
+  const isMobile = useIsMobile();
+  const [camera, setCamera] = useState({ 
+    x: 0, 
+    y: 0, 
+    zoom: isMobile ? 0.7 : 1
+  });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
   const rendererStateRef = useRef({
     players: {} as Record<string, Player>,
     items: [] as GameItem[],
     gridNeedsUpdate: true,
-    mousePosition: { x: 0, y: 0 }
+    mousePosition: { x: 0, y: 0 },
+    joystickDirection: { x: 0, y: 0 }
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  const handleJoystickDirection = (direction: { x: number; y: number }) => {
+    rendererStateRef.current.joystickDirection = direction;
+  };
+  
+  if (window) {
+    (window as any).handleJoystickDirection = handleJoystickDirection;
+  }
   
   useEffect(() => {
     if (!playerId || !gameState.players[playerId]) return;
@@ -515,22 +530,31 @@ const GameCanvas = ({
       let pupilOffsetY = 0;
       
       if (isCurrentPlayer) {
-        const mousePos = rendererStateRef.current.mousePosition;
-        if (mousePos) {
-          const canvasWidth = canvasRef.current?.width || 0;
-          const canvasHeight = canvasRef.current?.height || 0;
-          
-          const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
-          const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
-          
-          const dx = worldMouseX - player.x;
-          const dy = worldMouseY - player.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance > 0) {
+        if (isMobile) {
+          const joystickDir = rendererStateRef.current.joystickDirection;
+          if (joystickDir && (joystickDir.x !== 0 || joystickDir.y !== 0)) {
             const maxPupilOffset = eyeSize * 0.5;
-            pupilOffsetX = (dx / distance) * maxPupilOffset;
-            pupilOffsetY = (dy / distance) * maxPupilOffset;
+            pupilOffsetX = joystickDir.x * maxPupilOffset;
+            pupilOffsetY = joystickDir.y * maxPupilOffset;
+          }
+        } else {
+          const mousePos = rendererStateRef.current.mousePosition;
+          if (mousePos) {
+            const canvasWidth = canvasRef.current?.width || 0;
+            const canvasHeight = canvasRef.current?.height || 0;
+            
+            const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
+            const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
+            
+            const dx = worldMouseX - player.x;
+            const dy = worldMouseY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+              const maxPupilOffset = eyeSize * 0.5;
+              pupilOffsetX = (dx / distance) * maxPupilOffset;
+              pupilOffsetY = (dy / distance) * maxPupilOffset;
+            }
           }
         }
       }
@@ -749,7 +773,7 @@ const GameCanvas = ({
       }
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [camera, gameState, playerId]);
+  }, [camera, gameState, playerId, isMobile]);
   
   return (
     <canvas
@@ -760,4 +784,5 @@ const GameCanvas = ({
   );
 };
 
+export { handleJoystickDirection };
 export default GameCanvas;

@@ -4,9 +4,10 @@ interface MobileControlsProps {
   onMove: (direction: { x: number; y: number }) => void;
   onBoostStart: () => void;
   onBoostStop: () => void;
+  onJoystickMove?: (direction: { x: number; y: number }) => void;
 }
 
-const MobileControls = ({ onMove, onBoostStart, onBoostStop }: MobileControlsProps) => {
+const MobileControls = ({ onMove, onBoostStart, onBoostStop, onJoystickMove }: MobileControlsProps) => {
   const joystickRef = useRef<HTMLDivElement>(null);
   const joystickKnobRef = useRef<HTMLDivElement>(null);
   const [joystickActive, setJoystickActive] = useState(false);
@@ -48,6 +49,11 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop }: MobileControlsPro
       
       // Send movement direction
       onMove({ x: dirX, y: dirY });
+      
+      // Send joystick direction for eye movement
+      if (onJoystickMove) {
+        onJoystickMove({ x: dirX, y: dirY });
+      }
     };
     
     const handleTouchStart = (e: TouchEvent) => {
@@ -95,6 +101,9 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop }: MobileControlsPro
           setJoystickActive(false);
           setTouchId(null);
           onMove({ x: 0, y: 0 });
+          if (onJoystickMove) {
+            onJoystickMove({ x: 0, y: 0 });
+          }
           break;
         }
       }
@@ -114,7 +123,7 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop }: MobileControlsPro
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [onMove, joystickActive, touchId, boostTouchId]);
+  }, [onMove, onJoystickMove, joystickActive, touchId, boostTouchId]);
   
   const handleBoostStart = (e: React.TouchEvent) => {
     e.preventDefault();

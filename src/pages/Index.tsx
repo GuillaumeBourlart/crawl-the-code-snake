@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import GameCanvas from "@/components/GameCanvas";
+import GameCanvas, { handleJoystickDirection } from "@/components/GameCanvas";
 import { createClient } from "@supabase/supabase-js";
 import { io } from "socket.io-client";
 import MobileControls from "@/components/MobileControls";
@@ -330,6 +330,12 @@ const Index = () => {
     setRoomId(null);
   };
 
+  const handleJoystickMove = (direction: { x: number; y: number }) => {
+    if (window && (window as any).handleJoystickDirection) {
+      (window as any).handleJoystickDirection(direction);
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
       {!gameStarted && (
@@ -405,7 +411,14 @@ const Index = () => {
             onBoostStop={handleBoostStop}
             onPlayerCollision={handlePlayerCollision}
           />
-          {isMobile && <MobileControls onMove={handleMove} onBoostStart={handleBoostStart} onBoostStop={handleBoostStop} />}
+          {isMobile && (
+            <MobileControls 
+              onMove={handleMove} 
+              onBoostStart={handleBoostStart} 
+              onBoostStop={handleBoostStop}
+              onJoystickMove={handleJoystickMove}
+            />
+          )}
         </>
       )}
 
