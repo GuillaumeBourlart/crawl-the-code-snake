@@ -289,6 +289,7 @@ const GameCanvas = ({
     }
     
     const resizeCanvas = () => {
+      if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       
@@ -333,6 +334,7 @@ const GameCanvas = ({
     return () => {
       const particles = document.querySelectorAll('.particle');
       particles.forEach(particle => particle.remove());
+      window.removeEventListener('resize', resizeCanvas);
     };
   }, []);
   
