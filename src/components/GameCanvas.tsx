@@ -328,56 +328,79 @@ const GameCanvas = ({
       
       ctx.save();
       
+      // Draw the processor chip background
+      const chipSize = playerSize * 0.9;
+      const cornerRadius = chipSize * 0.15;
+      
+      // Draw main chip background
       ctx.fillStyle = playerColor;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, playerSize / 2, 0, Math.PI * 2);
-      ctx.fill();
+      roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius);
       
-      ctx.strokeStyle = darkenColor(playerColor, 20);
+      // Draw border
+      ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      ctx.strokeStyle = shadeColor(playerColor, 40);
-      ctx.lineWidth = 1;
-      
       ctx.beginPath();
-      ctx.moveTo(player.x - playerSize / 3, player.y);
-      ctx.lineTo(player.x + playerSize / 3, player.y);
-      ctx.stroke();
+      roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius, true);
       
-      ctx.beginPath();
-      ctx.moveTo(player.x, player.y - playerSize / 3);
-      ctx.lineTo(player.x, player.y + playerSize / 3);
-      ctx.stroke();
+      // Draw inner square (chip core)
+      const innerSize = chipSize * 0.6;
+      ctx.fillStyle = shadeColor(playerColor, 10);
+      roundedRect(ctx, player.x - innerSize/2, player.y - innerSize/2, innerSize, innerSize, cornerRadius/2);
       
-      const cornerOffset = playerSize / 4;
+      // Draw circuit pins coming out from the chip
+      const pinLength = playerSize * 0.3;
+      const pinWidth = playerSize * 0.06;
+      ctx.fillStyle = darkenColor(playerColor, 15);
       
-      ctx.beginPath();
-      ctx.moveTo(player.x - cornerOffset, player.y - cornerOffset / 2);
-      ctx.lineTo(player.x - cornerOffset, player.y - cornerOffset);
-      ctx.lineTo(player.x - cornerOffset / 2, player.y - cornerOffset);
-      ctx.stroke();
+      // Top pins
+      const numberOfPins = 5;
+      const pinSpacing = chipSize / (numberOfPins + 1);
       
-      ctx.beginPath();
-      ctx.moveTo(player.x + cornerOffset, player.y - cornerOffset / 2);
-      ctx.lineTo(player.x + cornerOffset, player.y - cornerOffset);
-      ctx.lineTo(player.x + cornerOffset / 2, player.y - cornerOffset);
-      ctx.stroke();
+      for (let i = 1; i <= numberOfPins; i++) {
+        if (i === 3) continue; // Skip middle pin on top to make room for eyes
+        
+        // Top pins
+        ctx.fillRect(
+          player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
+          player.y - chipSize/2 - pinLength,
+          pinWidth,
+          pinLength
+        );
+        
+        // Bottom pins
+        ctx.fillRect(
+          player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
+          player.y + chipSize/2,
+          pinWidth,
+          pinLength
+        );
+      }
       
-      ctx.beginPath();
-      ctx.moveTo(player.x - cornerOffset, player.y + cornerOffset / 2);
-      ctx.lineTo(player.x - cornerOffset, player.y + cornerOffset);
-      ctx.lineTo(player.x - cornerOffset / 2, player.y + cornerOffset);
-      ctx.stroke();
+      // Side pins (fewer on sides)
+      const sidePinCount = 3;
+      const sidePinSpacing = chipSize / (sidePinCount + 1);
       
-      ctx.beginPath();
-      ctx.moveTo(player.x + cornerOffset, player.y + cornerOffset / 2);
-      ctx.lineTo(player.x + cornerOffset, player.y + cornerOffset);
-      ctx.lineTo(player.x + cornerOffset / 2, player.y + cornerOffset);
-      ctx.stroke();
+      for (let i = 1; i <= sidePinCount; i++) {
+        // Left pins
+        ctx.fillRect(
+          player.x - chipSize/2 - pinLength,
+          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2,
+          pinLength,
+          pinWidth
+        );
+        
+        // Right pins
+        ctx.fillRect(
+          player.x + chipSize/2,
+          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2,
+          pinLength,
+          pinWidth
+        );
+      }
       
+      // Draw eyes
       const eyeSize = playerSize * 0.15;
-      const eyeDistance = playerSize * 0.18;
+      const eyeDistance = playerSize * 0.20;
       const eyeOffsetY = -playerSize * 0.05;
       
       ctx.fillStyle = '#FFFFFF';
@@ -433,7 +456,7 @@ const GameCanvas = ({
           player.x, player.y, glowRadius
         );
         
-        gradient.addColorStop(0, `${glowColor}80`);
+        gradient.addColorStop(0, `${glowColor}50`);
         gradient.addColorStop(1, `${glowColor}00`);
         
         ctx.fillStyle = gradient;
@@ -545,7 +568,7 @@ const GameCanvas = ({
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
               ctx.fill();
               
-              ctx.strokeStyle = darkenColor(baseColor, 20);
+              ctx.strokeStyle = darkenColor(baseColor, 30);
               ctx.lineWidth = 2;
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
@@ -557,7 +580,7 @@ const GameCanvas = ({
                   segment.x, segment.y, currentPlayerSize * 0.7
                 );
                 
-                glowGradient.addColorStop(0, `${baseColor}50`);
+                glowGradient.addColorStop(0, `${baseColor}30`);
                 glowGradient.addColorStop(1, `${baseColor}00`);
                 
                 ctx.fillStyle = glowGradient;
