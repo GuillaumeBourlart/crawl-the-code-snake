@@ -318,39 +318,6 @@ const GameCanvas = ({
       gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
-      // Draw honeycomb pattern across the background
-      const hexSize = 40; // Size of each hexagon
-      const hexHeight = hexSize * Math.sqrt(3);
-      const hexWidth = hexSize * 2;
-      const rows = Math.ceil(height / (hexHeight * 0.75)) + 2;
-      const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
-      
-      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)'; // Subtle blue outline
-      gridCtx.lineWidth = 1;
-      
-      for (let row = -2; row < rows; row++) {
-        for (let col = -2; col < cols; col++) {
-          const centerX = col * hexWidth * 0.75;
-          const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
-          
-          // Draw hexagon
-          gridCtx.beginPath();
-          for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3;
-            const x = centerX + hexSize * Math.cos(angle);
-            const y = centerY + hexSize * Math.sin(angle);
-            
-            if (i === 0) {
-              gridCtx.moveTo(x, y);
-            } else {
-              gridCtx.lineTo(x, y);
-            }
-          }
-          gridCtx.closePath();
-          gridCtx.stroke();
-        }
-      }
-      
       // Add twinkling stars
       const numberOfStars = 300;
       for (let i = 0; i < numberOfStars; i++) {
@@ -385,6 +352,42 @@ const GameCanvas = ({
       gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
+      
+      // Draw honeycomb pattern across the game world
+      const hexSize = 40; // Size of each hexagon
+      const hexHeight = hexSize * Math.sqrt(3);
+      const hexWidth = hexSize * 2;
+      
+      // Calculate how many hexagons we need to cover the entire game world
+      const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
+      const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
+      
+      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)'; // Subtle blue outline
+      gridCtx.lineWidth = 1;
+      
+      // Start drawing from before the game world bounds to ensure full coverage
+      for (let row = -2; row < worldRows; row++) {
+        for (let col = -2; col < worldCols; col++) {
+          const centerX = col * hexWidth * 0.75;
+          const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+          
+          // Draw hexagon
+          gridCtx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = centerX + hexSize * Math.cos(angle);
+            const y = centerY + hexSize * Math.sin(angle);
+            
+            if (i === 0) {
+              gridCtx.moveTo(x, y);
+            } else {
+              gridCtx.lineTo(x, y);
+            }
+          }
+          gridCtx.closePath();
+          gridCtx.stroke();
+        }
+      }
       
       // Draw neon world border
       const borderWidth = 4;
