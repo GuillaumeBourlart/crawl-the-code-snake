@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -311,21 +310,57 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // New stylish background
+      // Enhanced stylish background
       const width = gridCanvas.width;
       const height = gridCanvas.height;
       
-      // Create a dark gradient background
+      // Create a deep space gradient background
       const bgGradient = gridCtx.createRadialGradient(
         width/2, height/2, 0,
         width/2, height/2, Math.max(width, height)
       );
-      bgGradient.addColorStop(0, '#1e1b4b');  // Dark indigo at center
-      bgGradient.addColorStop(0.7, '#0f172a'); // Dark blue
-      bgGradient.addColorStop(1, '#020617');   // Almost black at edges
+      bgGradient.addColorStop(0, '#1a1c3d');  // Deep blue-purple at center
+      bgGradient.addColorStop(0.4, '#0d1333'); // Deep blue
+      bgGradient.addColorStop(0.8, '#05071a'); // Very dark blue
+      bgGradient.addColorStop(1, '#010210');   // Almost black at edges
       
       gridCtx.fillStyle = bgGradient;
       gridCtx.fillRect(0, 0, width, height);
+      
+      // Add subtle nebula effects
+      for (let i = 0; i < 15; i++) {
+        const nebulaX = Math.random() * width;
+        const nebulaY = Math.random() * height;
+        const nebulaSize = Math.random() * 200 + 100;
+        const nebulaAlpha = Math.random() * 0.07 + 0.02;
+        
+        const nebulaGradient = gridCtx.createRadialGradient(
+          nebulaX, nebulaY, 0,
+          nebulaX, nebulaY, nebulaSize
+        );
+        
+        // Random nebula colors
+        const hue = Math.random() * 60 + 220; // Blues and purples
+        nebulaGradient.addColorStop(0, `hsla(${hue}, 80%, 50%, ${nebulaAlpha})`);
+        nebulaGradient.addColorStop(0.6, `hsla(${hue}, 90%, 40%, ${nebulaAlpha * 0.5})`);
+        nebulaGradient.addColorStop(1, `hsla(${hue}, 100%, 30%, 0)`);
+        
+        gridCtx.fillStyle = nebulaGradient;
+        gridCtx.fillRect(0, 0, width, height);
+      }
+      
+      // Add some distant stars
+      for (let i = 0; i < 500; i++) {
+        const starX = Math.random() * width;
+        const starY = Math.random() * height;
+        const starSize = Math.random() * 1.5;
+        const starBrightness = Math.random() * 0.5 + 0.5;
+        
+        gridCtx.fillStyle = `rgba(255, 255, 255, ${starBrightness * 0.3})`;
+        gridCtx.beginPath();
+        gridCtx.arc(starX, starY, starSize, 0, Math.PI * 2);
+        gridCtx.fill();
+      }
       
       // Add a subtle vignette effect
       const vignetteGradient = gridCtx.createRadialGradient(
@@ -333,7 +368,7 @@ const GameCanvas = ({
         width/2, height/2, Math.max(width, height) * 0.9
       );
       vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
-      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.6)');
       
       gridCtx.fillStyle = vignetteGradient;
       gridCtx.fillRect(0, 0, width, height);
@@ -343,44 +378,6 @@ const GameCanvas = ({
       gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
-      
-      const gridSize = 50;
-      const startX = Math.floor((camera.x - canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const endX = Math.ceil((camera.x + canvas.width / camera.zoom / 2) / gridSize) * gridSize;
-      const startY = Math.floor((camera.y - canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      const endY = Math.ceil((camera.y + canvas.height / camera.zoom / 2) / gridSize) * gridSize;
-      
-      // Draw stylish grid
-      gridCtx.strokeStyle = 'rgba(60, 80, 140, 0.2)';
-      gridCtx.lineWidth = 1;
-      
-      // Horizontal grid lines
-      gridCtx.beginPath();
-      for (let y = startY; y <= endY; y += gridSize) {
-        gridCtx.moveTo(startX, y);
-        gridCtx.lineTo(endX, y);
-      }
-      gridCtx.stroke();
-      
-      // Vertical grid lines
-      gridCtx.beginPath();
-      for (let x = startX; x <= endX; x += gridSize) {
-        gridCtx.moveTo(x, startY);
-        gridCtx.lineTo(x, endY);
-      }
-      gridCtx.stroke();
-      
-      // Add subtle grid points at intersections
-      gridCtx.fillStyle = 'rgba(100, 150, 255, 0.1)';
-      for (let x = startX; x <= endX; x += gridSize) {
-        for (let y = startY; y <= endY; y += gridSize) {
-          // Random size for some variety
-          const pointSize = Math.random() < 0.1 ? 3 : 1;
-          gridCtx.beginPath();
-          gridCtx.arc(x, y, pointSize, 0, Math.PI * 2);
-          gridCtx.fill();
-        }
-      }
       
       // World border
       gridCtx.strokeStyle = 'rgba(220, 60, 80, 0.5)';
@@ -688,265 +685,59 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      // Apply the stylish background
+      // Apply the enhanced stylish background
       const width = canvas.width;
       const height = canvas.height;
       
-      // Create a dark gradient background
+      // Create a deep space gradient background
       const bgGradient = ctx.createRadialGradient(
         width/2, height/2, 0,
         width/2, height/2, Math.max(width, height)
       );
-      bgGradient.addColorStop(0, '#1e1b4b');  // Dark indigo at center
-      bgGradient.addColorStop(0.7, '#0f172a'); // Dark blue
-      bgGradient.addColorStop(1, '#020617');   // Almost black at edges
+      bgGradient.addColorStop(0, '#1a1c3d');  // Deep blue-purple at center
+      bgGradient.addColorStop(0.4, '#0d1333'); // Deep blue
+      bgGradient.addColorStop(0.8, '#05071a'); // Very dark blue
+      bgGradient.addColorStop(1, '#010210');   // Almost black at edges
       
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
       
+      // Add subtle nebula effects
+      for (let i = 0; i < 15; i++) {
+        const nebulaX = Math.random() * width;
+        const nebulaY = Math.random() * height;
+        const nebulaSize = Math.random() * 200 + 100;
+        const nebulaAlpha = Math.random() * 0.07 + 0.02;
+        
+        const nebulaGradient = ctx.createRadialGradient(
+          nebulaX, nebulaY, 0,
+          nebulaX, nebulaY, nebulaSize
+        );
+        
+        // Random nebula colors
+        const hue = Math.random() * 60 + 220; // Blues and purples
+        nebulaGradient.addColorStop(0, `hsla(${hue}, 80%, 50%, ${nebulaAlpha})`);
+        nebulaGradient.addColorStop(0.6, `hsla(${hue}, 90%, 40%, ${nebulaAlpha * 0.5})`);
+        nebulaGradient.addColorStop(1, `hsla(${hue}, 100%, 30%, 0)`);
+        
+        ctx.fillStyle = nebulaGradient;
+        ctx.fillRect(0, 0, width, height);
+      }
+      
+      // Add some distant stars
+      for (let i = 0; i < 500; i++) {
+        const starX = Math.random() * width;
+        const starY = Math.random() * height;
+        const starSize = Math.random() * 1.5;
+        const starBrightness = Math.random() * 0.5 + 0.5;
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${starBrightness * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
       // Add a subtle vignette effect
       const vignetteGradient = ctx.createRadialGradient(
         width/2, height/2, height * 0.5,
-        width/2, height/2, Math.max(width, height) * 0.9
-      );
-      vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
-      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.5)');
-      
-      ctx.fillStyle = vignetteGradient;
-      ctx.fillRect(0, 0, width, height);
-      
-      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
-        updateGridCache();
-      }
-      
-      if (gridCacheCanvasRef.current) {
-        ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
-      }
-      
-      ctx.save();
-      
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.scale(camera.zoom, camera.zoom);
-      ctx.translate(-camera.x, -camera.y);
-      
-      const viewportLeft = camera.x - canvas.width / camera.zoom / 2 - 100;
-      const viewportRight = camera.x + canvas.width / camera.zoom / 2 + 100;
-      const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
-      const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
-      
-      // Render boost particles
-      const boostParticles = rendererStateRef.current.boostParticles;
-      for (let i = boostParticles.length - 1; i >= 0; i--) {
-        const particle = boostParticles[i];
-        
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        
-        particle.size *= 0.92;
-        particle.alpha *= 0.92;
-        
-        if (particle.size < 0.5 || particle.alpha < 0.05) {
-          boostParticles.splice(i, 1);
-          continue;
-        }
-        
-        if (particle.x >= viewportLeft && 
-            particle.x <= viewportRight && 
-            particle.y >= viewportTop && 
-            particle.y <= viewportBottom) {
-          const particleGradient = ctx.createRadialGradient(
-            particle.x, particle.y, 0,
-            particle.x, particle.y, particle.size
-          );
-          
-          particleGradient.addColorStop(0, `${particle.color}${Math.floor(particle.alpha * 255).toString(16).padStart(2, '0')}`);
-          particleGradient.addColorStop(1, `${particle.color}00`);
-          
-          ctx.fillStyle = particleGradient;
-          ctx.beginPath();
-          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      
-      // Render items only if they are in viewport
-      if (rendererStateRef.current.items.length > 0) {
-        const visibleItems = rendererStateRef.current.items.filter(item => 
-          item.x >= viewportLeft && 
-          item.x <= viewportRight && 
-          item.y >= viewportTop && 
-          item.y <= viewportBottom
-        );
-        
-        visibleItems.forEach(item => {
-          ctx.fillStyle = item.color || '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          ctx.beginPath();
-          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      }
-      
-      // Render all players regardless of viewport position
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        // Removed the viewport check that was here to render all players
-        
-        const isCurrentPlayer = id === playerId;
-        const currentPlayerSize = calculatePlayerSize(player);
-        const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
-        
-        if (player.queue && player.queue.length > 0) {
-          // Only render queue segments that are in viewport for performance
-          const visibleQueue = player.queue.filter(segment => 
-            segment.x >= viewportLeft && 
-            segment.x <= viewportRight && 
-            segment.y >= viewportTop && 
-            segment.y <= viewportBottom
-          );
-          
-          if (visibleQueue.length > 0) {
-            [...visibleQueue].reverse().forEach(segment => {
-              const segmentGradient = ctx.createRadialGradient(
-                segment.x, segment.y, 0,
-                segment.x, segment.y, currentPlayerSize / 2
-              );
-              segmentGradient.addColorStop(0, shadeColor(baseColor, 10));
-              segmentGradient.addColorStop(1, baseColor);
-              
-              ctx.fillStyle = segmentGradient;
-              
-              ctx.beginPath();
-              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
-              ctx.fill();
-              
-              ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
-              ctx.shadowBlur = 2;
-              ctx.shadowOffsetX = 1;
-              ctx.shadowOffsetY = 1;
-              
-              ctx.strokeStyle = darkenColor(baseColor, 30);
-              ctx.lineWidth = 2;
-              ctx.beginPath();
-              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
-              ctx.stroke();
-              
-              ctx.shadowColor = 'transparent';
-              ctx.shadowBlur = 0;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 0;
-              
-              if (player.boosting) {
-                const time = Date.now() / 300;
-                const pulseFactor = 0.2 * Math.sin(time + segment.x * 0.01) + 0.8;
-                
-                const glowGradient = ctx.createRadialGradient(
-                  segment.x, segment.y, currentPlayerSize * 0.3,
-                  segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor
-                );
-                
-                glowGradient.addColorStop(0, `${baseColor}40`);
-                glowGradient.addColorStop(0.5, `${baseColor}20`);
-                glowGradient.addColorStop(1, `${baseColor}00`);
-                
-                ctx.fillStyle = glowGradient;
-                ctx.beginPath();
-                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor, 0, Math.PI * 2);
-                ctx.fill();
-              }
-            });
-          }
-        }
-        
-        // Always draw player head regardless of viewport position
-        drawPlayerProcessor(player, isCurrentPlayer);
-        
-        // Add an arrow indicator for off-screen players
-        if (
-          player.x < viewportLeft ||
-          player.x > viewportRight ||
-          player.y < viewportTop ||
-          player.y > viewportBottom
-        ) {
-          // Calculate angle to offscreen player
-          const dx = player.x - camera.x;
-          const dy = player.y - camera.y;
-          const angle = Math.atan2(dy, dx);
-          
-          // Calculate position on screen edge
-          const edgeRadius = Math.min(canvas.width, canvas.height) / 2 / camera.zoom * 0.9;
-          const edgeX = camera.x + Math.cos(angle) * edgeRadius;
-          const edgeY = camera.y + Math.sin(angle) * edgeRadius;
-          
-          // Draw directional arrow
-          ctx.save();
-          ctx.translate(edgeX, edgeY);
-          ctx.rotate(angle);
-          
-          const arrowSize = 15 / camera.zoom;
-          
-          // Draw arrow body with player color
-          ctx.fillStyle = player.color || '#FFFFFF';
-          ctx.beginPath();
-          ctx.moveTo(arrowSize, 0);
-          ctx.lineTo(-arrowSize / 2, arrowSize / 2);
-          ctx.lineTo(-arrowSize / 2, -arrowSize / 2);
-          ctx.closePath();
-          ctx.fill();
-          
-          // Draw arrow outline
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 1 / camera.zoom;
-          ctx.stroke();
-          
-          // Draw distance indicator
-          const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `${12 / camera.zoom}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.fillText(`${distance}`, 0, arrowSize + 15 / camera.zoom);
-          
-          ctx.restore();
-        }
-        
-        if (isCurrentPlayer) {
-          ctx.fillStyle = '#FFFF00';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
-        } else {
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
-        }
-      });
-      
-      ctx.restore();
-      
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [camera, gameState, playerId, isMobile]);
-  
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0"
-      style={{ touchAction: 'none' }}
-    />
-  );
-};
-
-export default GameCanvas;
+        width/2, height/2, Math.max(width, height) *
