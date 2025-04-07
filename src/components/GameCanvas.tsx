@@ -740,4 +740,32 @@ const GameCanvas = ({
       // Add a subtle vignette effect
       const vignetteGradient = ctx.createRadialGradient(
         width/2, height/2, height * 0.5,
-        width/2, height/2, Math.max(width, height) *
+        width/2, height/2, Math.max(width, height) * 0.9
+      );
+      vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
+      vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.6)');
+      
+      ctx.fillStyle = vignetteGradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw players
+      Object.entries(rendererStateRef.current.players).forEach(([playerId, player]) => {
+        drawPlayerProcessor(player, playerId === playerId);
+      });
+      
+      rendererStateRef.current.gridNeedsUpdate = false;
+    };
+    
+    const animationId = requestAnimationFrame(renderFrame);
+    
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, [gameState, playerId, camera, isMobile]);
+  
+  return (
+    <canvas ref={canvasRef} width={window.innerWidth} height={window.innerHeight} />
+  );
+};
+
+export default GameCanvas;
