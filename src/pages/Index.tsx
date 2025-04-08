@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -58,7 +57,7 @@ const Index = () => {
   const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
     items: {},
-    worldSize: { width: 2000, height: 2000 }
+    worldSize: { width: 4000, height: 4000 } // Updated from 2000x2000 to 4000x4000
   });
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -212,7 +211,7 @@ const Index = () => {
       
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
-      const worldSize = { width: 2000, height: 2000 };
+      const worldSize = { width: 4000, height: 4000 };
       const randomItems = generateRandomItems(50, worldSize);
       
       setGameState(prevState => ({
@@ -431,7 +430,7 @@ const Index = () => {
               ...gameState,
               players: gameState.players || {},
               items: gameState.items ? Object.values(gameState.items) : [],
-              worldSize: gameState.worldSize || { width: 2000, height: 2000 }
+              worldSize: gameState.worldSize || { width: 4000, height: 4000 }
             }}
             playerId={playerId}
             onMove={handleMove}
