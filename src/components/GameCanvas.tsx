@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -339,6 +340,7 @@ const GameCanvas = ({
         const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
         
         const timeOffset = Math.random() * 2 * Math.PI;
+        // Reduced twinkling intensity and speed by 60%
         const twinkleOpacity = 0.12 + 0.28 * 0.4 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
         
         gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
@@ -425,11 +427,13 @@ const GameCanvas = ({
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
       
+      // Use dynamic head radius that matches server calculation
       const headRadius = getHeadRadius(player);
       const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
       
       ctx.save();
       
+      // Draw circular head (to match server hitbox)
       const gradient = ctx.createRadialGradient(
         player.x, player.y, 0,
         player.x, player.y, headRadius
@@ -442,12 +446,14 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
+      // Add border
       ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.stroke();
       
+      // Add inner circular detail
       const innerRadius = headRadius * 0.65;
       const coreGradient = ctx.createRadialGradient(
         player.x, player.y, innerRadius * 0.1,
@@ -461,6 +467,7 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
+      // Add eyes
       const eyeSize = headRadius * 0.15;
       const eyeDistance = headRadius * 0.20;
       const eyeOffsetY = -headRadius * 0.05;
@@ -494,6 +501,7 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
+      // Add pupils with movement
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
@@ -552,6 +560,7 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
       ctx.fill();
       
+      // Add boost glow if boosting
       if (player.boosting) {
         const glowColor = playerColor;
         
@@ -586,16 +595,16 @@ const GameCanvas = ({
       ctx.fillRect(0, 0, width, height);
       
       const numberOfStars = 200;
-      const time = Date.now() * 0.0004 * 0.4;
+      const time = Date.now() * 0.0004 * 0.4; // Reduced by 60%
       
       for (let i = 0; i < numberOfStars; i++) {
         const seed = i * 5237;
         const x = ((Math.sin(seed) + 1) / 2) * width;
         const y = ((Math.cos(seed * 1.5) + 1) / 2) * height;
         
-        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4 * 0.4;
+        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4 * 0.4; // Reduced by 60%
         const twinklePhase = time * twinkleSpeed + seed;
-        const twinkleAmount = 0.12 + 0.28 * 0.4 * Math.sin(twinklePhase);
+        const twinkleAmount = 0.12 + 0.28 * 0.4 * Math.sin(twinklePhase); // Reduced intensity by 60%
         
         const size = (0.5 + Math.sin(seed * 3) * 0.5) * 1.5;
         const opacity = twinkleAmount * 0.28;
@@ -738,30 +747,148 @@ const GameCanvas = ({
         });
       }
       
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        const isCurrentPlayer = id === playerId;
+        const segmentRadius = getSegmentRadius();
+        const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+        
+        if (player.queue && player.queue.length > 0) {
+          const visibleQueue = player.queue.filter(segment => 
+            segment.x >= viewportLeft && 
+            segment.x <= viewportRight && 
+            segment.y >= viewportTop && 
+            segment.y <= viewportBottom
+          );
+          
+          if (visibleQueue.length > 0) {
+            [...visibleQueue].reverse().forEach(segment => {
+              const segmentGradient = ctx.createRadialGradient(
+                segment.x, segment.y, 0,
+                segment.x, segment.y, segmentRadius
+              );
+              segmentGradient.addColorStop(0, shadeColor(baseColor, 10));
+              segmentGradient.addColorStop(1, baseColor);
+              
+              ctx.fillStyle = segmentGradient;
+              
+              ctx.beginPath();
+              ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
+              ctx.fill();
+              
+              ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
+              ctx.shadowBlur = 2;
+              ctx.shadowOffsetX = 1;
+              ctx.shadowOffsetY = 1;
+              
+              ctx.strokeStyle = darkenColor(baseColor, 30);
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
+              ctx.stroke();
+              
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+              
+              if (player.boosting) {
+                const time = Date.now() / 300;
+                const pulseFactor = 0.2 * Math.sin(time + segment.x * 0.01) + 0.8;
+                
+                const glowGradient = ctx.createRadialGradient(
+                  segment.x, segment.y, segmentRadius * 0.6,
+                  segment.x, segment.y, segmentRadius * 1.6 * pulseFactor
+                );
+                
+                glowGradient.addColorStop(0, `${baseColor}40`);
+                glowGradient.addColorStop(0.5, `${baseColor}20`);
+                glowGradient.addColorStop(1, `${baseColor}00`);
+                
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(segment.x, segment.y, segmentRadius * 1.6 * pulseFactor, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            });
+          }
+        }
+        
+        // Draw player head with circular shape
+        drawPlayerHead(player, isCurrentPlayer);
+        
+        if (
+          player.x < viewportLeft ||
+          player.x > viewportRight ||
+          player.y < viewportTop ||
+          player.y > viewportBottom
+        ) {
+          const dx = player.x - camera.x;
+          const dy = player.y - camera.y;
+          const angle = Math.atan2(dy, dx);
+          
+          const edgeRadius = Math.min(canvas.width, canvas.height) / 2 / camera.zoom * 0.9;
+          const edgeX = camera.x + Math.cos(angle) * edgeRadius;
+          const edgeY = camera.y + Math.sin(angle) * edgeRadius;
+          
+          ctx.save();
+          ctx.translate(edgeX, edgeY);
+          ctx.rotate(angle);
+          
+          const arrowSize = 15 / camera.zoom;
+          
+          ctx.fillStyle = player.color || '#FFFFFF';
+          ctx.beginPath();
+          ctx.moveTo(arrowSize, 0);
+          ctx.lineTo(-arrowSize / 2, arrowSize / 2);
+          ctx.lineTo(-arrowSize / 2, -arrowSize / 2);
+          ctx.closePath();
+          ctx.fill();
+          
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1 / camera.zoom;
+          ctx.stroke();
+          
+          const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `${12 / camera.zoom}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`${distance}`, 0, arrowSize + 15 / camera.zoom);
+          
+          ctx.restore();
+        }
+        
+        if (isCurrentPlayer) {
+          ctx.fillStyle = '#FFFF00';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - getHeadRadius(player) - 15);
+        } else {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - getHeadRadius(player) - 15);
+        }
+      });
+      
       ctx.restore();
+      
+      requestRef.current = requestAnimationFrame(renderFrame);
     };
     
-    const gameLoop = () => {
-      const currentTime = Date.now();
-      const deltaTime = currentTime - previousTimeRef.current;
-      previousTimeRef.current = currentTime;
-      
-      renderFrame(currentTime);
-      
-      requestAnimationFrame(gameLoop);
-    };
-    
-    gameLoop();
+    requestRef.current = requestAnimationFrame(renderFrame);
     
     return () => {
-      cancelAnimationFrame(animationId);
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
     };
-  }, [gameState, playerId, camera, onPlayerCollision, isMobile]);
+  }, [camera, gameState, playerId, isMobile]);
   
   return (
-    <canvas 
-      ref={canvasRef} 
-      className="fixed top-0 left-0 w-full h-full"
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0"
       style={{ touchAction: 'none' }}
     />
   );
