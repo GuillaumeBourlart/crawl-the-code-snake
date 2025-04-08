@@ -98,8 +98,9 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
 
 // Calculate head radius based on itemEatenCount (to match server)
 const getHeadRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.1;
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.1 * 1.2;
 };
+
 
 // Calculate segment radius (to match server)
 const getSegmentRadius = (player: Player): number => {
