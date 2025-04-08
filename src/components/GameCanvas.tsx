@@ -103,9 +103,10 @@ const getHeadRadius = (player: Player): number => {
 };
 
 // Calculate segment radius (to match server)
-const getSegmentRadius = (): number => {
-  return BASE_SIZE / 2;
+const getSegmentRadius = (player: Player): number => {
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.5;
 };
+
 
 const GameCanvas = ({ 
   gameState, 
