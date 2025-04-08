@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -22,6 +23,7 @@ interface ServerPlayer {
   direction?: { x: number; y: number };
   queue?: Array<{ x: number; y: number }>;
   boosting?: boolean;
+  itemEatenCount?: number; // Added to match server data
 }
 
 interface GameItem {
@@ -41,6 +43,10 @@ interface ServerGameState {
 
 const MAX_RECONNECTION_ATTEMPTS = 5;
 const RECONNECTION_DELAY = 2000;
+
+// Constants to match server
+const MIN_ITEM_RADIUS = 4;
+const MAX_ITEM_RADIUS = 10;
 
 const Index = () => {
   const [socket, setSocket] = useState<any>(null);
@@ -121,9 +127,9 @@ const Index = () => {
   
   const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
     const items: Record<string, GameItem> = {};
-    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
+    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#33A8FF', '#33FFF5', '#FFD133', '#8F33FF'];
     
-    const randomItemRadius = () => Math.floor(Math.random() * 16) + 5;
+    const randomItemRadius = () => Math.floor(Math.random() * (MAX_ITEM_RADIUS - MIN_ITEM_RADIUS + 1)) + MIN_ITEM_RADIUS;
     
     for (let i = 0; i < count; i++) {
       const id = `item-${i}`;

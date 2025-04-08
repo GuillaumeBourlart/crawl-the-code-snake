@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -11,6 +12,7 @@ interface Player {
   direction?: { x: number; y: number };
   queue?: Array<{ x: number; y: number }>; 
   boosting?: boolean;
+  itemEatenCount?: number; // Added to match server data
 }
 
 interface GameItem {
@@ -36,6 +38,9 @@ interface GameCanvasProps {
   onBoostStop: () => void;
   onPlayerCollision?: (otherPlayerId: string) => void;
 }
+
+// Constants matching server configuration
+const BASE_SIZE = 20;
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -86,21 +91,20 @@ function darkenColor(color: string, percent: number) {
   return "#" + RR + GG + BB;
 }
 
-function adjustPinColor(color: string) {
-  const rgb = hexToRgb(color);
-  if (!rgb) return 'rgba(255, 215, 0, 0.7)';
-  
-  const max = Math.max(rgb.r, rgb.g, rgb.b) / 255;
-  const min = Math.min(rgb.r, rgb.g, rgb.b) / 255;
-  const luminance = (max + min) / 2;
-  
-  return `rgba(${Math.min(255, rgb.r + 100)}, ${Math.min(255, Math.max(150, rgb.g + 50))}, 50, 0.7)`;
-}
-
 let _joystickDirection = { x: 0, y: 0 };
 
 export const handleJoystickDirection = (direction: { x: number; y: number }) => {
   _joystickDirection = direction;
+};
+
+// Calculate head radius based on itemEatenCount (to match server)
+const getHeadRadius = (player: Player): number => {
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.5;
+};
+
+// Calculate segment radius (to match server)
+const getSegmentRadius = (): number => {
+  return BASE_SIZE / 2;
 };
 
 const GameCanvas = ({ 
@@ -219,17 +223,18 @@ const GameCanvas = ({
     if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
     
     const currentPlayer = gameState.players[playerId];
-    const currentSize = calculatePlayerSize(currentPlayer);
+    const currentHeadRadius = getHeadRadius(currentPlayer);
     
     Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
       if (otherId === playerId) return;
       
-      const otherSize = calculatePlayerSize(otherPlayer);
+      // Check collision between current player's head and other player's head
+      const otherHeadRadius = getHeadRadius(otherPlayer);
       const dx = currentPlayer.x - otherPlayer.x;
       const dy = currentPlayer.y - otherPlayer.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      if (distance < (currentSize + otherSize) / 2) {
+      if (distance < (currentHeadRadius + otherHeadRadius)) {
         const currentQueueLength = currentPlayer.queue?.length || 0;
         const otherQueueLength = otherPlayer.queue?.length || 0;
         
@@ -239,15 +244,16 @@ const GameCanvas = ({
         }
       }
       
+      // Check collision between current player's head and other player's queue segments
       if (otherPlayer.queue && otherPlayer.queue.length > 0) {
-        const collisionRadius = currentSize / 2;
+        const segmentRadius = getSegmentRadius();
         
         for (const segment of otherPlayer.queue) {
           const segDx = currentPlayer.x - segment.x;
           const segDy = currentPlayer.y - segment.y;
           const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
           
-          if (segDistance < collisionRadius) {
+          if (segDistance < (currentHeadRadius + segmentRadius)) {
             onPlayerCollision(otherId);
             return;
           }
@@ -255,13 +261,6 @@ const GameCanvas = ({
       }
     });
   }, [gameState, playerId, onPlayerCollision]);
-
-  const calculatePlayerSize = (player: Player): number => {
-    const baseSize = 20;
-    const queueCount = player.queue?.length || 0;
-    
-    return baseSize * (1 + (queueCount * 0.1));
-  };
   
   useEffect(() => {
     if (!gameState.items) return;
@@ -341,7 +340,8 @@ const GameCanvas = ({
         const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
         
         const timeOffset = Math.random() * 2 * Math.PI;
-        const twinkleOpacity = 0.12 + 0.28 * Math.sin(Date.now() * 0.0004 + timeOffset);
+        // Reduced twinkling intensity and speed by 60%
+        const twinkleOpacity = 0.12 + 0.28 * 0.4 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
         
         gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
         gridCtx.beginPath();
@@ -423,167 +423,54 @@ const GameCanvas = ({
       rendererStateRef.current.gridNeedsUpdate = false;
     };
     
-    const drawPlayerProcessor = (player: Player, isCurrentPlayer: boolean) => {
-      const playerSize = calculatePlayerSize(player);
-      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+    const drawPlayerHead = (player: Player, isCurrentPlayer: boolean) => {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
       
+      // Use dynamic head radius that matches server calculation
+      const headRadius = getHeadRadius(player);
+      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+      
       ctx.save();
       
-      const chipSize = playerSize * 0.9;
-      const cornerRadius = chipSize * 0.15;
-      
-      const gradient = ctx.createLinearGradient(
-        player.x - chipSize/2, 
-        player.y - chipSize/2, 
-        player.x + chipSize/2, 
-        player.y + chipSize/2
+      // Draw circular head (to match server hitbox)
+      const gradient = ctx.createRadialGradient(
+        player.x, player.y, 0,
+        player.x, player.y, headRadius
       );
       gradient.addColorStop(0, playerColor);
       gradient.addColorStop(1, shadeColor(playerColor, -15));
       
       ctx.fillStyle = gradient;
-      roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius);
-      
-      const notchWidth = chipSize * 0.3;
-      const notchHeight = chipSize * 0.08;
-      ctx.fillStyle = darkenColor(playerColor, 40);
       ctx.beginPath();
-      ctx.moveTo(player.x - notchWidth/2, player.y - chipSize/2);
-      ctx.lineTo(player.x + notchWidth/2, player.y - chipSize/2);
-      ctx.lineTo(player.x + notchWidth/2, player.y - chipSize/2 + notchHeight);
-      ctx.lineTo(player.x, player.y - chipSize/2 + notchHeight*1.5);
-      ctx.lineTo(player.x - notchWidth/2, player.y - chipSize/2 + notchHeight);
-      ctx.closePath();
+      ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
+      // Add border
       ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
-      roundedRect(ctx, player.x - chipSize/2, player.y - chipSize/2, chipSize, chipSize, cornerRadius, true);
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
+      ctx.stroke();
       
-      ctx.strokeStyle = shadeColor(playerColor, 10);
-      ctx.lineWidth = 1;
-      roundedRect(ctx, player.x - chipSize/2 + 3, player.y - chipSize/2 + 3, chipSize - 6, chipSize - 6, cornerRadius / 1.5, true);
-      
-      const innerSize = chipSize * 0.65;
+      // Add inner circular detail
+      const innerRadius = headRadius * 0.65;
       const coreGradient = ctx.createRadialGradient(
-        player.x, player.y, innerSize * 0.1,
-        player.x, player.y, innerSize * 0.7
+        player.x, player.y, innerRadius * 0.1,
+        player.x, player.y, innerRadius * 0.7
       );
       coreGradient.addColorStop(0, shadeColor(playerColor, 20));
       coreGradient.addColorStop(1, shadeColor(playerColor, -10));
       
       ctx.fillStyle = coreGradient;
-      roundedRect(ctx, player.x - innerSize/2, player.y - innerSize/2, innerSize, innerSize, cornerRadius/2);
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
+      ctx.fill();
       
-      const linesCount = 3;
-      const lineSpacing = innerSize / (linesCount + 1);
-      
-      for (let i = 1; i <= linesCount; i++) {
-        ctx.beginPath();
-        ctx.moveTo(player.x - innerSize/2 + 5, player.y - innerSize/2 + i * lineSpacing);
-        ctx.lineTo(player.x + innerSize/2 - 5, player.y - innerSize/2 + i * lineSpacing);
-        ctx.stroke();
-      }
-      
-      for (let i = 1; i <= linesCount; i++) {
-        ctx.beginPath();
-        ctx.moveTo(player.x - innerSize/2 + i * lineSpacing, player.y - innerSize/2 + 5);
-        ctx.lineTo(player.x - innerSize/2 + i * lineSpacing, player.y + innerSize/2 - 5);
-        ctx.stroke();
-      }
-      
-      const pinLength = playerSize * 0.25;
-      const pinWidth = playerSize * 0.07;
-      
-      const pinGradient = ctx.createLinearGradient(
-        player.x - chipSize/2, player.y - chipSize/2,
-        player.x + chipSize/2, player.y + chipSize/2
-      );
-      pinGradient.addColorStop(0, shadeColor(playerColor, -20));
-      pinGradient.addColorStop(1, darkenColor(playerColor, 30));
-      ctx.fillStyle = pinGradient;
-      
-      const numberOfPins = 5;
-      const pinSpacing = chipSize / (numberOfPins + 1);
-      
-      for (let i = 1; i <= numberOfPins; i++) {
-        if (i === 2 || i === 4) continue;
-        
-        ctx.fillStyle = pinGradient;
-        ctx.fillRect(
-          player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
-          player.y - chipSize/2 - pinLength,
-          pinWidth,
-          pinLength
-        );
-        
-        ctx.fillStyle = "#AAA";
-        ctx.fillRect(
-          player.x - chipSize/2 + i * pinSpacing - pinWidth/2 - 1,
-          player.y - chipSize/2 - pinLength,
-          pinWidth + 2,
-          3
-        );
-        
-        ctx.fillStyle = pinGradient;
-        ctx.fillRect(
-          player.x - chipSize/2 + i * pinSpacing - pinWidth/2,
-          player.y + chipSize/2,
-          pinWidth,
-          pinLength
-        );
-        
-        ctx.fillStyle = "#AAA";
-        ctx.fillRect(
-          player.x - chipSize/2 + i * pinSpacing - pinWidth/2 - 1,
-          player.y + chipSize/2 + pinLength - 3,
-          pinWidth + 2,
-          3
-        );
-      }
-      
-      const sidePinCount = 3;
-      const sidePinSpacing = chipSize / (sidePinCount + 1);
-      
-      for (let i = 1; i <= sidePinCount; i++) {
-        ctx.fillStyle = pinGradient;
-        ctx.fillRect(
-          player.x - chipSize/2 - pinLength,
-          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2,
-          pinLength,
-          pinWidth
-        );
-        
-        ctx.fillStyle = "#AAA";
-        ctx.fillRect(
-          player.x - chipSize/2 - pinLength,
-          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2 - 1,
-          3,
-          pinWidth + 2
-        );
-        
-        ctx.fillStyle = pinGradient;
-        ctx.fillRect(
-          player.x + chipSize/2,
-          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2,
-          pinLength,
-          pinWidth
-        );
-        
-        ctx.fillStyle = "#AAA";
-        ctx.fillRect(
-          player.x + chipSize/2 + pinLength - 3,
-          player.y - chipSize/2 + i * sidePinSpacing - pinWidth/2 - 1,
-          3,
-          pinWidth + 2
-        );
-      }
-      
-      const eyeSize = playerSize * 0.15;
-      const eyeDistance = playerSize * 0.20;
-      const eyeOffsetY = -playerSize * 0.05;
+      // Add eyes
+      const eyeSize = headRadius * 0.15;
+      const eyeDistance = headRadius * 0.20;
+      const eyeOffsetY = -headRadius * 0.05;
       
       const eyeGradient = ctx.createRadialGradient(
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.2,
@@ -614,6 +501,7 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
+      // Add pupils with movement
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
@@ -672,12 +560,13 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
       ctx.fill();
       
+      // Add boost glow if boosting
       if (player.boosting) {
         const glowColor = playerColor;
         
-        const glowRadius = playerSize * 0.9;
+        const glowRadius = headRadius * 1.5;
         const boostGradient = ctx.createRadialGradient(
-          player.x, player.y, playerSize * 0.5,
+          player.x, player.y, headRadius,
           player.x, player.y, glowRadius
         );
         
@@ -694,26 +583,6 @@ const GameCanvas = ({
       ctx.restore();
     };
     
-    function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, stroke = false) {
-      context.beginPath();
-      context.moveTo(x + radius, y);
-      context.lineTo(x + width - radius, y);
-      context.quadraticCurveTo(x + width, y, x + width, y + radius);
-      context.lineTo(x + width, y + height - radius);
-      context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      context.lineTo(x + radius, y + height);
-      context.quadraticCurveTo(x, y + height, x, y + height - radius);
-      context.lineTo(x, y + radius);
-      context.quadraticCurveTo(x, y, x + radius, y);
-      context.closePath();
-      
-      if (stroke) {
-        context.stroke();
-      } else {
-        context.fill();
-      }
-    }
-    
     const renderFrame = (timestamp: number) => {
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
@@ -726,16 +595,16 @@ const GameCanvas = ({
       ctx.fillRect(0, 0, width, height);
       
       const numberOfStars = 200;
-      const time = Date.now() * 0.0004;
+      const time = Date.now() * 0.0004 * 0.4; // Reduced by 60%
       
       for (let i = 0; i < numberOfStars; i++) {
         const seed = i * 5237;
         const x = ((Math.sin(seed) + 1) / 2) * width;
         const y = ((Math.cos(seed * 1.5) + 1) / 2) * height;
         
-        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4;
+        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4 * 0.4; // Reduced by 60%
         const twinklePhase = time * twinkleSpeed + seed;
-        const twinkleAmount = 0.12 + 0.28 * Math.sin(twinklePhase);
+        const twinkleAmount = 0.12 + 0.28 * 0.4 * Math.sin(twinklePhase); // Reduced intensity by 60%
         
         const size = (0.5 + Math.sin(seed * 3) * 0.5) * 1.5;
         const opacity = twinkleAmount * 0.28;
@@ -880,7 +749,7 @@ const GameCanvas = ({
       
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
         const isCurrentPlayer = id === playerId;
-        const currentPlayerSize = calculatePlayerSize(player);
+        const segmentRadius = getSegmentRadius();
         const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
         
         if (player.queue && player.queue.length > 0) {
@@ -895,7 +764,7 @@ const GameCanvas = ({
             [...visibleQueue].reverse().forEach(segment => {
               const segmentGradient = ctx.createRadialGradient(
                 segment.x, segment.y, 0,
-                segment.x, segment.y, currentPlayerSize / 2
+                segment.x, segment.y, segmentRadius
               );
               segmentGradient.addColorStop(0, shadeColor(baseColor, 10));
               segmentGradient.addColorStop(1, baseColor);
@@ -903,7 +772,7 @@ const GameCanvas = ({
               ctx.fillStyle = segmentGradient;
               
               ctx.beginPath();
-              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
+              ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.fill();
               
               ctx.shadowColor = `${darkenColor(baseColor, 60)}40`;
@@ -914,7 +783,7 @@ const GameCanvas = ({
               ctx.strokeStyle = darkenColor(baseColor, 30);
               ctx.lineWidth = 2;
               ctx.beginPath();
-              ctx.arc(segment.x, segment.y, currentPlayerSize / 2, 0, Math.PI * 2);
+              ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.stroke();
               
               ctx.shadowColor = 'transparent';
@@ -927,8 +796,8 @@ const GameCanvas = ({
                 const pulseFactor = 0.2 * Math.sin(time + segment.x * 0.01) + 0.8;
                 
                 const glowGradient = ctx.createRadialGradient(
-                  segment.x, segment.y, currentPlayerSize * 0.3,
-                  segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor
+                  segment.x, segment.y, segmentRadius * 0.6,
+                  segment.x, segment.y, segmentRadius * 1.6 * pulseFactor
                 );
                 
                 glowGradient.addColorStop(0, `${baseColor}40`);
@@ -937,14 +806,15 @@ const GameCanvas = ({
                 
                 ctx.fillStyle = glowGradient;
                 ctx.beginPath();
-                ctx.arc(segment.x, segment.y, currentPlayerSize * 0.8 * pulseFactor, 0, Math.PI * 2);
+                ctx.arc(segment.x, segment.y, segmentRadius * 1.6 * pulseFactor, 0, Math.PI * 2);
                 ctx.fill();
               }
             });
           }
         }
         
-        drawPlayerProcessor(player, isCurrentPlayer);
+        // Draw player head with circular shape
+        drawPlayerHead(player, isCurrentPlayer);
         
         if (
           player.x < viewportLeft ||
@@ -991,12 +861,12 @@ const GameCanvas = ({
           ctx.fillStyle = '#FFFF00';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
+          ctx.fillText(`You (${player.queue?.length || 0})`, player.x, player.y - getHeadRadius(player) - 15);
         } else {
           ctx.fillStyle = '#FFFFFF';
           ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - calculatePlayerSize(player) - 15);
+          ctx.fillText(`Player (${player.queue?.length || 0})`, player.x, player.y - getHeadRadius(player) - 15);
         }
       });
       
