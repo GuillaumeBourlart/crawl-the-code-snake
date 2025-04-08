@@ -19,6 +19,7 @@ interface GameItem {
   y: number;
   value: number;
   color: string;
+  radius?: number;
 }
 
 interface GameState {
@@ -807,14 +808,17 @@ const GameCanvas = ({
         );
         
         visibleItems.forEach(item => {
+          const itemRadius = item.radius || 10;
+          
           ctx.fillStyle = item.color || '#FFFFFF';
           ctx.beginPath();
-          ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+          ctx.arc(item.x, item.y, itemRadius, 0, Math.PI * 2);
           ctx.fill();
           
+          const highlightSize = Math.max(3, itemRadius * 0.3);
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.beginPath();
-          ctx.arc(item.x - 3, item.y - 3, 3, 0, Math.PI * 2);
+          ctx.arc(item.x - itemRadius * 0.3, item.y - itemRadius * 0.3, highlightSize, 0, Math.PI * 2);
           ctx.fill();
         });
       }

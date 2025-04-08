@@ -30,6 +30,7 @@ interface GameItem {
   y: number;
   value: number;
   color: string;
+  radius?: number;
 }
 
 interface ServerGameState {
@@ -121,6 +122,9 @@ const Index = () => {
   const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
     const items: Record<string, GameItem> = {};
     const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33FFF5', '#FFD133', '#8F33FF'];
+    
+    const randomItemRadius = () => Math.floor(Math.random() * 16) + 5;
+    
     for (let i = 0; i < count; i++) {
       const id = `item-${i}`;
       items[id] = {
@@ -128,7 +132,8 @@ const Index = () => {
         x: Math.random() * worldSize.width,
         y: Math.random() * worldSize.height,
         value: Math.floor(Math.random() * 5) + 1,
-        color: itemColors[Math.floor(Math.random() * itemColors.length)]
+        color: itemColors[Math.floor(Math.random() * itemColors.length)],
+        radius: randomItemRadius()
       };
     }
     return items;
