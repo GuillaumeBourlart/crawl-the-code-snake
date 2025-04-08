@@ -515,40 +515,43 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add eyes
-      const eyeSize = headRadius * 0.15;
-      const eyeDistance = headRadius * 0.20;
+      // Add eyes - ENHANCED FOR VISIBILITY
+      const eyeSize = headRadius * 0.18; // Increased size
+      const eyeDistance = headRadius * 0.22;
       const eyeOffsetY = -headRadius * 0.05;
       
+      // Draw eye whites with improved contrast
       const eyeGradient = ctx.createRadialGradient(
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.2,
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize
       );
-      eyeGradient.addColorStop(0, "#FFFFFF");
-      eyeGradient.addColorStop(1, "#E0E0E0");
+      eyeGradient.addColorStop(0, "#FFFFFF"); // Pure white
+      eyeGradient.addColorStop(1, "#F0F0F0"); // Still very bright
       
+      // Left eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Internal eye border
-      ctx.strokeStyle = "#AAAAAA";
-      ctx.lineWidth = 1;
+      // Internal eye border - darker and thicker
+      ctx.strokeStyle = "#666666";
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.9, 0, Math.PI * 2);
+      ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.95, 0, Math.PI * 2);
       ctx.stroke();
       
+      // Right eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Internal eye border
-      ctx.strokeStyle = "#AAAAAA";
-      ctx.lineWidth = 1;
+      // Internal eye border - darker and thicker
+      ctx.strokeStyle = "#666666";
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize * 0.9, 0, Math.PI * 2);
+      ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize * 0.95, 0, Math.PI * 2);
       ctx.stroke();
       
       // Add pupils with movement
@@ -585,29 +588,49 @@ const GameCanvas = ({
         }
       }
       
+      // Improved pupils - darker and more contrast
+      const pupilSize = eyeSize * 0.65; // Slightly larger pupils
+      
       const pupilGradient = ctx.createRadialGradient(
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
-        player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6
+        player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize
       );
-      pupilGradient.addColorStop(0, "#444444");
-      pupilGradient.addColorStop(1, "#000000");
+      pupilGradient.addColorStop(0, "#000000"); // Pure black center
+      pupilGradient.addColorStop(1, "#111111"); // Very dark outside
       
+      // Left pupil
       ctx.fillStyle = pupilGradient;
       ctx.beginPath();
-      ctx.arc(player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
+      ctx.arc(player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
       ctx.fill();
       
+      // Right pupil
       ctx.beginPath();
-      ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, eyeSize * 0.6, 0, Math.PI * 2);
+      ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
       ctx.fill();
       
-      ctx.fillStyle = "#FFFFFF";
+      // Improved eye highlights - larger and brighter
+      const highlightSize = eyeSize * 0.25;
+      ctx.fillStyle = "#FFFFFF"; // Pure white
+      
+      // Left eye highlight
       ctx.beginPath();
-      ctx.arc(player.x - eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
+      ctx.arc(
+        player.x - eyeDistance + pupilOffsetX - eyeSize * 0.25, 
+        player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.25, 
+        highlightSize, 
+        0, Math.PI * 2
+      );
       ctx.fill();
       
+      // Right eye highlight
       ctx.beginPath();
-      ctx.arc(player.x + eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
+      ctx.arc(
+        player.x + eyeDistance + pupilOffsetX - eyeSize * 0.25, 
+        player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.25, 
+        highlightSize, 
+        0, Math.PI * 2
+      );
       ctx.fill();
       
       // Add mouth
