@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -107,7 +106,6 @@ const getSegmentRadius = (player: Player): number => {
   return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.5;
 };
 
-
 const GameCanvas = ({ 
   gameState, 
   playerId, 
@@ -153,10 +151,10 @@ const GameCanvas = ({
       requestAnimationFrame(updateJoystickDirection);
     };
     
-    const animationId = requestAnimationFrame(updateJoystickDirection);
+    const requestId = requestAnimationFrame(updateJoystickDirection);
     
     return () => {
-      cancelAnimationFrame(animationId);
+      cancelAnimationFrame(requestId);
     };
   }, []);
   
@@ -247,7 +245,7 @@ const GameCanvas = ({
       
       // Check collision between current player's head and other player's queue segments
       if (otherPlayer.queue && otherPlayer.queue.length > 0) {
-        const segmentRadius = getSegmentRadius();
+        const segmentRadius = getSegmentRadius(otherPlayer);
         
         for (const segment of otherPlayer.queue) {
           const segDx = currentPlayer.x - segment.x;
@@ -341,7 +339,6 @@ const GameCanvas = ({
         const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
         
         const timeOffset = Math.random() * 2 * Math.PI;
-        // Reduced twinkling intensity and speed by 60%
         const twinkleOpacity = 0.12 + 0.28 * 0.4 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
         
         gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
@@ -428,13 +425,11 @@ const GameCanvas = ({
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
       
-      // Use dynamic head radius that matches server calculation
       const headRadius = getHeadRadius(player);
       const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
       
       ctx.save();
       
-      // Draw circular head (to match server hitbox)
       const gradient = ctx.createRadialGradient(
         player.x, player.y, 0,
         player.x, player.y, headRadius
@@ -447,14 +442,12 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add border
       ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Add inner circular detail
       const innerRadius = headRadius * 0.65;
       const coreGradient = ctx.createRadialGradient(
         player.x, player.y, innerRadius * 0.1,
@@ -468,7 +461,6 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add eyes
       const eyeSize = headRadius * 0.15;
       const eyeDistance = headRadius * 0.20;
       const eyeOffsetY = -headRadius * 0.05;
@@ -502,7 +494,6 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Add pupils with movement
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
@@ -561,7 +552,6 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance + pupilOffsetX - eyeSize * 0.2, player.y + eyeOffsetY + pupilOffsetY - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add boost glow if boosting
       if (player.boosting) {
         const glowColor = playerColor;
         
@@ -596,16 +586,16 @@ const GameCanvas = ({
       ctx.fillRect(0, 0, width, height);
       
       const numberOfStars = 200;
-      const time = Date.now() * 0.0004 * 0.4; // Reduced by 60%
+      const time = Date.now() * 0.0004 * 0.4;
       
       for (let i = 0; i < numberOfStars; i++) {
         const seed = i * 5237;
         const x = ((Math.sin(seed) + 1) / 2) * width;
         const y = ((Math.cos(seed * 1.5) + 1) / 2) * height;
         
-        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4 * 0.4; // Reduced by 60%
+        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4 * 0.4;
         const twinklePhase = time * twinkleSpeed + seed;
-        const twinkleAmount = 0.12 + 0.28 * 0.4 * Math.sin(twinklePhase); // Reduced intensity by 60%
+        const twinkleAmount = 0.12 + 0.28 * 0.4 * Math.sin(twinklePhase);
         
         const size = (0.5 + Math.sin(seed * 3) * 0.5) * 1.5;
         const opacity = twinkleAmount * 0.28;
@@ -750,7 +740,7 @@ const GameCanvas = ({
       
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
         const isCurrentPlayer = id === playerId;
-        const segmentRadius = getSegmentRadius();
+        const segmentRadius = getSegmentRadius(player);
         const baseColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
         
         if (player.queue && player.queue.length > 0) {
@@ -814,7 +804,6 @@ const GameCanvas = ({
           }
         }
         
-        // Draw player head with circular shape
         drawPlayerHead(player, isCurrentPlayer);
         
         if (
