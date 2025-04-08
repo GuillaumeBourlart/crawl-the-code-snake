@@ -318,17 +318,16 @@ const GameCanvas = ({
       gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
-      // Add twinkling stars
+      // Add twinkling stars with reduced intensity and speed
       const numberOfStars = 300;
       for (let i = 0; i < numberOfStars; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
         const size = Math.random() * 1.5;
-        const brightness = Math.random() * 0.7 + 0.3;
+        const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
         
-        // Create twinkling effect by varying opacity based on time
         const timeOffset = Math.random() * 2 * Math.PI;
-        const twinkleOpacity = 0.3 + 0.7 * Math.sin(Date.now() * 0.001 + timeOffset);
+        const twinkleOpacity = 0.12 + 0.28 * Math.sin(Date.now() * 0.0004 + timeOffset);
         
         gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
         gridCtx.beginPath();
@@ -354,24 +353,21 @@ const GameCanvas = ({
       gridCtx.translate(-camera.x, -camera.y);
       
       // Draw honeycomb pattern across the game world
-      const hexSize = 40; // Size of each hexagon
+      const hexSize = 40;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
       
-      // Calculate how many hexagons we need to cover the entire game world
       const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
       const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
       
-      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)'; // Subtle blue outline
+      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)';
       gridCtx.lineWidth = 1;
       
-      // Start drawing from before the game world bounds to ensure full coverage
       for (let row = -2; row < worldRows; row++) {
         for (let col = -2; col < worldCols; col++) {
           const centerX = col * hexWidth * 0.75;
           const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
           
-          // Draw hexagon
           gridCtx.beginPath();
           for (let i = 0; i < 6; i++) {
             const angle = (i * Math.PI) / 3;
@@ -393,20 +389,17 @@ const GameCanvas = ({
       const borderWidth = 4;
       const borderGlow = 15;
       
-      // Draw outer glow
       gridCtx.shadowColor = 'rgba(0, 255, 255, 0.8)';
       gridCtx.shadowBlur = borderGlow;
       gridCtx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
       gridCtx.lineWidth = borderWidth + borderGlow;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Draw inner neon line
       gridCtx.shadowBlur = 0;
       gridCtx.strokeStyle = '#00ffff';
       gridCtx.lineWidth = borderWidth;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      // Add additional neon glow pulse effect
       const time = Date.now() * 0.001;
       const pulseIntensity = 0.5 + 0.5 * Math.sin(time);
       
@@ -715,30 +708,26 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      // Pure black background
       const width = canvas.width;
       const height = canvas.height;
       
-      // Fill with solid black
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      // Add twinkling stars that change over time
       const numberOfStars = 200;
-      const time = Date.now() * 0.001;
+      const time = Date.now() * 0.0004;
       
       for (let i = 0; i < numberOfStars; i++) {
-        const seed = i * 5237; // Use a constant seed for each star's position
+        const seed = i * 5237;
         const x = ((Math.sin(seed) + 1) / 2) * width;
         const y = ((Math.cos(seed * 1.5) + 1) / 2) * height;
         
-        // Create twinkling effect
-        const twinkleSpeed = 0.5 + (seed % 2) * 0.5;
+        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4;
         const twinklePhase = time * twinkleSpeed + seed;
-        const twinkleAmount = 0.3 + 0.7 * Math.sin(twinklePhase);
+        const twinkleAmount = 0.12 + 0.28 * Math.sin(twinklePhase);
         
         const size = (0.5 + Math.sin(seed * 3) * 0.5) * 1.5;
-        const opacity = twinkleAmount * 0.7;
+        const opacity = twinkleAmount * 0.28;
         
         ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
         ctx.beginPath();
@@ -746,7 +735,6 @@ const GameCanvas = ({
         ctx.fill();
       }
       
-      // Create a subtle glow in the center
       const centerGlow = ctx.createRadialGradient(
         width/2, height/2, 0,
         width/2, height/2, height * 0.4
@@ -776,7 +764,6 @@ const GameCanvas = ({
       const viewportTop = camera.y - canvas.height / camera.zoom / 2 - 100;
       const viewportBottom = camera.y + canvas.height / camera.zoom / 2 + 100;
       
-      // Render boost particles
       const boostParticles = rendererStateRef.current.boostParticles;
       for (let i = boostParticles.length - 1; i >= 0; i--) {
         const particle = boostParticles[i];
@@ -811,7 +798,6 @@ const GameCanvas = ({
         }
       }
       
-      // Render items only if they are in viewport
       if (rendererStateRef.current.items.length > 0) {
         const visibleItems = rendererStateRef.current.items.filter(item => 
           item.x >= viewportLeft && 
@@ -833,7 +819,6 @@ const GameCanvas = ({
         });
       }
       
-      // Render all players regardless of viewport position
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
         const isCurrentPlayer = id === playerId;
         const currentPlayerSize = calculatePlayerSize(player);
