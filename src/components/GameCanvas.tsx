@@ -126,7 +126,15 @@ const GameCanvas = ({
     gridNeedsUpdate: true,
     mousePosition: { x: 0, y: 0 },
     joystickDirection: { x: 0, y: 0 },
-    boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[]
+    boostParticles: [] as {x: number, y: number, size: number, alpha: number, vx: number, vy: number, color: string}[],
+    itemAnimations: {} as Record<string, { 
+      offsetX: number, 
+      offsetY: number, 
+      phaseX: number, 
+      phaseY: number, 
+      speedX: number, 
+      speedY: number 
+    }>
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -256,27 +264,35 @@ const GameCanvas = ({
   };
   
   useEffect(() => {
-    if (!playerId || !gameState.players[playerId]) return;
+    if (!gameState.items) return;
     
-    const player = gameState.players[playerId];
-    setCamera(prev => ({
-      ...prev,
-      x: player.x,
-      y: player.y
-    }));
+    const currentItemsById = rendererStateRef.current.items.reduce((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {} as Record<string, GameItem>);
     
-    const prevPlayer = rendererStateRef.current.players[playerId];
-    if (prevPlayer) {
-      const dx = Math.abs(prevPlayer.x - player.x);
-      const dy = Math.abs(prevPlayer.y - player.y);
-      if (dx > 50 || dy > 50) {
-        rendererStateRef.current.gridNeedsUpdate = true;
+    gameState.items.forEach(item => {
+      if (!rendererStateRef.current.itemAnimations[item.id]) {
+        rendererStateRef.current.itemAnimations[item.id] = {
+          offsetX: 0, 
+          offsetY: 0,
+          phaseX: Math.random() * Math.PI * 2, 
+          phaseY: Math.random() * Math.PI * 2,
+          speedX: 0.5 + Math.random() * 0.5,
+          speedY: 0.5 + Math.random() * 0.5
+        };
       }
-    }
+    });
+    
+    Object.keys(rendererStateRef.current.itemAnimations).forEach(id => {
+      if (!gameState.items?.find(item => item.id === id)) {
+        delete rendererStateRef.current.itemAnimations[id];
+      }
+    });
     
     rendererStateRef.current.players = { ...gameState.players };
     rendererStateRef.current.items = gameState.items || [];
-  }, [gameState, playerId]);
+  }, [gameState]);
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -311,15 +327,12 @@ const GameCanvas = ({
       const gridCtx = gridCanvas.getContext('2d', { alpha: false });
       if (!gridCtx) return;
       
-      // Pure black background
       const width = gridCanvas.width;
       const height = gridCanvas.height;
       
-      // Fill with solid black
       gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
-      // Add twinkling stars with reduced intensity and speed
       const numberOfStars = 300;
       for (let i = 0; i < numberOfStars; i++) {
         const x = Math.random() * width;
@@ -336,7 +349,6 @@ const GameCanvas = ({
         gridCtx.fill();
       }
       
-      // Create a subtle glow in the center
       const centerGlow = gridCtx.createRadialGradient(
         width/2, height/2, 0,
         width/2, height/2, height * 0.4
@@ -353,7 +365,6 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      // Draw honeycomb pattern across the game world
       const hexSize = 40;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
@@ -386,7 +397,6 @@ const GameCanvas = ({
         }
       }
       
-      // Draw neon world border
       const borderWidth = 4;
       const borderGlow = 15;
       
@@ -800,6 +810,8 @@ const GameCanvas = ({
       }
       
       if (rendererStateRef.current.items.length > 0) {
+        const currentTime = Date.now() * 0.001;
+        
         const visibleItems = rendererStateRef.current.items.filter(item => 
           item.x >= viewportLeft && 
           item.x <= viewportRight && 
@@ -809,16 +821,59 @@ const GameCanvas = ({
         
         visibleItems.forEach(item => {
           const itemRadius = item.radius || 10;
+          const animation = rendererStateRef.current.itemAnimations[item.id];
           
-          ctx.fillStyle = item.color || '#FFFFFF';
+          if (animation) {
+            animation.offsetX = Math.sin(currentTime * animation.speedX + animation.phaseX) * itemRadius * 0.3;
+            animation.offsetY = Math.sin(currentTime * animation.speedY + animation.phaseY) * itemRadius * 0.3;
+          }
+          
+          const displayX = item.x + (animation?.offsetX || 0);
+          const displayY = item.y + (animation?.offsetY || 0);
+          
+          const haloSize = itemRadius * 1.8;
+          const gradient = ctx.createRadialGradient(
+            displayX, displayY, itemRadius * 0.8,
+            displayX, displayY, haloSize
+          );
+          
+          const rgbColor = hexToRgb(item.color || '#FFFFFF');
+          const haloColor = rgbColor ? 
+            `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.15)` : 
+            'rgba(255, 255, 255, 0.15)';
+          
+          gradient.addColorStop(0, haloColor);
+          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          
+          ctx.fillStyle = gradient;
           ctx.beginPath();
-          ctx.arc(item.x, item.y, itemRadius, 0, Math.PI * 2);
+          ctx.arc(displayX, displayY, haloSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          const itemGlowSize = itemRadius * 1.1;
+          const itemGlow = ctx.createRadialGradient(
+            displayX, displayY, 0,
+            displayX, displayY, itemGlowSize
+          );
+          
+          const pulseFactor = 0.2 * Math.sin(currentTime * 2 + (item.id.charCodeAt(0) || 0)) + 0.8;
+          const glowColor = rgbColor ? 
+            `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.4)` : 
+            'rgba(255, 255, 255, 0.4)';
+          
+          itemGlow.addColorStop(0, item.color || '#FFFFFF');
+          itemGlow.addColorStop(0.7, item.color || '#FFFFFF');
+          itemGlow.addColorStop(1, glowColor);
+          
+          ctx.fillStyle = itemGlow;
+          ctx.beginPath();
+          ctx.arc(displayX, displayY, itemRadius * pulseFactor, 0, Math.PI * 2);
           ctx.fill();
           
           const highlightSize = Math.max(3, itemRadius * 0.3);
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.beginPath();
-          ctx.arc(item.x - itemRadius * 0.3, item.y - itemRadius * 0.3, highlightSize, 0, Math.PI * 2);
+          ctx.arc(displayX - itemRadius * 0.3, displayY - itemRadius * 0.3, highlightSize, 0, Math.PI * 2);
           ctx.fill();
         });
       }
