@@ -2,20 +2,20 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import GameCanvas from "@/components/GameCanvas";
-import { createClient } from "@supabase/supabase-js";
 import { io } from "socket.io-client";
 import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut, Trophy, User, Gamepad2, ArrowRight } from "lucide-react";
+import { LogOut, Trophy, User, Gamepad2, ArrowRight, Brush, Settings } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
-
-const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { useAuth } from "@/hooks/use-auth";
+import { useSkins } from "@/hooks/use-skins";
+import SkinSelector from "@/components/SkinSelector";
+import { Link } from "react-router-dom";
+import AuthButtons from "@/components/AuthButtons";
 
 const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
 
@@ -88,6 +88,15 @@ const Index = () => {
   const moveThrottleRef = useRef(false);
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
+  
+  const { user, profile, loading: authLoading, updateProfile } = useAuth();
+  const { selectedSkin, loading: skinsLoading } = useSkins();
+  
+  useEffect(() => {
+    if (profile && profile.pseudo) {
+      setUsername(profile.pseudo);
+    }
+  }, [profile]);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -171,6 +180,10 @@ const Index = () => {
       return;
     }
     
+    if (user && profile && username !== profile.pseudo) {
+      updateProfile({ pseudo: username });
+    }
+    
     setConnecting(true);
     setShowGameOverDialog(false);
     setIsSpectator(false);
@@ -239,8 +252,11 @@ const Index = () => {
       
       newSocket.emit("setPseudo", { pseudo: username });
       
-      const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
-      const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
+      const playerColor = selectedSkin?.data.colors[0] || 
+        ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6'][
+          Math.floor(Math.random() * 7)
+        ];
+        
       const worldSize = { width: 4000, height: 4000 };
       const randomItems = generateRandomItems(50, worldSize);
       
@@ -252,7 +268,7 @@ const Index = () => {
             x: Math.random() * 800,
             y: Math.random() * 600,
             length: 20,
-            color: randomColor,
+            color: playerColor,
             queue: [],
             itemEatenCount: DEFAULT_ITEM_EATEN_COUNT,
             pseudo: username
@@ -431,6 +447,10 @@ const Index = () => {
     setShowLeaderboard(prev => !prev);
   };
 
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white overflow-hidden">
       {!gameStarted && (
@@ -446,7 +466,7 @@ const Index = () => {
             Naviguez avec votre processeur, collectez des fragments de code et évitez les collisions avec les traces des autres joueurs.
           </p>
           
-          <div className="w-full max-w-sm mb-8">
+          <div className="w-full max-w-sm mb-6">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
                 <User className="h-5 w-5" />
@@ -455,7 +475,7 @@ const Index = () => {
                 type="text"
                 placeholder="Entrez votre pseudo"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={handleUsernameChange}
                 className="text-white bg-gray-800/80 border-gray-700 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 rounded-lg py-6"
                 maxLength={16}
                 required
@@ -463,26 +483,51 @@ const Index = () => {
             </div>
           </div>
           
-          <Button
-            className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
-            onClick={handlePlay}
-            disabled={connecting || !username.trim()}
-          >
-            {connecting ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Connexion...
-              </>
-            ) : (
-              <>
-                JOUER
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </>
-            )}
-          </Button>
+          <div className="w-full mb-6">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-sm font-medium text-gray-300">Choisissez un skin</h2>
+              <Link to="/skins" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center">
+                <Brush className="h-3 w-3 mr-1" />
+                Plus de skins
+              </Link>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
+              {skinsLoading ? (
+                <div className="flex justify-center py-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
+                </div>
+              ) : (
+                <SkinSelector />
+              )}
+            </div>
+          </div>
+          
+          <div className="flex flex-col w-full gap-3">
+            <Button
+              className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
+              onClick={handlePlay}
+              disabled={connecting || !username.trim()}
+            >
+              {connecting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Connexion...
+                </>
+              ) : (
+                <>
+                  JOUER
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
+            </Button>
+            
+            <div className="flex justify-center">
+              <AuthButtons />
+            </div>
+          </div>
           
           {reconnectAttempts > 0 && (
             <p className="mt-4 text-amber-400 flex items-center">
@@ -516,6 +561,17 @@ const Index = () => {
       {gameStarted && (
         <>
           <div className="absolute top-4 right-4 z-20 flex space-x-2">
+            <Link to="/skins">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="bg-gray-900/70 border-indigo-500/30 text-white hover:bg-indigo-900/30 rounded-lg shadow-md"
+              >
+                <Brush className="mr-1 h-4 w-4 text-indigo-400" />
+                Skins
+              </Button>
+            </Link>
+            
             <Button 
               variant="outline" 
               size="sm"
