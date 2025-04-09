@@ -8,7 +8,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut } from "lucide-react";
+import { LogOut, Trophy } from "lucide-react"; // Added Trophy import here
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 
