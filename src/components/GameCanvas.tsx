@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -95,12 +96,18 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
   _joystickDirection = direction;
 };
 
+// Updated to incorporate growth based on itemEatenCount
 const getHeadRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.001;
+  const baseRadius = BASE_SIZE / 2;
+  const growthFactor = player.itemEatenCount || 0;
+  return baseRadius + (growthFactor * 0.2); // Scale by 0.2 per item eaten
 };
 
+// Updated to incorporate growth based on itemEatenCount
 const getSegmentRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.001;
+  const baseRadius = BASE_SIZE / 2;
+  const growthFactor = player.itemEatenCount || 0; 
+  return baseRadius + (growthFactor * 0.15); // Slightly smaller scaling for segments
 };
 
 const GameCanvas = ({ 
@@ -116,7 +123,7 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.5 : 1.5  // Changed desktop zoom from 1.3 to 1.5
+    zoom: isMobile ? 0.5 : 1.5
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
@@ -889,11 +896,11 @@ const GameCanvas = ({
               ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.fill();
               
-              // Draw internal border
+              // Draw normal border instead of internal
               ctx.strokeStyle = darkenColor(baseColor, 30);
-              ctx.lineWidth = 2;
+              ctx.lineWidth = 1; // Use 1px as requested
               ctx.beginPath();
-              ctx.arc(segment.x, segment.y, segmentRadius * 0.85, 0, Math.PI * 2);
+              ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.stroke();
               
               if (player.boosting) {
