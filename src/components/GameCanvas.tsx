@@ -36,6 +36,7 @@ interface GameCanvasProps {
   onBoostStart: () => void;
   onBoostStop: () => void;
   onPlayerCollision?: (otherPlayerId: string) => void;
+  isSpectator?: boolean; // Added isSpectator prop to the interface
 }
 
 const BASE_SIZE = 20;
@@ -110,7 +111,8 @@ const GameCanvas = ({
   onMove, 
   onBoostStart,
   onBoostStop,
-  onPlayerCollision 
+  onPlayerCollision,
+  isSpectator = false // Default to false if not provided
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isMobile = useIsMobile();
@@ -173,6 +175,8 @@ const GameCanvas = ({
   useEffect(() => {
     if (!playerId) return;
     
+    if (isSpectator) return;
+    
     const handleMouseMove = (e: MouseEvent) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -217,10 +221,10 @@ const GameCanvas = ({
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera]);
+  }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera, isSpectator]);
   
   useEffect(() => {
-    if (!playerId || !gameState.players[playerId] || !onPlayerCollision) return;
+    if (!playerId || !gameState.players[playerId] || !onPlayerCollision || isSpectator) return;
     
     const currentPlayer = gameState.players[playerId];
     const currentHeadRadius = getHeadRadius(currentPlayer);
@@ -258,7 +262,7 @@ const GameCanvas = ({
         }
       }
     });
-  }, [gameState, playerId, onPlayerCollision]);
+  }, [gameState, playerId, onPlayerCollision, isSpectator]);
   
   useEffect(() => {
     if (!gameState.items) return;

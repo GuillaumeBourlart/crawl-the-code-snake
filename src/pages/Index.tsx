@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -271,7 +270,6 @@ const Index = () => {
       setRoomLeaderboard(leaderboard);
     });
     
-    // Nouvelle gestion de l'élimination: passer en mode spectateur
     newSocket.on("player_eliminated", () => {
       console.log("You were eliminated!");
       toast.error("Vous avez été éliminé!");
@@ -279,7 +277,6 @@ const Index = () => {
       setShowGameOverDialog(true);
     });
     
-    // Gestion explicite du statut de spectateur
     newSocket.on("set_spectator", (isSpectator: boolean) => {
       console.log("Set spectator mode:", isSpectator);
       setIsSpectator(isSpectator);
@@ -416,13 +413,11 @@ const Index = () => {
   };
 
   const handleRetry = () => {
-    // Pour rejouer, nous allons d'abord quitter la room actuelle puis rejoindre une nouvelle
     if (socket) {
       socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
-    // Ensuite, nous appelons handlePlay pour rejoindre une nouvelle room
     setShowGameOverDialog(false);
     setIsSpectator(false);
     handlePlay();
@@ -587,4 +582,3 @@ const Index = () => {
 };
 
 export default Index;
-
