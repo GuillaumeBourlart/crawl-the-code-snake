@@ -497,49 +497,32 @@ const Index = () => {
           
           <div className="w-full mb-6">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-medium text-gray-300">Choisissez un skin</h2>
+              <h2 className="text-sm font-medium text-gray-300">Votre skin</h2>
               <Link to="/skins" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center">
                 <Brush className="h-3 w-3 mr-1" />
-                Plus de skins
+                Changer de skin
               </Link>
             </div>
             
-            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
+            <Link to="/skins" className="block bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
               {skinsLoading ? (
                 <div className="flex justify-center py-2">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
                 </div>
               ) : (
-                <>
-                  {selectedSkin && (
-                    <div className="flex flex-col items-center mb-4">
-                      <SkinPreview skin={selectedSkin} size="medium" animate={true} />
-                      <h3 className="mt-2 text-md font-medium">{selectedSkin.name}</h3>
-                    </div>
-                  )}
-                  <div className="mt-4">
-                    <h4 className="text-xs text-gray-400 mb-2">Sélectionner un skin</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableSkins.map(skin => (
-                        <Button
-                          key={skin.id}
-                          size="sm"
-                          variant={selectedSkinId === skin.id ? "default" : "outline"}
-                          className={`w-full text-xs ${
-                            selectedSkinId === skin.id 
-                              ? 'bg-indigo-600 hover:bg-indigo-700' 
-                              : 'bg-gray-800/70 hover:bg-gray-700/70'
-                          }`}
-                          onClick={() => setSelectedSkin(skin.id)}
-                        >
-                          {skin.name}
-                        </Button>
-                      ))}
-                    </div>
+                selectedSkin ? (
+                  <div className="flex flex-col items-center">
+                    <SkinPreview skin={selectedSkin} size="medium" animate={true} pattern="snake" />
+                    <h3 className="mt-2 text-md font-medium">{selectedSkin.name}</h3>
                   </div>
-                </>
+                ) : (
+                  <div className="flex flex-col items-center py-4">
+                    <p className="text-gray-400">Aucun skin sélectionné</p>
+                    <p className="text-xs text-indigo-400 mt-2">Cliquez pour en choisir un</p>
+                  </div>
+                )
               )}
-            </div>
+            </Link>
           </div>
           
           <div className="flex flex-col w-full gap-3">

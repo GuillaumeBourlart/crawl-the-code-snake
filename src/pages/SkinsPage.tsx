@@ -129,104 +129,88 @@ const SkinsPage = () => {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8 items-start">
-          {/* Skin Preview Section */}
-          <div className="w-full md:w-1/3 bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-indigo-500/20 shadow-xl">
-            <h2 className="text-xl font-bold mb-4 text-center">Prévisualization</h2>
-            {selectedSkin ? (
-              <div className="flex flex-col items-center">
-                <SkinPreview skin={selectedSkin} size="large" animate={true} />
-                <h3 className="mt-4 text-lg font-medium">{selectedSkin.name}</h3>
-                {selectedSkin.description && (
-                  <p className="mt-2 text-sm text-gray-300 text-center">
-                    {selectedSkin.description}
-                  </p>
-                )}
-                
-                <div className="mt-6 w-full space-y-4">
-                  <div>
-                    <label htmlFor="pseudo" className="block text-sm font-medium text-gray-300 mb-1">
-                      Votre pseudo
-                    </label>
-                    <Input
-                      id="pseudo"
-                      value={pseudo}
-                      onChange={handlePseudoChange}
-                      className="bg-gray-800 border-gray-700 text-white"
-                      placeholder="Entrez votre pseudo"
-                      maxLength={20}
-                    />
-                  </div>
-                  
-                  <Button 
-                    className="w-full bg-indigo-600 hover:bg-indigo-700"
-                    onClick={handleStartGame}
-                    disabled={!selectedSkin || !pseudo.trim()}
-                  >
-                    Commencer à jouer
-                  </Button>
-                </div>
-              </div>
+        <div className="mb-6 bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
+          <div className="flex flex-col md:flex-row gap-6 items-center">
+            <div className="w-full md:w-1/3">
+              <Input
+                id="pseudo"
+                value={pseudo}
+                onChange={handlePseudoChange}
+                className="bg-gray-800 border-gray-700 text-white"
+                placeholder="Entrez votre pseudo"
+                maxLength={20}
+              />
+              <Button 
+                className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700"
+                onClick={handleStartGame}
+                disabled={!selectedSkin || !pseudo.trim()}
+              >
+                Commencer à jouer
+              </Button>
+            </div>
+            <div className="w-full md:w-2/3 text-center">
+              <p className="text-sm text-gray-300 mb-2">
+                Choisissez un skin et entrez votre pseudo pour jouer
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-1">Vos skins</h2>
+          <p className="text-sm text-gray-300 mb-4">
+            Sélectionnez parmi vos skins disponibles
+          </p>
+          
+          <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
+            {availableSkins.length > 0 ? (
+              <SkinSelector 
+                onSelectSkin={handleSkinSelectAndSave}
+                showPreview={true}
+                previewPattern="snake"
+              />
             ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
-                Aucun skin sélectionné
+              <div className="text-center py-8 text-gray-400">
+                Aucun skin disponible pour le moment
               </div>
             )}
           </div>
+        </div>
 
-          {/* Skin Selection Section */}
-          <div className="w-full md:w-2/3">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-1">Vos skins</h2>
-              <p className="text-sm text-gray-300 mb-4">
-                Sélectionnez parmi vos skins disponibles
-              </p>
-              
-              <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
-                {availableSkins.length > 0 ? (
-                  <SkinSelector onSelectSkin={handleSkinSelectAndSave} />
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    Aucun skin disponible pour le moment
-                  </div>
-                )}
-              </div>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xl font-bold">Boutique</h2>
+            <div className="flex items-center text-sm text-gray-300">
+              <ShoppingCart className="h-4 w-4 mr-1 text-indigo-400" />
+              Obtenir plus de skins
             </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold">Boutique</h2>
-                <div className="flex items-center text-sm text-gray-300">
-                  <ShoppingCart className="h-4 w-4 mr-1 text-indigo-400" />
-                  Obtenir plus de skins
-                </div>
-              </div>
-              <p className="text-sm text-gray-300 mb-4">
-                Achetez des skins premium pour vous démarquer dans le jeu
+          </div>
+          <p className="text-sm text-gray-300 mb-4">
+            Achetez des skins premium pour vous démarquer dans le jeu
+          </p>
+          
+          {!user && (
+            <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
+              <p className="text-center">
+                Connectez-vous avec Google pour acheter et sauvegarder vos skins
               </p>
-              
-              {!user && (
-                <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
-                  <p className="text-center">
-                    Connectez-vous avec Google pour acheter et sauvegarder vos skins
-                  </p>
-                </div>
-              )}
-              
-              <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
-                {purchasableSkins.length > 0 ? (
-                  <SkinSelector 
-                    showPurchasable={true} 
-                    onPurchase={handlePurchase}
-                    onSelectSkin={handleSkinSelectAndSave}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    Aucun skin disponible à l'achat
-                  </div>
-                )}
-              </div>
             </div>
+          )}
+          
+          <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
+            {purchasableSkins.length > 0 ? (
+              <SkinSelector 
+                showPurchasable={true} 
+                onPurchase={handlePurchase}
+                onSelectSkin={handleSkinSelectAndSave}
+                showPreview={true}
+                previewPattern="snake"
+              />
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                Aucun skin disponible à l'achat
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -37,7 +37,7 @@ const SkinPreview = ({
     // Snake properties
     const segmentSize = width / 12;
     const segmentSpacing = skin.data.segmentSpacing || 0.9;
-    const segmentCount = pattern === 'snake' ? 20 : 20; // Augmenté à 20 pour correspondre à la structure du serveur
+    const segmentCount = 20; // Showing exactly 20 segments to match server structure
     
     // Animation properties
     let animationFrame: number;
@@ -47,15 +47,15 @@ const SkinPreview = ({
       ctx.clearRect(0, 0, width, height);
       
       if (pattern === 'circular') {
-        // Head (premier segment) au centre
+        // Head (premier segment) au centre avec la première couleur du tableau
         const headColor = skin.data.colors[0];
         ctx.fillStyle = headColor;
         ctx.beginPath();
         ctx.arc(centerX, centerY, segmentSize * 1.2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw snake segments in a circular pattern
-        for (let i = 0; i < segmentCount - 1; i++) {
+        // Draw 19 snake segments in a circular pattern
+        for (let i = 0; i < 19; i++) {
           const segmentAngle = animate 
             ? angle + (i * 0.3) 
             : (Math.PI / 4) + (i * 0.3);
@@ -65,9 +65,10 @@ const SkinPreview = ({
           const x = centerX + Math.cos(segmentAngle) * distance;
           const y = centerY + Math.sin(segmentAngle) * distance;
           
-          // Use colors from the skin, cycling through them (starting from index 1 since 0 is the head)
-          const colorIndex = (i % (skin.data.colors.length - 1)) + 1;
-          ctx.fillStyle = skin.data.colors[colorIndex];
+          // Use the appropriate color from the skin's colors array
+          // The pattern repeats every 20 circles (head + 19 segments)
+          const colorIndex = (i % skin.data.colors.length) + 1;
+          ctx.fillStyle = skin.data.colors[i % skin.data.colors.length];
           
           ctx.beginPath();
           ctx.arc(x, y, segmentSize / 2, 0, Math.PI * 2);
@@ -79,7 +80,7 @@ const SkinPreview = ({
         const amplitude = height * 0.2;
         const frequency = 2;
         
-        // Draw head
+        // Draw head with the first color
         const headX = centerX - pathLength * 0.3;
         const headY = centerY;
         const headSize = segmentSize * 1.2;
@@ -109,15 +110,15 @@ const SkinPreview = ({
         ctx.arc(headX - headSize * 0.25, headY + headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw body segments
-        for (let i = 1; i < segmentCount; i++) {
-          const progress = i / segmentCount;
+        // Draw 19 body segments to match server's skin structure
+        for (let i = 1; i < 20; i++) {
+          const progress = i / 20;
           const wavePhase = animate ? angle * 3 : 0;
           const x = headX + progress * pathLength;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
           
-          // Use colors from the skin, cycling through them (starting from index 1 since 0 is the head)
-          const colorIndex = ((i - 1) % (skin.data.colors.length - 1)) + 1;
+          // Use the color at the corresponding index in the skin's color array
+          const colorIndex = (i - 1) % skin.data.colors.length;
           ctx.fillStyle = skin.data.colors[colorIndex];
           
           ctx.beginPath();
