@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -196,10 +197,6 @@ const GameOverDialog = ({
             </DialogTitle>
           </div>
         </DialogHeader>
-        
-        <div className="text-center text-white text-sm mt-2 mb-4 bg-black/30 p-2 rounded">
-          Vous êtes maintenant en mode spectateur. Vous pouvez continuer à observer la partie ou choisir de rejouer.
-        </div>
         
         <div className="flex justify-center items-center gap-4 mt-4">
           <Button

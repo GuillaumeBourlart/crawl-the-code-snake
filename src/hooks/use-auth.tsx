@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         setUser(session?.user || null);
         
         if (event === 'SIGNED_IN' && session?.user) {
@@ -67,9 +68,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       if (data) {
+        console.log("Profile fetched:", data);
         setProfile(data as Profile);
       } else {
         // Create a new profile if one doesn't exist
+        console.log("Creating new profile for user:", userId);
         const newProfile = {
           id: userId,
           pseudo: `Player_${Math.floor(Math.random() * 10000)}`,
@@ -94,14 +97,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log("Attempting to sign in with Google...");
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         },
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Google sign-in error:", error);
+        throw error;
+      }
+      
+      console.log("SignInWithGoogle response:", data);
+
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Failed to sign in with Google');
