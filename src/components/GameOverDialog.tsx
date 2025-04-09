@@ -216,14 +216,14 @@ const GameOverDialog = ({
           </div>
         </DialogHeader>
         
-        <div className="text-center text-white text-sm mt-2 mb-4 backdrop-blur-sm bg-black/30 p-2 rounded">
+        <div className="text-center text-white text-sm mt-2 mb-4 bg-black/30 p-2 rounded">
           Vous êtes maintenant en mode spectateur. Vous pouvez continuer à observer la partie ou choisir de rejouer.
         </div>
         
         <DialogFooter className="flex justify-center gap-4 sm:gap-6 mt-4">
           <Button
             variant="outline"
-            className="bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white border-gray-600"
+            className="bg-black/50 hover:bg-black/70 text-white border-gray-600"
             onClick={onQuit}
           >
             Quitter
