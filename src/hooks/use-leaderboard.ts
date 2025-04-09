@@ -16,12 +16,12 @@ export function useGlobalLeaderboard(socketUrl: string) {
     async function fetchLeaderboard() {
       try {
         setIsLoading(true);
-        // Remplacer la partie URL par l'URL complète du socketUrl
-        const baseUrl = socketUrl.replace(/\/socket\.io.*$/, '').replace('wss://', 'https://');
+        // Utiliser directement l'URL du serveur au lieu d'essayer de la dériver de socketUrl
+        const baseUrl = "https://codecrawl-production.up.railway.app";
         const response = await fetch(`${baseUrl}/globalLeaderboard`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch global leaderboard');
+          throw new Error(`Failed to fetch global leaderboard: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();

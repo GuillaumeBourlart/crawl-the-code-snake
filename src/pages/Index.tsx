@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +56,6 @@ interface PlayerScore {
 const MAX_RECONNECTION_ATTEMPTS = 5;
 const RECONNECTION_DELAY = 2000;
 
-// Constants to match server
 const MIN_ITEM_RADIUS = 4;
 const MAX_ITEM_RADIUS = 10;
 
@@ -80,7 +78,7 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   
-  const { leaderboard: globalLeaderboard } = useGlobalLeaderboard(SOCKET_SERVER_URL);
+  const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
   const isMobile = useIsMobile();
   const moveThrottleRef = useRef(false);
@@ -164,7 +162,6 @@ const Index = () => {
   };
   
   const handlePlay = () => {
-    // Check if username is provided
     if (!username.trim()) {
       toast.error("Veuillez entrer un pseudo avant de jouer");
       return;
@@ -234,7 +231,6 @@ const Index = () => {
       setPlayerId(newSocket.id);
       setGameStarted(true);
       
-      // Send the username to the server
       newSocket.emit("setPseudo", { pseudo: username });
       
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
@@ -262,7 +258,6 @@ const Index = () => {
       toast.success("Vous avez rejoint la partie");
     });
     
-    // Écouter les mises à jour du leaderboard de la room
     newSocket.on("update_room_leaderboard", (leaderboard: PlayerScore[]) => {
       console.log("Room leaderboard update:", leaderboard);
       setRoomLeaderboard(leaderboard);
@@ -495,6 +490,8 @@ const Index = () => {
             globalLeaderboard={globalLeaderboard || []}
             currentPlayerId={playerId}
             isVisible={showLeaderboard}
+            isGlobalLeaderboardLoading={isGlobalLeaderboardLoading}
+            globalLeaderboardError={globalLeaderboardError}
           />
           
           <GameCanvas

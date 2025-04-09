@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Trophy, Users, Medal } from "lucide-react";
+import { Trophy, Users, Medal, AlertCircle } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PlayerScore {
   id: string;
@@ -23,13 +24,17 @@ interface LeaderboardPanelProps {
   globalLeaderboard: { id: string; score: number; pseudo?: string }[];
   currentPlayerId: string | null;
   isVisible: boolean;
+  isGlobalLeaderboardLoading?: boolean;
+  globalLeaderboardError?: Error | null;
 }
 
 const LeaderboardPanel = ({
   roomLeaderboard,
   globalLeaderboard,
   currentPlayerId,
-  isVisible
+  isVisible,
+  isGlobalLeaderboardLoading = false,
+  globalLeaderboardError = null
 }: LeaderboardPanelProps) => {
   const [activeTab, setActiveTab] = useState<string>("room");
 
@@ -108,7 +113,25 @@ const LeaderboardPanel = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {globalLeaderboard.length > 0 ? (
+                  {isGlobalLeaderboardLoading ? (
+                    // Afficher des skeletons pendant le chargement
+                    Array(5).fill(0).map((_, index) => (
+                      <TableRow key={`loading-${index}`} className="border-gray-700">
+                        <TableCell className="px-2 py-1 text-xs"><Skeleton className="h-4 w-4 bg-gray-700"/></TableCell>
+                        <TableCell className="px-2 py-1 text-xs"><Skeleton className="h-4 w-16 bg-gray-700"/></TableCell>
+                        <TableCell className="text-right px-2 py-1 text-xs"><Skeleton className="h-4 w-8 bg-gray-700 ml-auto"/></TableCell>
+                      </TableRow>
+                    ))
+                  ) : globalLeaderboardError ? (
+                    // Afficher une erreur si la récupération a échoué
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-xs py-2 text-red-400 flex items-center justify-center">
+                        <AlertCircle className="h-4 w-4 mr-1 text-red-400" />
+                        Erreur de chargement
+                      </TableCell>
+                    </TableRow>
+                  ) : globalLeaderboard.length > 0 ? (
+                    // Afficher les données si elles sont disponibles
                     globalLeaderboard.map((player, index) => (
                       <TableRow 
                         key={player.id}
@@ -122,9 +145,10 @@ const LeaderboardPanel = ({
                       </TableRow>
                     ))
                   ) : (
+                    // Aucune donnée disponible
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-xs py-2 text-gray-400">
-                        Chargement...
+                        Aucun classement global
                       </TableCell>
                     </TableRow>
                   )}
