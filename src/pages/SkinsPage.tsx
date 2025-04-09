@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -11,8 +10,7 @@ import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 
-// Your Stripe publishable key
-const stripePromise = loadStripe("pk_test_your_stripe_key"); // Replace with your actual key
+const stripePromise = loadStripe("pk_test_your_stripe_key");
 
 const SkinsPage = () => {
   const { selectedSkin, availableSkins, purchasableSkins, setSelectedSkin } = useSkins();
@@ -29,7 +27,6 @@ const SkinsPage = () => {
     try {
       setIsProcessing(true);
       
-      // Call your Stripe checkout function
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { 
           skinId: skin.id,
@@ -40,7 +37,6 @@ const SkinsPage = () => {
 
       if (error) throw error;
       
-      // Redirect to Stripe Checkout
       if (data?.url) {
         window.location.href = data.url;
       } else {
@@ -55,7 +51,6 @@ const SkinsPage = () => {
   };
 
   const handleSkinSelectAndSave = (skinId: number) => {
-    // Mettre à jour le skin sélectionné via le hook
     setSelectedSkin(skinId);
     toast.success("Skin sélectionné !");
   };
@@ -66,7 +61,6 @@ const SkinsPage = () => {
       return;
     }
     
-    // Retourner à la page d'accueil
     navigate('/');
     toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
   };
@@ -100,16 +94,14 @@ const SkinsPage = () => {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6 rounded-xl p-6 border border-gray-800 shadow-xl">
-          <div className="flex justify-end">
-            <Button 
-              className="bg-indigo-600 hover:bg-indigo-700"
-              onClick={handleConfirmSelection}
-              disabled={!selectedSkin}
-            >
-              Valider
-            </Button>
-          </div>
+        <div className="mb-6 p-6 flex justify-center">
+          <Button 
+            className="bg-indigo-600 hover:bg-indigo-700"
+            onClick={handleConfirmSelection}
+            disabled={!selectedSkin}
+          >
+            Valider
+          </Button>
         </div>
 
         <div className="mb-6">
