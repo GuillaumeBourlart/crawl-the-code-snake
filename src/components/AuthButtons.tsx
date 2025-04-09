@@ -2,19 +2,24 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut, LogIn, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AuthButtons = () => {
   const { user, signInWithGoogle, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Reset loading state if user changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [user]);
 
   const handleSignIn = async () => {
     setIsLoading(true);
     try {
       await signInWithGoogle();
-    } finally {
-      // Set a timeout because we'll be redirected
-      setTimeout(() => setIsLoading(false), 5000);
+      // No need for timeout as the page will redirect
+    } catch (error) {
+      setIsLoading(false);
     }
   };
 

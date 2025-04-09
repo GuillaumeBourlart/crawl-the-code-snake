@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -71,7 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Profile fetched:", data);
         setProfile(data as Profile);
       } else {
-        // Create a new profile if one doesn't exist
         console.log("Creating new profile for user:", userId);
         const newProfile = {
           id: userId,
@@ -99,14 +97,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Attempting to sign in with Google...");
       
-      // Get the current domain from the window location
-      const currentDomain = window.location.origin;
-      console.log("Current domain for redirect:", currentDomain);
-      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: currentDomain,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
