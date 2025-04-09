@@ -12,8 +12,6 @@ import { LogOut, Trophy, User, Gamepad2, ArrowRight } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
-import SkinSelection from "@/components/SkinSelection";
-import { useSkins, Skin } from "@/hooks/use-skins";
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
@@ -83,21 +81,13 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
-  const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   
-  const { skins, isLoading: isSkinsLoading } = useSkins();
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
   const isMobile = useIsMobile();
   const moveThrottleRef = useRef(false);
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
-  
-  useEffect(() => {
-    if (skins.length > 0 && selectedSkinId === null) {
-      setSelectedSkinId(skins[0].id);
-    }
-  }, [skins]);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -175,25 +165,9 @@ const Index = () => {
     return items;
   };
   
-  const getSelectedSkinColor = (): string => {
-    if (selectedSkinId === null) return '#FF0000';
-    
-    const selectedSkin = skins.find(skin => skin.id === selectedSkinId);
-    if (!selectedSkin || !selectedSkin.data.colors || selectedSkin.data.colors.length === 0) {
-      return '#FF0000';
-    }
-    
-    return selectedSkin.data.colors[0];
-  };
-  
   const handlePlay = () => {
     if (!username.trim()) {
       toast.error("Veuillez entrer un pseudo avant de jouer");
-      return;
-    }
-    
-    if (selectedSkinId === null) {
-      toast.error("Veuillez sélectionner un skin avant de jouer");
       return;
     }
     
@@ -265,7 +239,8 @@ const Index = () => {
       
       newSocket.emit("setPseudo", { pseudo: username });
       
-      const playerColor = getSelectedSkinColor();
+      const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
+      const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       const worldSize = { width: 4000, height: 4000 };
       const randomItems = generateRandomItems(50, worldSize);
       
@@ -277,7 +252,7 @@ const Index = () => {
             x: Math.random() * 800,
             y: Math.random() * 600,
             length: 20,
-            color: playerColor,
+            color: randomColor,
             queue: [],
             itemEatenCount: DEFAULT_ITEM_EATEN_COUNT,
             pseudo: username
@@ -286,39 +261,6 @@ const Index = () => {
         items: randomItems,
         worldSize
       }));
-      
-      const saveUserPreferences = async () => {
-        try {
-          const { data: existingUser, error: fetchError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('pseudo', username)
-            .single();
-          
-          if (fetchError && fetchError.code !== 'PGRST116') {
-            console.error("Error checking user:", fetchError);
-            return;
-          }
-          
-          if (!existingUser) {
-            const { error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                pseudo: username,
-              });
-            
-            if (createError) {
-              console.error("Error creating user profile:", createError);
-            }
-          }
-          
-          console.log(`User ${username} selected skin ID: ${selectedSkinId}`);
-        } catch (err) {
-          console.error("Error saving user preferences:", err);
-        }
-      };
-      
-      saveUserPreferences();
       
       toast.success("Vous avez rejoint la partie");
     });
@@ -504,7 +446,7 @@ const Index = () => {
             Naviguez avec votre processeur, collectez des fragments de code et évitez les collisions avec les traces des autres joueurs.
           </p>
           
-          <div className="w-full max-w-sm mb-4">
+          <div className="w-full max-w-sm mb-8">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
                 <User className="h-5 w-5" />
@@ -521,19 +463,10 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="w-full mb-6">
-            <SkinSelection 
-              skins={skins}
-              selectedSkinId={selectedSkinId}
-              onSelectSkin={setSelectedSkinId}
-              isLoading={isSkinsLoading}
-            />
-          </div>
-          
           <Button
             className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
             onClick={handlePlay}
-            disabled={connecting || !username.trim() || selectedSkinId === null}
+            disabled={connecting || !username.trim()}
           >
             {connecting ? (
               <>
