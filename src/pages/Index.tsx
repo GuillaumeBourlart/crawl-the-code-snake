@@ -11,6 +11,7 @@ import GameOverDialog from "@/components/GameOverDialog";
 import { LogOut, Trophy, User, Gamepad2, ArrowRight } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
+import PlayerScore from "@/components/PlayerScore";
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
@@ -501,6 +502,11 @@ const Index = () => {
               Quitter
             </Button>
           </div>
+          
+          <PlayerScore 
+            playerId={playerId} 
+            players={gameState.players} 
+          />
           
           <LeaderboardPanel 
             roomLeaderboard={roomLeaderboard}
