@@ -19,7 +19,7 @@ const PlayerScore = ({ playerId, players }: PlayerScoreProps) => {
     if (!playerId || !players[playerId]) return;
     
     const player = players[playerId];
-    const currentScore = player.queue?.length || 0;
+    const currentScore = player.itemEatenCount || 0;
     setScore(currentScore);
   }, [playerId, players]);
   
