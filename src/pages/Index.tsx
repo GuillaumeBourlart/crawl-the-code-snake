@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import GameCanvas from "@/components/GameCanvas";
@@ -8,10 +9,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
 import { LogOut } from "lucide-react";
+import LeaderboardPanel from "@/components/LeaderboardPanel";
+import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3ODYwMTQsImV4cCI6MjA1OTM2MjAxNH0.ge6A-qatlKPDFKA4N19KalL5fU9FBD4zBgIoXnKRRUc";
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
 
 interface ServerPlayer {
   id?: string;
@@ -40,6 +45,12 @@ interface ServerGameState {
   worldSize?: { width: number; height: number };
 }
 
+interface PlayerScore {
+  id: string;
+  score: number;
+  color: string;
+}
+
 const MAX_RECONNECTION_ATTEMPTS = 5;
 const RECONNECTION_DELAY = 2000;
 
@@ -62,6 +73,10 @@ const Index = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const [showGameOverDialog, setShowGameOverDialog] = useState(false);
+  const [roomLeaderboard, setRoomLeaderboard] = useState<PlayerScore[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(true);
+  
+  const { leaderboard: globalLeaderboard } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
   const isMobile = useIsMobile();
   const moveThrottleRef = useRef(false);
@@ -152,7 +167,7 @@ const Index = () => {
       socket.disconnect();
     }
     
-    const newSocket = io("https://codecrawl-production.up.railway.app", {
+    const newSocket = io(SOCKET_SERVER_URL, {
       transports: ["websocket"],
       upgrade: false,
       reconnectionAttempts: 5,
@@ -231,6 +246,12 @@ const Index = () => {
       }));
       
       toast.success("Vous avez rejoint la partie");
+    });
+    
+    // Écouter les mises à jour du leaderboard de la room
+    newSocket.on("update_room_leaderboard", (leaderboard: PlayerScore[]) => {
+      console.log("Room leaderboard update:", leaderboard);
+      setRoomLeaderboard(leaderboard);
     });
     
     newSocket.on("player_eliminated", () => {
@@ -363,6 +384,10 @@ const Index = () => {
     lastDirectionRef.current = direction;
   };
 
+  const toggleLeaderboard = () => {
+    setShowLeaderboard(prev => !prev);
+  };
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
       {!gameStarted && (
@@ -414,7 +439,16 @@ const Index = () => {
       )}
       {gameStarted && (
         <>
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 right-4 z-20 flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="bg-gray-800/70 border-gray-700 text-white hover:bg-gray-700/90"
+              onClick={toggleLeaderboard}
+            >
+              <Trophy className="h-4 w-4 mr-1" />
+              {showLeaderboard ? "Cacher" : "Scores"}
+            </Button>
             <Button 
               variant="outline" 
               size="sm"
@@ -425,6 +459,14 @@ const Index = () => {
               Quitter
             </Button>
           </div>
+          
+          <LeaderboardPanel 
+            roomLeaderboard={roomLeaderboard}
+            globalLeaderboard={globalLeaderboard || []}
+            currentPlayerId={playerId}
+            isVisible={showLeaderboard}
+          />
+          
           <GameCanvas
             gameState={{
               ...gameState,
