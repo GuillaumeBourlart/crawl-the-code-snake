@@ -450,9 +450,10 @@ const GameCanvas = ({
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
-      // Define the pupil size relative to the eye size
       const eyeSize = headRadius * 0.35;
       const pupilSize = eyeSize * 0.5;
+      const eyeDistance = headRadius * 0.4;
+      const eyeOffsetY = -headRadius * 0.15;
       
       ctx.save();
       
@@ -534,10 +535,6 @@ const GameCanvas = ({
       ctx.beginPath();
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
-      
-      const eyeSize = headRadius * 0.35;
-      const eyeDistance = headRadius * 0.4;
-      const eyeOffsetY = -headRadius * 0.15;
       
       if (isCurrentPlayer) {
         if (isMobile) {
