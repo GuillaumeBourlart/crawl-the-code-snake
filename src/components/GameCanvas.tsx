@@ -96,11 +96,11 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
 };
 
 const getHeadRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.0005;
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.001;
 };
 
 const getSegmentRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.0005;
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.001;
 };
 
 const GameCanvas = ({ 
@@ -116,7 +116,7 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.5 : 1.3  // Changed mobile zoom from 0 to 0.5, keeps desktop zoom at 1.3
+    zoom: isMobile ? 0.5 : 1.5  // Changed desktop zoom from 1.3 to 1.5
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
@@ -450,6 +450,13 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
+      // Draw normal border (changed from internal border)
+      ctx.strokeStyle = darkenColor(playerColor, 30);
+      ctx.lineWidth = 1; // Changed from 2 to 1px as requested
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      
       // Draw circuit board pattern
       ctx.save();
       ctx.beginPath();
@@ -506,13 +513,6 @@ const GameCanvas = ({
       
       ctx.restore();
       
-      // Internal border for the head
-      ctx.strokeStyle = darkenColor(playerColor, 30);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, headRadius * 0.95, 0, Math.PI * 2);
-      ctx.stroke();
-      
       // Add inner circular detail
       const innerRadius = headRadius * 0.65;
       const coreGradient = ctx.createRadialGradient(
@@ -527,9 +527,9 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add eyes - ENHANCED FOR VISIBILITY
-      const eyeSize = headRadius * 0.18; // Increased size
-      const eyeDistance = headRadius * 0.22;
+      // Add eyes - ENLARGED FOR BETTER VISIBILITY
+      const eyeSize = headRadius * 0.25; // Increased from 0.18 to 0.25
+      const eyeDistance = headRadius * 0.25; // Slightly increased from 0.22
       const eyeOffsetY = -headRadius * 0.05;
       
       // Draw eye whites with improved contrast
@@ -546,11 +546,11 @@ const GameCanvas = ({
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Internal eye border - darker and thicker
+      // Eye border - normal border at 1px
       ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1; // Changed to 1px as requested
       ctx.beginPath();
-      ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.95, 0, Math.PI * 2);
+      ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
       // Right eye
@@ -559,11 +559,11 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Internal eye border - darker and thicker
+      // Eye border - normal border at 1px
       ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1; // Changed to 1px as requested
       ctx.beginPath();
-      ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize * 0.95, 0, Math.PI * 2);
+      ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
       // Add pupils with movement
@@ -600,8 +600,8 @@ const GameCanvas = ({
         }
       }
       
-      // Improved pupils - darker and more contrast
-      const pupilSize = eyeSize * 0.65; // Slightly larger pupils
+      // Improved pupils - larger for better visibility
+      const pupilSize = eyeSize * 0.7; // Increased from 0.65 to 0.7
       
       const pupilGradient = ctx.createRadialGradient(
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
@@ -622,7 +622,7 @@ const GameCanvas = ({
       ctx.fill();
       
       // Improved eye highlights - larger and brighter
-      const highlightSize = eyeSize * 0.25;
+      const highlightSize = eyeSize * 0.3; // Increased from 0.25 to 0.3
       ctx.fillStyle = "#FFFFFF"; // Pure white
       
       // Left eye highlight
