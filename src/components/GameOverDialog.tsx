@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -37,26 +36,20 @@ const GameOverDialog = ({
     };
   }, []);
   
-  // Calculate eye position based on mouse
   const calculateEyeOffset = () => {
     if (!isOpen) return { x: 0, y: 0 };
     
-    // Get dialog position (approximated to center of screen)
     const dialogX = window.innerWidth / 2;
-    const dialogY = window.innerHeight / 2 + 100; // Moved lower
-    
-    // Get processor position within dialog
+    const dialogY = window.innerHeight / 2 + 100;
     const processorX = dialogX - 50;
     const processorY = dialogY;
     
-    // Calculate direction to mouse
     const dx = mousePosition.x - processorX;
     const dy = mousePosition.y - processorY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     if (distance === 0) return { x: 0, y: 0 };
     
-    // Normalize and scale for pupil movement
     const maxPupilOffset = 2;
     return {
       x: (dx / distance) * maxPupilOffset,
@@ -68,11 +61,10 @@ const GameOverDialog = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-transparent border-0 shadow-none translate-y-28"> {/* Made transparent and moved lower */}
+      <DialogContent className="bg-transparent border-0 shadow-none translate-y-28">
         <DialogHeader>
           <div className="flex items-center justify-center mb-2">
             <div className="relative w-16 h-16 mr-2">
-              {/* Main processor chip with improved design */}
               <div 
                 className="w-12 h-12 rounded-md absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
                 style={{ 
@@ -83,7 +75,6 @@ const GameOverDialog = ({
                   borderStyle: "solid"
                 }}
               >
-                {/* Processor notch */}
                 <div 
                   className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-1.5"
                   style={{ 
@@ -96,7 +87,6 @@ const GameOverDialog = ({
                   }}
                 />
                 
-                {/* Circuit pattern (subtle lines) */}
                 <div className="absolute inset-1 opacity-30">
                   <div className="absolute top-1/4 left-0 w-full h-px bg-white" />
                   <div className="absolute top-2/4 left-0 w-full h-px bg-white" />
@@ -107,7 +97,6 @@ const GameOverDialog = ({
                 </div>
               </div>
               
-              {/* Inner processor core with improved design */}
               <div 
                 className="w-8 h-8 rounded-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
                 style={{ 
@@ -119,8 +108,6 @@ const GameOverDialog = ({
                 }}
               />
               
-              {/* Enhanced processor pins */}
-              {/* Top pins with metal tips */}
               <div className="absolute left-[calc(50%-12px)] top-0 w-1.5 h-3 flex flex-col">
                 <div className="h-2.5" style={{ backgroundColor: playerColor }} />
                 <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
@@ -134,7 +121,6 @@ const GameOverDialog = ({
                 <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
               </div>
               
-              {/* Bottom pins with metal tips */}
               <div className="absolute left-[calc(50%-12px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
                 <div className="h-2.5" style={{ backgroundColor: playerColor }} />
                 <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
@@ -152,7 +138,6 @@ const GameOverDialog = ({
                 <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
               </div>
               
-              {/* Left pins with metal tips */}
               <div className="absolute left-0 top-[calc(50%-8px)] h-1.5 w-3 flex flex-row">
                 <div className="w-2.5" style={{ backgroundColor: playerColor }} />
                 <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
@@ -162,7 +147,6 @@ const GameOverDialog = ({
                 <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
               </div>
               
-              {/* Right pins with metal tips */}
               <div className="absolute right-0 top-[calc(50%-8px)] h-1.5 w-3 flex flex-row-reverse">
                 <div className="w-2.5" style={{ backgroundColor: playerColor }} />
                 <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
@@ -172,7 +156,6 @@ const GameOverDialog = ({
                 <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
               </div>
               
-              {/* Enhanced eyes with reflections */}
               <div className="absolute left-[calc(50%-6px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200" />
                 <div 
@@ -182,7 +165,6 @@ const GameOverDialog = ({
                     top: `${0.5 + eyeOffset.y}px` 
                   }}
                 />
-                {/* Eye glint (light reflection) */}
                 <div 
                   className="absolute w-1 h-1 bg-white rounded-full opacity-80"
                   style={{ 
@@ -200,7 +182,6 @@ const GameOverDialog = ({
                     top: `${0.5 + eyeOffset.y}px` 
                   }}
                 />
-                {/* Eye glint (light reflection) */}
                 <div 
                   className="absolute w-1 h-1 bg-white rounded-full opacity-80"
                   style={{ 
@@ -220,7 +201,7 @@ const GameOverDialog = ({
           Vous êtes maintenant en mode spectateur. Vous pouvez continuer à observer la partie ou choisir de rejouer.
         </div>
         
-        <DialogFooter className="flex flex-row justify-center space-x-4 mt-4">
+        <div className="flex justify-center items-center gap-4 mt-4">
           <Button
             variant="outline"
             className="bg-black/50 hover:bg-black/70 text-white border-gray-600"
@@ -234,7 +215,7 @@ const GameOverDialog = ({
           >
             Réessayer
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
