@@ -1,6 +1,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import GameCanvas from "@/components/GameCanvas";
 import { createClient } from "@supabase/supabase-js";
 import { io } from "socket.io-client";
@@ -8,7 +9,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut, Trophy } from "lucide-react"; // Added Trophy import here
+import { LogOut, Trophy, User } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 
@@ -27,7 +28,8 @@ interface ServerPlayer {
   direction?: { x: number; y: number };
   queue?: Array<{ x: number; y: number }>;
   boosting?: boolean;
-  itemEatenCount?: number; // Added to match server data
+  itemEatenCount?: number;
+  pseudo?: string;
 }
 
 interface GameItem {
@@ -49,6 +51,7 @@ interface PlayerScore {
   id: string;
   score: number;
   color: string;
+  pseudo?: string;
 }
 
 const MAX_RECONNECTION_ATTEMPTS = 5;
@@ -68,13 +71,14 @@ const Index = () => {
   const [gameState, setGameState] = useState<ServerGameState>({
     players: {},
     items: {},
-    worldSize: { width: 4000, height: 4000 } // Updated from 2000x2000 to 4000x4000
+    worldSize: { width: 4000, height: 4000 }
   });
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const [showGameOverDialog, setShowGameOverDialog] = useState(false);
   const [roomLeaderboard, setRoomLeaderboard] = useState<PlayerScore[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
+  const [username, setUsername] = useState<string>("");
   
   const { leaderboard: globalLeaderboard } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
@@ -160,6 +164,12 @@ const Index = () => {
   };
   
   const handlePlay = () => {
+    // Check if username is provided
+    if (!username.trim()) {
+      toast.error("Veuillez entrer un pseudo avant de jouer");
+      return;
+    }
+    
     setConnecting(true);
     setShowGameOverDialog(false);
     
@@ -224,6 +234,9 @@ const Index = () => {
       setPlayerId(newSocket.id);
       setGameStarted(true);
       
+      // Send the username to the server
+      newSocket.emit("setPseudo", { pseudo: username });
+      
       const playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6', '#D946EF', '#F97316', '#0EA5E9'];
       const randomColor = playerColors[Math.floor(Math.random() * playerColors.length)];
       const worldSize = { width: 4000, height: 4000 };
@@ -238,7 +251,8 @@ const Index = () => {
             y: Math.random() * 600,
             length: 20,
             color: randomColor,
-            queue: []
+            queue: [],
+            pseudo: username
           }
         },
         items: randomItems,
@@ -398,10 +412,26 @@ const Index = () => {
           <p className="text-gray-300 mb-8 text-center max-w-md">
             Naviguez avec votre processeur, collectez des fragments de code et évitez les collisions avec les traces des autres joueurs.
           </p>
+          
+          <div className="flex flex-col w-full max-w-sm gap-4 mb-6">
+            <div className="flex items-center">
+              <User className="mr-2 h-5 w-5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Entrez votre pseudo"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="text-white bg-gray-800 border-gray-700 focus:border-green-500"
+                maxLength={16}
+                required
+              />
+            </div>
+          </div>
+          
           <Button
             className="px-8 py-6 text-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
             onClick={handlePlay}
-            disabled={connecting}
+            disabled={connecting || !username.trim()}
           >
             {connecting ? (
               <>

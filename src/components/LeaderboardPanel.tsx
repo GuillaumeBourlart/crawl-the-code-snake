@@ -15,11 +15,12 @@ interface PlayerScore {
   id: string;
   score: number;
   color: string;
+  pseudo?: string;
 }
 
 interface LeaderboardPanelProps {
   roomLeaderboard: PlayerScore[];
-  globalLeaderboard: { id: string; score: number }[];
+  globalLeaderboard: { id: string; score: number; pseudo?: string }[];
   currentPlayerId: string | null;
   isVisible: boolean;
 }
@@ -81,7 +82,7 @@ const LeaderboardPanel = ({
                             className="h-3 w-3 rounded-full mr-2" 
                             style={{ backgroundColor: player.color }}
                           />
-                          {player.id === currentPlayerId ? "Vous" : `Joueur ${player.id.substring(0, 4)}`}
+                          {player.id === currentPlayerId ? "Vous" : (player.pseudo || `Joueur ${player.id.substring(0, 4)}`)}
                         </TableCell>
                         <TableCell className="text-right px-2 py-1 text-xs">{player.score}</TableCell>
                       </TableRow>
@@ -115,7 +116,7 @@ const LeaderboardPanel = ({
                       >
                         <TableCell className="px-2 py-1 text-xs font-medium">{index + 1}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">
-                          {player.id === currentPlayerId ? "Vous" : `Joueur ${player.id.substring(0, 4)}`}
+                          {player.id === currentPlayerId ? "Vous" : (player.pseudo || `Joueur ${player.id.substring(0, 4)}`)}
                         </TableCell>
                         <TableCell className="text-right px-2 py-1 text-xs">{player.score}</TableCell>
                       </TableRow>

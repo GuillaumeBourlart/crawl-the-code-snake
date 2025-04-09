@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 interface GlobalLeaderboardEntry {
   id: string;
   score: number;
+  pseudo?: string;
 }
 
 export function useGlobalLeaderboard(socketUrl: string) {
