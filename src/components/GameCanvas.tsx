@@ -454,9 +454,9 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Draw normal border with less contrast but still visible
-      ctx.strokeStyle = shadeColor(playerColor, -20); // Slightly darker than base color for visibility
-      ctx.lineWidth = 1; // Back to 1px for better visibility
+      // Draw normal border with better visibility
+      ctx.strokeStyle = shadeColor(playerColor, -30); // Darker than before for better visibility
+      ctx.lineWidth = 1.5; // Slightly thicker border
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.stroke();
@@ -646,8 +646,8 @@ const GameCanvas = ({
       );
       ctx.fill();
       
-      // Add mouth
-      const mouthY = player.y + headRadius * 0.25;
+      // Add mouth - POSITION LOWERED
+      const mouthY = player.y + headRadius * 0.35; // Moved from 0.25 to 0.35 to place mouth lower
       const mouthWidth = headRadius * 0.4;
       
       // Expression based on boosting
@@ -890,9 +890,9 @@ const GameCanvas = ({
               ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.fill();
               
-              // Segment border - make it visible again but still with reduced contrast
-              ctx.strokeStyle = shadeColor(baseColor, -20); // Slightly darker for visibility
-              ctx.lineWidth = 1; // Back to 1px for visibility
+              // Segment border - improve visibility
+              ctx.strokeStyle = shadeColor(baseColor, -30); // Darker for more contrast 
+              ctx.lineWidth = 1.5; // Slightly thicker border for better visibility
               ctx.beginPath();
               ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.stroke();
