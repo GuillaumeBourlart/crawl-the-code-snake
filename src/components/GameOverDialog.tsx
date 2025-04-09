@@ -43,7 +43,7 @@ const GameOverDialog = ({
     
     // Get dialog position (approximated to center of screen)
     const dialogX = window.innerWidth / 2;
-    const dialogY = window.innerHeight / 2 - 50; // Slightly above center
+    const dialogY = window.innerHeight / 2 + 100; // Moved lower
     
     // Get processor position within dialog
     const processorX = dialogX - 50;
@@ -68,7 +68,7 @@ const GameOverDialog = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white">
+      <DialogContent className="bg-transparent border-0 shadow-none translate-y-28"> {/* Made transparent and moved lower */}
         <DialogHeader>
           <div className="flex items-center justify-center mb-2">
             <div className="relative w-16 h-16 mr-2">
@@ -216,14 +216,14 @@ const GameOverDialog = ({
           </div>
         </DialogHeader>
         
-        <div className="text-center text-gray-300 text-sm mt-2 mb-4">
+        <div className="text-center text-white text-sm mt-2 mb-4 backdrop-blur-sm bg-black/30 p-2 rounded">
           Vous êtes maintenant en mode spectateur. Vous pouvez continuer à observer la partie ou choisir de rejouer.
         </div>
         
         <DialogFooter className="flex justify-center gap-4 sm:gap-6 mt-4">
           <Button
             variant="outline"
-            className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
+            className="bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white border-gray-600"
             onClick={onQuit}
           >
             Quitter
@@ -241,4 +241,3 @@ const GameOverDialog = ({
 };
 
 export default GameOverDialog;
-
