@@ -39,7 +39,7 @@ interface GameCanvasProps {
 }
 
 const BASE_SIZE = 20;
-const DEFAULT_ITEM_EATEN_COUNT = 18; // Constante utilisée dans le serveur
+const DEFAULT_ITEM_EATEN_COUNT = 18; // This is set to match the server constant
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -97,15 +97,11 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
 };
 
 const getHeadRadius = (player: Player): number => {
-  const baseSize = BASE_SIZE / 2;
-  const growthFactor = Math.sqrt(Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT)) * 0.05;
-  return baseSize + growthFactor;
+  return BASE_SIZE / 2 + Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT) * 0.05;
 };
 
 const getSegmentRadius = (player: Player): number => {
-  const baseSize = BASE_SIZE / 2;
-  const growthFactor = Math.sqrt(Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT)) * 0.05;
-  return baseSize + growthFactor;
+  return BASE_SIZE / 2 + Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT) * 0.05;
 };
 
 const GameCanvas = ({ 

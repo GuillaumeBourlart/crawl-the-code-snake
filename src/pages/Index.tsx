@@ -59,6 +59,7 @@ const RECONNECTION_DELAY = 2000;
 
 const MIN_ITEM_RADIUS = 4;
 const MAX_ITEM_RADIUS = 10;
+const DEFAULT_ITEM_EATEN_COUNT = 18;
 
 const Index = () => {
   const [socket, setSocket] = useState<any>(null);
@@ -249,6 +250,7 @@ const Index = () => {
             length: 20,
             color: randomColor,
             queue: [],
+            itemEatenCount: DEFAULT_ITEM_EATEN_COUNT,
             pseudo: username
           }
         },
@@ -278,17 +280,27 @@ const Index = () => {
         setGameState(prevState => {
           const currentPlayer = prevState.players[playerId];
           if (!currentPlayer) return prevState;
+          
+          const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
+          
+          const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
+          const currentQueueLength = currentPlayer.queue?.length || 0;
+          const segmentsToAdd = targetQueueLength - currentQueueLength;
+          
           let newQueue = [...(currentPlayer.queue || [])];
-          for (let i = 0; i < data.growth; i++) {
+          
+          for (let i = 0; i < segmentsToAdd; i++) {
             newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
           }
+          
           return {
             ...prevState,
             players: {
               ...prevState.players,
               [playerId]: {
                 ...currentPlayer,
-                queue: newQueue
+                queue: newQueue,
+                itemEatenCount: newItemEatenCount
               }
             }
           };
