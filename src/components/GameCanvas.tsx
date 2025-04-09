@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -763,3 +764,109 @@ const GameCanvas = ({
       ctx.save();
       
       ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+      
+      // Draw queue segments for all players
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        if (player.queue && player.queue.length > 0) {
+          player.queue.forEach((segment, index) => {
+            const radius = getSegmentRadius(player);
+            const segmentColor = segment.color || player.color || '#8B5CF6';
+            
+            // Draw segment
+            const gradient = ctx.createRadialGradient(
+              segment.x, segment.y, 0,
+              segment.x, segment.y, radius
+            );
+            gradient.addColorStop(0, segmentColor);
+            gradient.addColorStop(1, shadeColor(segmentColor, -15));
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw segment outline
+            ctx.strokeStyle = shadeColor(segmentColor, -30);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+        }
+      });
+      
+      // Draw items
+      rendererStateRef.current.items.forEach(item => {
+        const animation = rendererStateRef.current.itemAnimations[item.id];
+        if (!animation) return;
+        
+        const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius;
+        const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius;
+        
+        animation.rotationAngle += animation.rotationSpeed * 0.01;
+        
+        const itemGradient = ctx.createRadialGradient(
+          itemX, itemY, 0,
+          itemX, itemY, item.radius || 5
+        );
+        
+        itemGradient.addColorStop(0, item.color);
+        itemGradient.addColorStop(1, shadeColor(item.color, -20));
+        
+        ctx.fillStyle = itemGradient;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        const glowGradient = ctx.createRadialGradient(
+          itemX, itemY, (item.radius || 5) * 0.5,
+          itemX, itemY, (item.radius || 5) * 2
+        );
+        glowGradient.addColorStop(0, `${item.color}40`);
+        glowGradient.addColorStop(0.7, `${item.color}10`);
+        glowGradient.addColorStop(1, `${item.color}00`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, (item.radius || 5) * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(item.color, 20);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
+      // Draw player heads
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        drawPlayerHead(player, id === playerId);
+      });
+      
+      ctx.restore();
+      
+      previousTimeRef.current = timestamp;
+      requestRef.current = requestAnimationFrame(renderFrame);
+    };
+    
+    requestRef.current = requestAnimationFrame(renderFrame);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [gameState, camera, playerId, isMobile]);
+  
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="absolute inset-0 w-full h-full touch-none"
+    />
+  );
+};
+
+export default GameCanvas;
