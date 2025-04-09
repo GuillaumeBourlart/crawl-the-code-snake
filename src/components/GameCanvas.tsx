@@ -747,3 +747,317 @@ const GameCanvas = ({
         
         // Add subtle lip highlight
         ctx.strokeStyle = "#555555";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(player.x, mouthY - mouthWidth * 0.6 - 1, mouthWidth, 0.2 * Math.PI, 0.8 * Math.PI);
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    };
+    
+    const drawPlayerSegments = (player: Player, isCurrentPlayer: boolean) => {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (!ctx || !player.queue) return;
+      
+      const segmentRadius = getSegmentRadius(player);
+      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+      
+      player.queue.forEach((segment, index) => {
+        const segmentAlpha = 1 - index * 0.5 / player.queue!.length;
+        const segmentColor = playerColor;
+        
+        // Create a gradient for 3D effect
+        const gradient = ctx.createRadialGradient(
+          segment.x, segment.y, 0,
+          segment.x, segment.y, segmentRadius
+        );
+        gradient.addColorStop(0, shadeColor(segmentColor, 15)); 
+        gradient.addColorStop(0.7, segmentColor);
+        gradient.addColorStop(1, shadeColor(segmentColor, -20));
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Subtle border matching the base color
+        ctx.strokeStyle = shadeColor(segmentColor, -10);
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Inner circuit pattern for segments
+        if (index % 3 === 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(segment.x, segment.y, segmentRadius * 0.7, 0, Math.PI * 2);
+          ctx.clip();
+          
+          // Circuit lines
+          ctx.strokeStyle = `${shadeColor(segmentColor, -15)}40`;
+          ctx.lineWidth = 0.5;
+          
+          // Horizontal lines
+          const lineSpacing = segmentRadius * 0.4;
+          for (let y = -segmentRadius; y <= segmentRadius; y += lineSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(segment.x - segmentRadius, segment.y + y);
+            ctx.lineTo(segment.x + segmentRadius, segment.y + y);
+            ctx.stroke();
+          }
+          
+          // Vertical lines
+          for (let x = -segmentRadius; x <= segmentRadius; x += lineSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(segment.x + x, segment.y - segmentRadius);
+            ctx.lineTo(segment.x + x, segment.y + segmentRadius);
+            ctx.stroke();
+          }
+          
+          // Central node
+          const nodeColor = shadeColor(segmentColor, 25);
+          const nodeSize = segmentRadius * 0.25;
+          
+          // 3D node gradient
+          const nodeGradient = ctx.createRadialGradient(
+            segment.x - nodeSize * 0.3, segment.y - nodeSize * 0.3, 0,
+            segment.x, segment.y, nodeSize
+          );
+          nodeGradient.addColorStop(0, shadeColor(nodeColor, 20));
+          nodeGradient.addColorStop(1, shadeColor(nodeColor, -10));
+          
+          ctx.fillStyle = nodeGradient;
+          ctx.beginPath();
+          ctx.arc(segment.x, segment.y, nodeSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      });
+    };
+    
+    const drawGameItems = () => {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      
+      const time = Date.now() * 0.001;
+      
+      rendererStateRef.current.items.forEach(item => {
+        const animation = rendererStateRef.current.itemAnimations[item.id];
+        if (!animation) return;
+        
+        const offsetX = Math.sin(time * animation.speedX + animation.phaseX) * 3;
+        const offsetY = Math.cos(time * animation.speedY + animation.phaseY) * 3;
+        
+        const x = item.x + offsetX;
+        const y = item.y + offsetY;
+        const radius = item.radius || 10;
+        
+        // Animate the scaling a bit
+        const scalePulse = 0.9 + 0.2 * Math.sin(time * 2 + parseInt(item.id) * 0.1);
+        const pulsingRadius = radius * scalePulse;
+        
+        // Create a glow effect
+        ctx.save();
+        
+        // Outer glow
+        const glowSize = pulsingRadius * 1.5;
+        const glowGradient = ctx.createRadialGradient(
+          x, y, pulsingRadius * 0.8,
+          x, y, glowSize
+        );
+        glowGradient.addColorStop(0, `${item.color}99`);
+        glowGradient.addColorStop(1, `${item.color}00`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(x, y, glowSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Main item body with 3D effect
+        const itemGradient = ctx.createRadialGradient(
+          x - pulsingRadius * 0.3, y - pulsingRadius * 0.3, 0,
+          x, y, pulsingRadius
+        );
+        itemGradient.addColorStop(0, shadeColor(item.color, 30));
+        itemGradient.addColorStop(0.6, item.color);
+        itemGradient.addColorStop(1, shadeColor(item.color, -20));
+        
+        ctx.fillStyle = itemGradient;
+        ctx.beginPath();
+        ctx.arc(x, y, pulsingRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Subtle border
+        ctx.strokeStyle = shadeColor(item.color, -10);
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, pulsingRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Inner shine
+        const shineGradient = ctx.createRadialGradient(
+          x - pulsingRadius * 0.5, y - pulsingRadius * 0.5, 0,
+          x - pulsingRadius * 0.25, y - pulsingRadius * 0.25, pulsingRadius * 0.7
+        );
+        shineGradient.addColorStop(0, `${shadeColor(item.color, 60)}AA`);
+        shineGradient.addColorStop(1, `${shadeColor(item.color, 30)}00`);
+        
+        ctx.fillStyle = shineGradient;
+        ctx.beginPath();
+        ctx.arc(x - pulsingRadius * 0.25, y - pulsingRadius * 0.25, pulsingRadius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+      });
+    };
+    
+    const updateBoostParticles = (deltaTime: number) => {
+      const player = playerId ? gameState.players[playerId] : null;
+      if (!player || !player.boosting) return;
+      
+      const direction = player.direction || { x: 0, y: -1 };
+      const angle = Math.atan2(direction.y, direction.x);
+      
+      // Add new particles when boosting
+      if (Math.random() < 0.4) {
+        const headRadius = getHeadRadius(player);
+        const offsetMagnitude = headRadius * 0.8;
+        const offsetX = -Math.cos(angle) * offsetMagnitude;
+        const offsetY = -Math.sin(angle) * offsetMagnitude;
+        
+        const jitter = 5;
+        const jitterX = (Math.random() - 0.5) * jitter;
+        const jitterY = (Math.random() - 0.5) * jitter;
+        
+        const playerColor = player.color || '#8B5CF6';
+        
+        rendererStateRef.current.boostParticles.push({
+          x: player.x + offsetX + jitterX,
+          y: player.y + offsetY + jitterY,
+          size: 2 + Math.random() * 4,
+          alpha: 0.7 + Math.random() * 0.3,
+          vx: -direction.x * (1 + Math.random()) * 2,
+          vy: -direction.y * (1 + Math.random()) * 2,
+          color: playerColor,
+        });
+      }
+      
+      // Update existing particles
+      const particles = rendererStateRef.current.boostParticles;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const particle = particles[i];
+        
+        particle.x += particle.vx * deltaTime * 60;
+        particle.y += particle.vy * deltaTime * 60;
+        particle.size *= 0.95;
+        particle.alpha *= 0.92;
+        
+        if (particle.alpha < 0.05 || particle.size < 0.5) {
+          particles.splice(i, 1);
+        }
+      }
+    };
+    
+    const drawBoostParticles = () => {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (!ctx) return;
+      
+      ctx.save();
+      
+      rendererStateRef.current.boostParticles.forEach(particle => {
+        // Create a glow effect for particles
+        const glowGradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size * 2
+        );
+        glowGradient.addColorStop(0, `${particle.color}${Math.floor(particle.alpha * 255).toString(16).padStart(2, '0')}`);
+        glowGradient.addColorStop(1, `${particle.color}00`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Core of the particle
+        ctx.fillStyle = `${particle.color}${Math.floor(particle.alpha * 255).toString(16).padStart(2, '0')}`;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      ctx.restore();
+    };
+    
+    const animate = (time: number) => {
+      const deltaTime = (time - previousTimeRef.current) / 1000;
+      previousTimeRef.current = time;
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (!ctx) return;
+      
+      // Clear canvas
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Update grid cache if needed
+      if (rendererStateRef.current.gridNeedsUpdate) {
+        updateGridCache();
+      }
+      
+      // Draw grid from cache
+      if (gridCacheCanvasRef.current) {
+        ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
+      }
+      
+      ctx.save();
+      
+      // Set up camera transform
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+      
+      // Update boost particles
+      updateBoostParticles(deltaTime);
+      
+      // Draw all game elements
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        const isCurrentPlayer = id === playerId;
+        drawPlayerSegments(player, isCurrentPlayer);
+      });
+      
+      drawGameItems();
+      drawBoostParticles();
+      
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        const isCurrentPlayer = id === playerId;
+        drawPlayerHead(player, isCurrentPlayer);
+      });
+      
+      ctx.restore();
+      
+      requestRef.current = requestAnimationFrame(animate);
+    };
+    
+    requestRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [gameState, playerId, camera, isMobile]);
+  
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute top-0 left-0 w-full h-full"
+    />
+  );
+};
+
+export default GameCanvas;
