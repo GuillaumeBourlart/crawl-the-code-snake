@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -94,7 +95,7 @@ const SkinsPage = () => {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6 p-6 flex justify-center">
+        <div className="mb-6 flex justify-center">
           <Button 
             className="bg-indigo-600 hover:bg-indigo-700"
             onClick={handleConfirmSelection}

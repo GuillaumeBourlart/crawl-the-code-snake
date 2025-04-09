@@ -39,7 +39,10 @@ const SkinSelector = ({
     : availableSkins;
 
   const handleSkinSelect = (skinId: number) => {
+    // First set the selected skin in the hook
     setSelectedSkin(skinId);
+    
+    // Then call the onSelectSkin callback if provided
     if (onSelectSkin) {
       onSelectSkin(skinId);
     }

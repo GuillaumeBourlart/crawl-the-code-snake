@@ -48,13 +48,19 @@ export const useSkins = () => {
     skin.is_paid && !ownedSkinIds.has(skin.id)
   );
 
+  // Load saved skin from localStorage on initial load
   useEffect(() => {
+    const savedSkinId = localStorage.getItem('selected_skin_id');
+    if (savedSkinId) {
+      setSelectedSkinId(parseInt(savedSkinId, 10));
+    }
     fetchAllSkins();
   }, []);
 
   useEffect(() => {
     if (user) {
       fetchUserSkins();
+      fetchUserDefaultSkin();
     } else {
       setUserSkins([]);
     }
@@ -64,6 +70,8 @@ export const useSkins = () => {
   useEffect(() => {
     if (!selectedSkinId && availableSkins.length > 0) {
       setSelectedSkinId(availableSkins[0].id);
+      // Save the selected skin to localStorage
+      localStorage.setItem('selected_skin_id', availableSkins[0].id.toString());
     }
   }, [availableSkins, selectedSkinId]);
 
@@ -103,6 +111,27 @@ export const useSkins = () => {
     }
   };
 
+  const fetchUserDefaultSkin = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('default_skin_id')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data && data.default_skin_id) {
+        setSelectedSkinId(data.default_skin_id);
+        localStorage.setItem('selected_skin_id', data.default_skin_id.toString());
+      }
+    } catch (error) {
+      console.error('Error fetching default skin:', error);
+    }
+  };
+
   const setSelectedSkin = async (skinId: number) => {
     // Check if the skin is available for the user
     const isAvailable = availableSkins.some(skin => skin.id === skinId);
@@ -114,6 +143,9 @@ export const useSkins = () => {
     
     setSelectedSkinId(skinId);
     
+    // Always store in localStorage for immediate use
+    localStorage.setItem('selected_skin_id', skinId.toString());
+    
     // If the user is authenticated, update their profile with the selected skin
     if (user) {
       try {
@@ -123,16 +155,10 @@ export const useSkins = () => {
           .eq('id', user.id);
           
         if (error) throw error;
-        
-        // Stocker l'ID du skin dans le localStorage pour le récupérer lors de la connexion au jeu
-        localStorage.setItem('selected_skin_id', skinId.toString());
       } catch (error) {
         console.error('Error updating default skin:', error);
         toast.error('Failed to save skin preference');
       }
-    } else {
-      // Même si l'utilisateur n'est pas connecté, on stocke le skin sélectionné
-      localStorage.setItem('selected_skin_id', skinId.toString());
     }
   };
 
@@ -154,7 +180,10 @@ export const useSkins = () => {
     getSkinById,
     refresh: () => {
       fetchAllSkins();
-      if (user) fetchUserSkins();
+      if (user) {
+        fetchUserSkins();
+        fetchUserDefaultSkin();
+      }
     }
   };
 };
