@@ -109,7 +109,7 @@ const SkinSelector = ({
               onMouseEnter={() => setHoveredSkin(skin)}
               onMouseLeave={() => setHoveredSkin(null)}
             >
-              <div className="flex flex-col items-center p-2 bg-gray-900/70">
+              <div className="flex flex-col items-center p-2">
                 {showPreview && (
                   <div className="mb-2 relative w-full">
                     <div className="flex justify-center">
@@ -162,7 +162,7 @@ const SkinSelector = ({
                       className={`w-full text-xs ${
                         isSelected 
                           ? 'bg-indigo-600 hover:bg-indigo-700' 
-                          : 'bg-gray-800/70 hover:bg-gray-700/70'
+                          : 'bg-transparent hover:bg-gray-700/70'
                       }`}
                       onClick={() => handleSkinSelect(skin.id)}
                       disabled={isPurchasable}

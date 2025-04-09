@@ -100,7 +100,7 @@ const SkinsPage = () => {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6 bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
+        <div className="mb-6 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
           <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
             <div className="text-center">
               <p className="text-lg font-medium mb-2">Choisissez votre skin</p>
@@ -124,7 +124,7 @@ const SkinsPage = () => {
             Sélectionnez parmi vos skins disponibles
           </p>
           
-          <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
+          <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
             {availableSkins.length > 0 ? (
               <SkinSelector 
                 onSelectSkin={handleSkinSelectAndSave}
@@ -159,7 +159,7 @@ const SkinsPage = () => {
             </div>
           )}
           
-          <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
+          <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
             {purchasableSkins.length > 0 ? (
               <SkinSelector 
                 showPurchasable={true} 

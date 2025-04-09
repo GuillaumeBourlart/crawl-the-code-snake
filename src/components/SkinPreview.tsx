@@ -34,8 +34,8 @@ const SkinPreview = ({
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // Snake properties
-    const segmentSize = width / 12; // Taille de base du segment
+    // Snake properties - with doubled radius
+    const segmentSize = width / 6; // Double the size (changed from width/12)
     const segmentGap = 0.2; // Facteur d'espacement entre segments (20% de la taille)
     const segmentCount = 20; // Montrer exactement 20 segments pour correspondre à la structure du serveur
     
@@ -196,7 +196,7 @@ const SkinPreview = ({
       ref={canvasRef} 
       width={width} 
       height={height} 
-      className="bg-gray-900/50 rounded-lg shadow-inner"
+      className="rounded-lg"
     />
   );
 };
