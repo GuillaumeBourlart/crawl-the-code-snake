@@ -134,10 +134,7 @@ const GameCanvas = ({
       phaseX: number, 
       phaseY: number, 
       speedX: number, 
-      speedY: number,
-      radius: number,
-      rotationSpeed: number,
-      rotationAngle: number
+      speedY: number 
     }>
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -276,10 +273,7 @@ const GameCanvas = ({
           phaseX: Math.random() * Math.PI * 2, 
           phaseY: Math.random() * Math.PI * 2,
           speedX: 0.5 + Math.random() * 0.5,
-          speedY: 0.5 + Math.random() * 0.5,
-          radius: 2 + Math.random() * 3,
-          rotationSpeed: 0.5 + Math.random() * 1.5,
-          rotationAngle: Math.random() * Math.PI * 2
+          speedY: 0.5 + Math.random() * 0.5
         };
       }
     });
@@ -814,13 +808,8 @@ const GameCanvas = ({
           const animation = rendererStateRef.current.itemAnimations[item.id];
           
           if (animation) {
-            animation.rotationAngle += animation.rotationSpeed * 0.01;
-            
-            animation.offsetX = Math.cos(animation.rotationAngle) * animation.radius;
-            animation.offsetY = Math.sin(animation.rotationAngle) * animation.radius;
-            
-            const bobOffset = Math.sin(currentTime * 2) * 0.7;
-            animation.offsetY += bobOffset;
+            animation.offsetX = Math.sin(currentTime * animation.speedX + animation.phaseX) * itemRadius * 0.3;
+            animation.offsetY = Math.sin(currentTime * animation.speedY + animation.phaseY) * itemRadius * 0.3;
           }
           
           const displayX = item.x + (animation?.offsetX || 0);
@@ -870,25 +859,6 @@ const GameCanvas = ({
           ctx.beginPath();
           ctx.arc(displayX - itemRadius * 0.3, displayY - itemRadius * 0.3, highlightSize, 0, Math.PI * 2);
           ctx.fill();
-          
-          const trailLength = 4;
-          for (let i = 1; i <= trailLength; i++) {
-            const trailAngle = animation ? animation.rotationAngle - (i * 0.2) : 0;
-            const trailX = item.x + (animation ? Math.cos(trailAngle) * animation.radius : 0);
-            const trailY = item.y + (animation ? Math.sin(trailAngle) * animation.radius : 0);
-            
-            const trailOpacity = 0.2 - (i * 0.05);
-            const trailSize = itemRadius * 0.6 * (1 - i * 0.15);
-            
-            const trailColor = rgbColor ? 
-              `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${trailOpacity})` : 
-              `rgba(255, 255, 255, ${trailOpacity})`;
-            
-            ctx.fillStyle = trailColor;
-            ctx.beginPath();
-            ctx.arc(trailX, trailY, trailSize, 0, Math.PI * 2);
-            ctx.fill();
-          }
         });
       }
       
