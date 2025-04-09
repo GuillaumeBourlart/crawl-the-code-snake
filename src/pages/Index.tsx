@@ -530,7 +530,7 @@ const Index = () => {
                               ? 'bg-indigo-600 hover:bg-indigo-700' 
                               : 'bg-gray-800/70 hover:bg-gray-700/70'
                           }`}
-                          onClick={() => setSelectedSkinId(skin.id)}
+                          onClick={() => setSelectedSkin(skin.id)}
                         >
                           {skin.name}
                         </Button>
