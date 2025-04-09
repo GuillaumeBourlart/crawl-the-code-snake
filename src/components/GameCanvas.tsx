@@ -450,6 +450,10 @@ const GameCanvas = ({
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
+      // Define the pupil size relative to the eye size
+      const eyeSize = headRadius * 0.35;
+      const pupilSize = eyeSize * 0.5;
+      
       ctx.save();
       
       const gradient = ctx.createRadialGradient(
@@ -755,94 +759,4 @@ const GameCanvas = ({
       
       allSegments.sort((a, b) => a.zIndex - b.zIndex);
       
-      allSegments.forEach(segment => {
-        const gradient = ctx.createRadialGradient(
-          segment.x, segment.y, 0,
-          segment.x, segment.y, segment.radius
-        );
-        gradient.addColorStop(0, segment.color);
-        gradient.addColorStop(1, shadeColor(segment.color, -15));
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.strokeStyle = shadeColor(segment.color, -30);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      
-      rendererStateRef.current.items.forEach(item => {
-        const animation = rendererStateRef.current.itemAnimations[item.id];
-        if (!animation) return;
-        
-        const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius;
-        const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius;
-        
-        animation.rotationAngle += animation.rotationSpeed * 0.01;
-        
-        const itemGradient = ctx.createRadialGradient(
-          itemX, itemY, 0,
-          itemX, itemY, item.radius || 5
-        );
-        
-        itemGradient.addColorStop(0, item.color);
-        itemGradient.addColorStop(1, shadeColor(item.color, -20));
-        
-        ctx.fillStyle = itemGradient;
-        ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        const glowGradient = ctx.createRadialGradient(
-          itemX, itemY, (item.radius || 5) * 0.5,
-          itemX, itemY, (item.radius || 5) * 2
-        );
-        glowGradient.addColorStop(0, `${item.color}40`);
-        glowGradient.addColorStop(0.7, `${item.color}10`);
-        glowGradient.addColorStop(1, `${item.color}00`);
-        
-        ctx.fillStyle = glowGradient;
-        ctx.beginPath();
-        ctx.arc(itemX, itemY, (item.radius || 5) * 2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.strokeStyle = shadeColor(item.color, 20);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        drawPlayerHead(player, id === playerId);
-      });
-      
-      ctx.restore();
-      
-      previousTimeRef.current = timestamp;
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [gameState, camera, playerId, isMobile]);
-  
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute inset-0 w-full h-full touch-none"
-    />
-  );
-};
-
-export default GameCanvas;
+      allSegments.forEach(segment
