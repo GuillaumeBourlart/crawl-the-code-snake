@@ -486,15 +486,6 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-gray-900/70 border-indigo-500/30 text-white hover:bg-gray-800/90 rounded-lg shadow-md"
-              onClick={toggleLeaderboard}
-            >
-              <Trophy className="h-4 w-4 mr-1 text-yellow-400" />
-              {showLeaderboard ? "Cacher" : "Scores"}
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
               className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
               onClick={handleQuitGame}
             >
@@ -510,12 +501,7 @@ const Index = () => {
           
           <LeaderboardPanel 
             roomLeaderboard={roomLeaderboard}
-            globalLeaderboard={globalLeaderboard || []}
             currentPlayerId={playerId}
-            isVisible={showLeaderboard}
-            isGlobalLeaderboardLoading={isGlobalLeaderboardLoading}
-            globalLeaderboardError={globalLeaderboardError}
-            usesFallbackData={usesFallback}
           />
           
           <GameCanvas

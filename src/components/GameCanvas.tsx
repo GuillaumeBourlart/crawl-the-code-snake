@@ -116,7 +116,7 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.7 : 1
+    zoom: isMobile ? 0.5 : 1  // Modified zoom level for mobile
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
