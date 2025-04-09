@@ -81,7 +81,7 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
-  const [selectedSkinId, setSelectedSkinId] = useState<string | null>(null);
+  const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [availableSkins, setAvailableSkins] = useState<any[]>([]);
 
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
@@ -520,7 +520,7 @@ const Index = () => {
                               ? 'bg-indigo-600 hover:bg-indigo-700' 
                               : 'bg-gray-800/70 hover:bg-gray-700/70'
                           }`}
-                          onClick={() => setSelectedSkin(skin.id)}
+                          onClick={() => setSelectedSkinId(skin.id)}
                         >
                           {skin.name}
                         </Button>
