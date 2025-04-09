@@ -26,11 +26,12 @@ interface ServerPlayer {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  queue?: Array<{ x: number; y: number }>;
+  queue?: Array<{ x: number; y: number; color?: string }>;
   boosting?: boolean;
   itemEatenCount?: number;
   pseudo?: string;
   spectator?: boolean;
+  skin_id?: number | null;
 }
 
 interface GameItem {
@@ -81,7 +82,6 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
-  const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [availableSkins, setAvailableSkins] = useState<any[]>([]);
 
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
@@ -92,7 +92,13 @@ const Index = () => {
   const directionIntervalRef = useRef<number | null>(null);
   
   const { user, profile, loading: authLoading, updateProfile } = useAuth();
-  const { selectedSkin, loading: skinsLoading } = useSkins();
+  const { selectedSkin, selectedSkinId, availableSkins: userSkins, loading: skinsLoading } = useSkins();
+  
+  useEffect(() => {
+    if (userSkins && userSkins.length > 0) {
+      setAvailableSkins(userSkins);
+    }
+  }, [userSkins]);
   
   useEffect(() => {
     if (profile && profile.pseudo) {
@@ -186,6 +192,11 @@ const Index = () => {
       updateProfile({ pseudo: username });
     }
     
+    if (!selectedSkinId) {
+      toast.error("Veuillez sélectionner un skin avant de jouer");
+      return;
+    }
+    
     setConnecting(true);
     setShowGameOverDialog(false);
     setIsSpectator(false);
@@ -252,30 +263,16 @@ const Index = () => {
       setPlayerId(newSocket.id);
       setGameStarted(true);
       
-      newSocket.emit("setPseudo", { pseudo: username });
+      newSocket.emit("setPlayerInfo", { 
+        pseudo: username,
+        skin_id: selectedSkinId
+      });
       
-      const playerColor = selectedSkin?.data.colors[0] || 
-        ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#8B5CF6'][
-          Math.floor(Math.random() * 7)
-        ];
-        
       const worldSize = { width: 4000, height: 4000 };
       const randomItems = generateRandomItems(50, worldSize);
       
       setGameState(prevState => ({
         ...prevState,
-        players: {
-          ...prevState.players,
-          [newSocket.id]: {
-            x: Math.random() * 800,
-            y: Math.random() * 600,
-            length: 20,
-            color: playerColor,
-            queue: [],
-            itemEatenCount: DEFAULT_ITEM_EATEN_COUNT,
-            pseudo: username
-          }
-        },
         items: randomItems,
         worldSize
       }));
@@ -347,10 +344,23 @@ const Index = () => {
     
     newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
       console.log("Players update:", players);
-      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => ({
-        ...acc,
-        [id]: { ...player, queue: player.queue || [] }
-      }), {});
+      
+      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => {
+        const processedQueue = player.queue?.map(segment => {
+          return typeof segment === 'object' ? 
+            { ...segment, color: segment.color || player.color || '#FFFFFF' } : 
+            { x: 0, y: 0, color: player.color || '#FFFFFF' };
+        }) || [];
+        
+        return {
+          ...acc,
+          [id]: { 
+            ...player, 
+            queue: processedQueue
+          }
+        };
+      }, {});
+      
       setGameState(prevState => ({
         ...prevState,
         players: processedPlayers
@@ -536,7 +546,7 @@ const Index = () => {
             <Button
               className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
               onClick={handlePlay}
-              disabled={connecting || !username.trim()}
+              disabled={connecting || !username.trim() || !selectedSkinId}
             >
               {connecting ? (
                 <>
