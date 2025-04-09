@@ -27,7 +27,7 @@ const LeaderboardPanel = ({
 
   return (
     <div className="absolute top-16 right-4 z-10 w-52 transition-all duration-300 ease-in-out">
-      <div className="bg-transparent backdrop-blur-sm border border-gray-700/20 text-white shadow-md rounded-lg overflow-hidden">
+      <div className="bg-transparent border border-gray-700/20 text-white shadow-md rounded-lg overflow-hidden">
         <Table>
           <TableBody>
             {roomLeaderboard.length > 0 ? (
