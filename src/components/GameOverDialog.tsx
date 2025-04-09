@@ -220,7 +220,7 @@ const GameOverDialog = ({
           Vous êtes maintenant en mode spectateur. Vous pouvez continuer à observer la partie ou choisir de rejouer.
         </div>
         
-        <DialogFooter className="flex justify-center gap-4 sm:gap-6 mt-4">
+        <DialogFooter className="flex flex-row justify-center space-x-4 mt-4">
           <Button
             variant="outline"
             className="bg-black/50 hover:bg-black/70 text-white border-gray-600"
