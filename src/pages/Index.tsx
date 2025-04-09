@@ -92,7 +92,7 @@ const Index = () => {
   const directionIntervalRef = useRef<number | null>(null);
   
   const { user, profile, loading: authLoading, updateProfile } = useAuth();
-  const { selectedSkin, selectedSkinId, availableSkins: userSkins, loading: skinsLoading } = useSkins();
+  const { selectedSkin, selectedSkinId, availableSkins: userSkins, loading: skinsLoading, setSelectedSkin } = useSkins();
   
   useEffect(() => {
     if (userSkins && userSkins.length > 0) {
