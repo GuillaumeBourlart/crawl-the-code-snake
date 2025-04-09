@@ -365,13 +365,20 @@ const GameCanvas = ({
       const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
       const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
       
-      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)';
-      gridCtx.lineWidth = 1;
+      gridCtx.lineWidth = 5;
       
       for (let row = -2; row < worldRows; row++) {
         for (let col = -2; col < worldCols; col++) {
           const centerX = col * hexWidth * 0.75;
           const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+          
+          const hexId = row * 10000 + col;
+          const random = Math.sin(hexId) * 0.5 + 0.5;
+          const time = Date.now() * 0.001;
+          const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
+          
+          const baseHue = 210 + (random * 40 - 20);
+          const borderColor = `hsla(${baseHue}, 80%, 50%, ${0.2 + random * 0.1 * pulseMagnitude})`;
           
           gridCtx.beginPath();
           for (let i = 0; i < 6; i++) {
@@ -386,6 +393,12 @@ const GameCanvas = ({
             }
           }
           gridCtx.closePath();
+          
+          const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
+          gridCtx.fillStyle = fillColor;
+          gridCtx.fill();
+          
+          gridCtx.strokeStyle = borderColor;
           gridCtx.stroke();
         }
       }
