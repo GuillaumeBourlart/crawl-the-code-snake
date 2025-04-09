@@ -98,10 +98,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithGoogle = async () => {
     try {
       console.log("Attempting to sign in with Google...");
+      
+      // Get the current domain from the window location
+      const currentDomain = window.location.origin;
+      console.log("Current domain for redirect:", currentDomain);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: currentDomain,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
