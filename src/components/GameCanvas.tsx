@@ -96,11 +96,11 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
 };
 
 const getHeadRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.0005;
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.001;
 };
 
 const getSegmentRadius = (player: Player): number => {
-  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.0005;
+  return BASE_SIZE / 2 + (player.itemEatenCount || 0) * 0.001;
 };
 
 const GameCanvas = ({ 
