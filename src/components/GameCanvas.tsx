@@ -397,6 +397,20 @@ const GameCanvas = ({
           const hexId = row * 10000 + col;
           const random = Math.sin(hexId) * 0.5 + 0.5;
           
+          gridCtx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = centerX + hexSize * Math.cos(angle);
+            const y = centerY + hexSize * Math.sin(angle);
+            
+            if (i === 0) {
+              gridCtx.moveTo(x, y);
+            } else {
+              gridCtx.lineTo(x, y);
+            }
+          }
+          gridCtx.closePath();
+          
           const gradient = gridCtx.createRadialGradient(
             centerX, centerY, 0,
             centerX, centerY, hexSize
@@ -516,7 +530,7 @@ const GameCanvas = ({
         gridCtx.shadowBlur = 8;
         gridCtx.stroke();
         gridCtx.restore();
-      }
+      });
       
       gridCtx.restore();
       
