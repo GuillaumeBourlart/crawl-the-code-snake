@@ -436,6 +436,9 @@ const GameCanvas = ({
       const headRadius = getHeadRadius(player);
       const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
       
+      let pupilOffsetX = 0;
+      let pupilOffsetY = 0;
+      
       ctx.save();
       
       // Draw circular head
@@ -532,6 +535,37 @@ const GameCanvas = ({
       const eyeSize = headRadius * 0.35; // Keep the larger eye size
       const eyeDistance = headRadius * 0.4; // Increased from 0.25 to 0.4 to spread eyes further apart
       const eyeOffsetY = -headRadius * 0.15; // Moved up slightly for better positioning
+      
+      // Calculate pupil offsets based on input or direction
+      if (isCurrentPlayer) {
+        if (isMobile) {
+          const joystickDir = rendererStateRef.current.joystickDirection;
+          if (joystickDir && (joystickDir.x !== 0 || joystickDir.y !== 0)) {
+            const maxPupilOffset = eyeSize * 0.3;
+            pupilOffsetX = joystickDir.x * maxPupilOffset;
+            pupilOffsetY = joystickDir.y * maxPupilOffset;
+          }
+        } else {
+          const mousePos = rendererStateRef.current.mousePosition;
+          if (mousePos) {
+            const canvasWidth = canvasRef.current?.width || 0;
+            const canvasHeight = canvasRef.current?.height || 0;
+            
+            const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
+            const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
+            
+            const dx = worldMouseX - player.x;
+            const dy = worldMouseY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+              const maxPupilOffset = eyeSize * 0.3;
+              pupilOffsetX = (dx / distance) * maxPupilOffset;
+              pupilOffsetY = (dy / distance) * maxPupilOffset;
+            }
+          }
+        }
+      }
       
       // Draw eye whites with improved contrast
       const eyeGradient = ctx.createRadialGradient(
