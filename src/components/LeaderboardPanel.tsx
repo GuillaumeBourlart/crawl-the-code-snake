@@ -26,15 +26,15 @@ const LeaderboardPanel = ({
   };
 
   return (
-    <div className="absolute top-4 right-4 z-20 w-64 transition-all duration-300 ease-in-out">
-      <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700/30 text-white shadow-md rounded-lg overflow-hidden">
+    <div className="absolute top-16 right-4 z-10 w-52 transition-all duration-300 ease-in-out">
+      <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-700/20 text-white shadow-md rounded-lg overflow-hidden">
         <Table>
           <TableBody>
             {roomLeaderboard.length > 0 ? (
               roomLeaderboard.map((player, index) => (
                 <TableRow 
                   key={player.id}
-                  className={`border-gray-700/30 ${player.id === currentPlayerId ? "bg-green-900/40" : ""}`}
+                  className={`border-gray-700/20 ${player.id === currentPlayerId ? "bg-green-900/30" : ""}`}
                 >
                   <TableCell className="px-2 py-1 text-xs font-medium w-8">
                     {getMedalIcon(index) || index + 1}

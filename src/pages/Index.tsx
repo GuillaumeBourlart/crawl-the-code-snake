@@ -516,6 +516,7 @@ const Index = () => {
             onBoostStart={handleBoostStart}
             onBoostStop={handleBoostStop}
             onPlayerCollision={handlePlayerCollision}
+            mobileZoom={0.2}
           />
           
           {isMobile && (

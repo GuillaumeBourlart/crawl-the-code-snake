@@ -155,7 +155,7 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop, onJoystickMove }: M
       <div className="container mx-auto p-4 flex justify-between items-center">
         {/* Boost button */}
         <button
-          className="w-20 h-20 rounded-full bg-blue-500/60 flex items-center justify-center text-white font-bold text-sm pointer-events-auto active:bg-blue-700/60 active:scale-95 transition-all"
+          className="w-20 h-20 rounded-full bg-blue-500/70 flex items-center justify-center text-white font-bold text-sm pointer-events-auto active:bg-blue-700/70 active:scale-95 transition-all"
           onTouchStart={handleBoostStart}
           onTouchEnd={handleBoostEnd}
           onTouchCancel={handleBoostEnd}
@@ -166,11 +166,11 @@ const MobileControls = ({ onMove, onBoostStart, onBoostStop, onJoystickMove }: M
         {/* Joystick */}
         <div
           ref={joystickRef}
-          className="w-32 h-32 rounded-full bg-gray-800/60 pointer-events-auto relative"
+          className="w-32 h-32 rounded-full bg-gray-800/70 pointer-events-auto relative"
         >
           <div
             ref={joystickKnobRef}
-            className="w-16 h-16 rounded-full bg-gray-200/60 absolute"
+            className="w-16 h-16 rounded-full bg-gray-200/70 absolute"
           />
         </div>
       </div>
