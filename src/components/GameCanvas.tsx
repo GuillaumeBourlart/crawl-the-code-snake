@@ -826,23 +826,41 @@ const GameCanvas = ({
           const displayX = item.x + (animation?.offsetX || 0);
           const displayY = item.y + (animation?.offsetY || 0);
           
-          const haloSize = itemRadius * 1.8;
-          const gradient = ctx.createRadialGradient(
+          // Enhanced glow effect - approximately 2x the item radius
+          const haloSize = itemRadius * 2.0; // Increased from 1.8 to 2.0
+          const glowGradient = ctx.createRadialGradient(
             displayX, displayY, itemRadius * 0.8,
             displayX, displayY, haloSize
           );
           
           const rgbColor = hexToRgb(item.color || '#FFFFFF');
           const haloColor = rgbColor ? 
-            `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.15)` : 
-            'rgba(255, 255, 255, 0.15)';
+            `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.3)` : // Increased opacity from 0.15 to 0.3
+            'rgba(255, 255, 255, 0.3)';
           
-          gradient.addColorStop(0, haloColor);
-          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          glowGradient.addColorStop(0, haloColor);
+          glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
           
-          ctx.fillStyle = gradient;
+          ctx.fillStyle = glowGradient;
           ctx.beginPath();
           ctx.arc(displayX, displayY, haloSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Add a second outer glow layer for more pronounced effect
+          const outerGlowSize = itemRadius * 2.5;
+          const outerGlowGradient = ctx.createRadialGradient(
+            displayX, displayY, haloSize,
+            displayX, displayY, outerGlowSize
+          );
+          
+          outerGlowGradient.addColorStop(0, rgbColor ? 
+            `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, 0.1)` : 
+            'rgba(255, 255, 255, 0.1)');
+          outerGlowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          
+          ctx.fillStyle = outerGlowGradient;
+          ctx.beginPath();
+          ctx.arc(displayX, displayY, outerGlowSize, 0, Math.PI * 2);
           ctx.fill();
           
           const itemGlowSize = itemRadius * 1.1;
