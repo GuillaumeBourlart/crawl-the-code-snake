@@ -496,7 +496,8 @@ const Index = () => {
           
           <PlayerScore 
             playerId={playerId} 
-            players={gameState.players} 
+            players={gameState.players}
+            roomLeaderboard={roomLeaderboard} 
           />
           
           <LeaderboardPanel 
