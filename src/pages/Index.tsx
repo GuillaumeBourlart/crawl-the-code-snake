@@ -8,7 +8,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut, Trophy, User } from "lucide-react";
+import { LogOut, Trophy, User, Gamepad2, ArrowRight } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 
@@ -398,25 +398,31 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white overflow-hidden">
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-lg animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-            Code Crawl
-          </h1>
-          <p className="text-gray-300 mb-8 text-center max-w-md">
+        <div className="z-10 flex flex-col items-center justify-center p-8 bg-gray-900/70 backdrop-blur-lg rounded-2xl border border-indigo-500/20 shadow-2xl animate-fade-in w-full max-w-md">
+          <div className="flex items-center mb-6">
+            <Gamepad2 className="h-8 w-8 mr-3 text-indigo-400" />
+            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-500">
+              Code Crawl
+            </h1>
+          </div>
+          
+          <p className="text-gray-300 mb-8 text-center text-sm md:text-base">
             Naviguez avec votre processeur, collectez des fragments de code et évitez les collisions avec les traces des autres joueurs.
           </p>
           
-          <div className="flex flex-col w-full max-w-sm gap-4 mb-6">
-            <div className="flex items-center">
-              <User className="mr-2 h-5 w-5 text-gray-400" />
+          <div className="w-full max-w-sm mb-8">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                <User className="h-5 w-5" />
+              </div>
               <Input
                 type="text"
                 placeholder="Entrez votre pseudo"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="text-white bg-gray-800 border-gray-700 focus:border-green-500"
+                className="text-white bg-gray-800/80 border-gray-700 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 rounded-lg py-6"
                 maxLength={16}
                 required
               />
@@ -424,7 +430,7 @@ const Index = () => {
           </div>
           
           <Button
-            className="px-8 py-6 text-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
             onClick={handlePlay}
             disabled={connecting || !username.trim()}
           >
@@ -437,50 +443,61 @@ const Index = () => {
                 Connexion...
               </>
             ) : (
-              "JOUER"
+              <>
+                JOUER
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
             )}
           </Button>
+          
           {reconnectAttempts > 0 && (
-            <p className="mt-4 text-amber-400">
+            <p className="mt-4 text-amber-400 flex items-center">
+              <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
               Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
             </p>
           )}
+          
           <div className="absolute top-0 left-0 w-full h-full -z-10">
             {Array.from({ length: 50 }).map((_, i) => (
               <div
                 key={i}
-                className="absolute rounded-full bg-blue-500/10"
+                className="absolute rounded-full bg-indigo-500/10"
                 style={{
-                  width: `${Math.random() * 10 + 5}px`,
-                  height: `${Math.random() * 10 + 5}px`,
+                  width: `${Math.random() * 12 + 4}px`,
+                  height: `${Math.random() * 12 + 4}px`,
                   top: `${Math.random() * 100}%`,
                   left: `${Math.random() * 100}%`,
-                  animation: `float ${Math.random() * 10 + 5}s infinite linear`
+                  animation: `float ${Math.random() * 10 + 5}s infinite linear`,
+                  animationDelay: `${Math.random() * 5}s`
                 }}
               />
             ))}
           </div>
         </div>
       )}
+      
       {gameStarted && (
         <>
           <div className="absolute top-4 right-4 z-20 flex space-x-2">
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-gray-800/70 border-gray-700 text-white hover:bg-gray-700/90"
+              className="bg-gray-900/70 border-indigo-500/30 text-white hover:bg-gray-800/90 rounded-lg shadow-md"
               onClick={toggleLeaderboard}
             >
-              <Trophy className="h-4 w-4 mr-1" />
+              <Trophy className="h-4 w-4 mr-1 text-yellow-400" />
               {showLeaderboard ? "Cacher" : "Scores"}
             </Button>
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-gray-800/70 border-gray-700 text-white hover:bg-gray-700/90"
+              className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
               onClick={handleQuitGame}
             >
-              <LogOut className="mr-1 h-4 w-4" />
+              <LogOut className="mr-1 h-4 w-4 text-red-400" />
               Quitter
             </Button>
           </div>
@@ -508,6 +525,7 @@ const Index = () => {
             onBoostStop={handleBoostStop}
             onPlayerCollision={handlePlayerCollision}
           />
+          
           {isMobile && (
             <MobileControls 
               onMove={handleMove} 
