@@ -365,7 +365,7 @@ const GameCanvas = ({
       const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
       const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
       
-      gridCtx.lineWidth = 5;
+      gridCtx.lineWidth = 20;
       
       for (let row = -2; row < worldRows; row++) {
         for (let col = -2; col < worldCols; col++) {
@@ -378,7 +378,6 @@ const GameCanvas = ({
           const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
           
           const baseHue = 210 + (random * 40 - 20);
-          const borderColor = `hsla(${baseHue}, 80%, 50%, ${0.2 + random * 0.1 * pulseMagnitude})`;
           
           gridCtx.beginPath();
           for (let i = 0; i < 6; i++) {
@@ -398,7 +397,7 @@ const GameCanvas = ({
           gridCtx.fillStyle = fillColor;
           gridCtx.fill();
           
-          gridCtx.strokeStyle = borderColor;
+          gridCtx.strokeStyle = '#000000';
           gridCtx.stroke();
         }
       }
