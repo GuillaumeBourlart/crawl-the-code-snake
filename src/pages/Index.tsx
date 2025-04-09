@@ -47,7 +47,7 @@ interface ServerGameState {
   worldSize?: { width: number; height: number };
 }
 
-interface PlayerScore {
+interface PlayerLeaderboardEntry {
   id: string;
   score: number;
   color: string;
@@ -75,7 +75,7 @@ const Index = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const [showGameOverDialog, setShowGameOverDialog] = useState(false);
-  const [roomLeaderboard, setRoomLeaderboard] = useState<PlayerScore[]>([]);
+  const [roomLeaderboard, setRoomLeaderboard] = useState<PlayerLeaderboardEntry[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   
@@ -259,7 +259,7 @@ const Index = () => {
       toast.success("Vous avez rejoint la partie");
     });
     
-    newSocket.on("update_room_leaderboard", (leaderboard: PlayerScore[]) => {
+    newSocket.on("update_room_leaderboard", (leaderboard: PlayerLeaderboardEntry[]) => {
       console.log("Room leaderboard update:", leaderboard);
       setRoomLeaderboard(leaderboard);
     });
