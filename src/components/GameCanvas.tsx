@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -552,8 +553,9 @@ const GameCanvas = ({
         gridCtx.shadowBlur = 8;
         gridCtx.stroke();
         gridCtx.restore();
-      }
+      });
       
+      // Restore the context's state after all drawing operations
       gridCtx.restore();
       
       rendererStateRef.current.gridNeedsUpdate = false;
