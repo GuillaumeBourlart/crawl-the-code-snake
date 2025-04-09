@@ -12,6 +12,7 @@ interface Player {
   queue?: Array<{ x: number; y: number }>; 
   boosting?: boolean;
   itemEatenCount?: number; // Added to match server data
+  pseudo?: string;
 }
 
 interface GameItem {
@@ -323,30 +324,53 @@ const GameCanvas = ({
       const width = gridCanvas.width;
       const height = gridCanvas.height;
       
-      gridCtx.fillStyle = '#000000';
+      const spaceGradient = gridCtx.createLinearGradient(0, 0, 0, height);
+      spaceGradient.addColorStop(0, '#0c0c20');
+      spaceGradient.addColorStop(1, '#1a1a35');
+      
+      gridCtx.fillStyle = spaceGradient;
       gridCtx.fillRect(0, 0, width, height);
       
-      const numberOfStars = 300;
+      const numberOfStars = 400;
       for (let i = 0; i < numberOfStars; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
-        const size = Math.random() * 1.5;
-        const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
+        const size = Math.random() * 2.5;
+        const brightness = (Math.random() * 0.7 + 0.3) * 0.6;
         
         const timeOffset = Math.random() * 2 * Math.PI;
-        const twinkleOpacity = 0.12 + 0.28 * 0.4 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
+        const twinkleOpacity = 0.15 + 0.35 * 0.5 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
         
-        gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
+        const starColors = ['rgba(255, 255, 255, ', 'rgba(200, 220, 255, ', 'rgba(255, 220, 180, '];
+        const colorIndex = Math.floor(Math.random() * starColors.length);
+        gridCtx.fillStyle = `${starColors[colorIndex]}${brightness * twinkleOpacity})`;
+        
         gridCtx.beginPath();
         gridCtx.arc(x, y, size, 0, Math.PI * 2);
         gridCtx.fill();
+        
+        if (Math.random() > 0.9) {
+          const glowSize = size * 3;
+          const glowGradient = gridCtx.createRadialGradient(
+            x, y, 0,
+            x, y, glowSize
+          );
+          glowGradient.addColorStop(0, `${starColors[colorIndex]}${brightness * 0.5})`);
+          glowGradient.addColorStop(1, `${starColors[colorIndex]}0)`);
+          
+          gridCtx.fillStyle = glowGradient;
+          gridCtx.beginPath();
+          gridCtx.arc(x, y, glowSize, 0, Math.PI * 2);
+          gridCtx.fill();
+        }
       }
       
       const centerGlow = gridCtx.createRadialGradient(
         width/2, height/2, 0,
-        width/2, height/2, height * 0.4
+        width/2, height/2, height * 0.5
       );
-      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.2)');
+      centerGlow.addColorStop(0, 'rgba(50, 40, 100, 0.3)');
+      centerGlow.addColorStop(0.5, 'rgba(30, 20, 80, 0.2)');
       centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
       gridCtx.fillStyle = centerGlow;
@@ -358,20 +382,21 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      const hexSize = 40;
+      const hexSize = 45;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
+      const spacingFactor = 1.2;
       
-      const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
-      const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
-      
-      gridCtx.strokeStyle = 'rgba(20, 50, 100, 0.15)';
-      gridCtx.lineWidth = 1;
+      const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75 * spacingFactor)) + 2;
+      const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75 * spacingFactor)) + 2;
       
       for (let row = -2; row < worldRows; row++) {
         for (let col = -2; col < worldCols; col++) {
-          const centerX = col * hexWidth * 0.75;
-          const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+          const centerX = col * hexWidth * 0.75 * spacingFactor;
+          const centerY = row * hexHeight * spacingFactor + (col % 2 === 0 ? 0 : hexHeight / 2);
+          
+          const hexId = row * 10000 + col;
+          const random = Math.sin(hexId) * 0.5 + 0.5;
           
           gridCtx.beginPath();
           for (let i = 0; i < 6; i++) {
@@ -386,30 +411,148 @@ const GameCanvas = ({
             }
           }
           gridCtx.closePath();
+          
+          const gradient = gridCtx.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, hexSize
+          );
+          
+          const baseHue = 210 + (random * 40 - 20);
+          const saturation = 20 + random * 20;
+          const lightness = 10 + random * 10;
+          
+          gradient.addColorStop(0, `hsla(${baseHue}, ${saturation}%, ${lightness + 8}%, 0.07)`);
+          gradient.addColorStop(0.7, `hsla(${baseHue}, ${saturation}%, ${lightness + 4}%, 0.05)`);
+          gradient.addColorStop(1, `hsla(${baseHue}, ${saturation}%, ${lightness}%, 0.03)`);
+          
+          gridCtx.fillStyle = gradient;
+          gridCtx.fill();
+          
+          const timeNow = Date.now() * 0.001;
+          const pulseMagnitude = 0.2 + 0.8 * Math.sin((timeNow + hexId * 0.1) * 0.2);
+          
+          if (random > 0.75) {
+            const pulseGradient = gridCtx.createRadialGradient(
+              centerX, centerY, 0,
+              centerX, centerY, hexSize * pulseMagnitude
+            );
+            
+            pulseGradient.addColorStop(0, `hsla(${baseHue + 40}, 70%, 60%, 0.1)`);
+            pulseGradient.addColorStop(0.7, `hsla(${baseHue + 20}, 60%, 40%, 0.05)`);
+            pulseGradient.addColorStop(1, `hsla(${baseHue}, 50%, 30%, 0)`);
+            
+            gridCtx.fillStyle = pulseGradient;
+            gridCtx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = (i * Math.PI) / 3;
+              const x = centerX + hexSize * Math.cos(angle);
+              const y = centerY + hexSize * Math.sin(angle);
+              
+              if (i === 0) {
+                gridCtx.moveTo(x, y);
+              } else {
+                gridCtx.lineTo(x, y);
+              }
+            }
+            gridCtx.closePath();
+            gridCtx.fill();
+          }
+          
+          gridCtx.strokeStyle = `rgba(60, 130, 200, ${0.05 + random * 0.1})`;
+          gridCtx.lineWidth = 1 + random * 0.5;
           gridCtx.stroke();
+          
+          if (random > 0.85) {
+            gridCtx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = (i * Math.PI) / 3;
+              const x = centerX + hexSize * 0.6 * Math.cos(angle);
+              const y = centerY + hexSize * 0.6 * Math.sin(angle);
+              
+              if (i === 0) {
+                gridCtx.moveTo(x, y);
+              } else {
+                gridCtx.lineTo(x, y);
+              }
+            }
+            gridCtx.closePath();
+            gridCtx.strokeStyle = `rgba(100, 180, 255, ${0.1 + pulseMagnitude * 0.1})`;
+            gridCtx.lineWidth = 0.5;
+            gridCtx.stroke();
+          }
+          
+          if (random > 0.92) {
+            gridCtx.fillStyle = `rgba(150, 200, 255, ${0.1 + pulseMagnitude * 0.2})`;
+            gridCtx.beginPath();
+            gridCtx.arc(centerX, centerY, hexSize * 0.1, 0, Math.PI * 2);
+            gridCtx.fill();
+          }
         }
       }
       
-      const borderWidth = 4;
-      const borderGlow = 15;
+      const borderWidth = 6;
+      const borderGlow = 20;
       
-      gridCtx.shadowColor = 'rgba(0, 255, 255, 0.8)';
+      const borderTime = Date.now() * 0.001;
+      const borderHue = (210 + Math.sin(borderTime * 0.2) * 20);
+      const borderColor = `hsl(${borderHue}, 100%, 70%)`;
+      
+      gridCtx.shadowColor = borderColor;
       gridCtx.shadowBlur = borderGlow;
-      gridCtx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
-      gridCtx.lineWidth = borderWidth + borderGlow;
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      gridCtx.shadowBlur = 0;
-      gridCtx.strokeStyle = '#00ffff';
+      gridCtx.strokeStyle = `hsla(${borderHue}, 100%, 70%, 0.7)`;
       gridCtx.lineWidth = borderWidth;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
       
-      const time = Date.now() * 0.001;
-      const pulseIntensity = 0.5 + 0.5 * Math.sin(time);
-      
-      gridCtx.strokeStyle = `rgba(0, 255, 255, ${0.3 * pulseIntensity})`;
-      gridCtx.lineWidth = borderWidth + 10;
+      gridCtx.shadowBlur = 0;
+      gridCtx.strokeStyle = `hsla(${borderHue}, 100%, 80%, 0.9)`;
+      gridCtx.lineWidth = borderWidth * 0.5;
       gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      
+      const pulseIntensity = 0.5 + 0.5 * Math.sin(borderTime);
+      gridCtx.strokeStyle = `hsla(${borderHue}, 100%, 70%, ${0.3 * pulseIntensity})`;
+      gridCtx.lineWidth = borderWidth + 15;
+      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
+      
+      const cornerSize = 40;
+      const corners = [
+        [0, 0],
+        [gameState.worldSize.width, 0],
+        [gameState.worldSize.width, gameState.worldSize.height],
+        [0, gameState.worldSize.height]
+      ];
+      
+      corners.forEach(([x, y], index) => {
+        gridCtx.save();
+        gridCtx.translate(x, y);
+        gridCtx.rotate(index * Math.PI / 2);
+        
+        gridCtx.strokeStyle = `hsla(${borderHue}, 100%, 75%, 0.9)`;
+        gridCtx.lineWidth = 3;
+        gridCtx.beginPath();
+        if (index === 0) {
+          gridCtx.moveTo(0, cornerSize);
+          gridCtx.lineTo(0, 0);
+          gridCtx.lineTo(cornerSize, 0);
+        } else if (index === 1) {
+          gridCtx.moveTo(-cornerSize, 0);
+          gridCtx.lineTo(0, 0);
+          gridCtx.lineTo(0, cornerSize);
+        } else if (index === 2) {
+          gridCtx.moveTo(0, -cornerSize);
+          gridCtx.lineTo(0, 0);
+          gridCtx.lineTo(-cornerSize, 0);
+        } else {
+          gridCtx.moveTo(cornerSize, 0);
+          gridCtx.lineTo(0, 0);
+          gridCtx.lineTo(0, -cornerSize);
+        }
+        gridCtx.stroke();
+        
+        gridCtx.shadowColor = borderColor;
+        gridCtx.shadowBlur = 8;
+        gridCtx.stroke();
+        gridCtx.restore();
+      }
       
       gridCtx.restore();
       
@@ -425,7 +568,6 @@ const GameCanvas = ({
       
       ctx.save();
       
-      // Draw circular head
       const gradient = ctx.createRadialGradient(
         player.x, player.y, 0,
         player.x, player.y, headRadius
@@ -438,17 +580,14 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Draw circuit board pattern
       ctx.save();
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius * 0.9, 0, Math.PI * 2);
       ctx.clip();
       
-      // Circuit lines
       ctx.strokeStyle = `${darkenColor(playerColor, 30)}80`;
       ctx.lineWidth = 1;
       
-      // Horizontal lines
       const lineSpacing = headRadius * 0.25;
       for (let y = -headRadius; y <= headRadius; y += lineSpacing) {
         ctx.beginPath();
@@ -457,7 +596,6 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Vertical lines
       for (let x = -headRadius; x <= headRadius; x += lineSpacing) {
         ctx.beginPath();
         ctx.moveTo(player.x + x, player.y - headRadius);
@@ -465,7 +603,6 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Circuit nodes
       const nodeColor = shadeColor(playerColor, 20);
       const nodePositions = [
         { x: -0.5, y: -0.3 },
@@ -494,14 +631,12 @@ const GameCanvas = ({
       
       ctx.restore();
       
-      // Internal border for the head
       ctx.strokeStyle = darkenColor(playerColor, 30);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius * 0.95, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Add inner circular detail
       const innerRadius = headRadius * 0.65;
       const coreGradient = ctx.createRadialGradient(
         player.x, player.y, innerRadius * 0.1,
@@ -515,46 +650,39 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add eyes - ENHANCED FOR VISIBILITY
-      const eyeSize = headRadius * 0.18; // Increased size
+      const eyeSize = headRadius * 0.18;
       const eyeDistance = headRadius * 0.22;
       const eyeOffsetY = -headRadius * 0.05;
       
-      // Draw eye whites with improved contrast
       const eyeGradient = ctx.createRadialGradient(
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.2,
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize
       );
-      eyeGradient.addColorStop(0, "#FFFFFF"); // Pure white
-      eyeGradient.addColorStop(1, "#F0F0F0"); // Still very bright
+      eyeGradient.addColorStop(0, "#FFFFFF");
+      eyeGradient.addColorStop(1, "#F0F0F0");
       
-      // Left eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Internal eye border - darker and thicker
       ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.95, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Right eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Internal eye border - darker and thicker
       ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize * 0.95, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Add pupils with movement
       let pupilOffsetX = 0;
       let pupilOffsetY = 0;
       
@@ -588,32 +716,22 @@ const GameCanvas = ({
         }
       }
       
-      // Improved pupils - darker and more contrast
-      const pupilSize = eyeSize * 0.65; // Slightly larger pupils
-      
+      const pupilSize = eyeSize * 0.65;
       const pupilGradient = ctx.createRadialGradient(
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize
       );
-      pupilGradient.addColorStop(0, "#000000"); // Pure black center
-      pupilGradient.addColorStop(1, "#111111"); // Very dark outside
+      pupilGradient.addColorStop(0, "#000000");
+      pupilGradient.addColorStop(1, "#111111");
       
-      // Left pupil
       ctx.fillStyle = pupilGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Right pupil
-      ctx.beginPath();
-      ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Improved eye highlights - larger and brighter
       const highlightSize = eyeSize * 0.25;
-      ctx.fillStyle = "#FFFFFF"; // Pure white
+      ctx.fillStyle = "#FFFFFF";
       
-      // Left eye highlight
       ctx.beginPath();
       ctx.arc(
         player.x - eyeDistance + pupilOffsetX - eyeSize * 0.25, 
@@ -623,7 +741,6 @@ const GameCanvas = ({
       );
       ctx.fill();
       
-      // Right eye highlight
       ctx.beginPath();
       ctx.arc(
         player.x + eyeDistance + pupilOffsetX - eyeSize * 0.25, 
@@ -633,19 +750,15 @@ const GameCanvas = ({
       );
       ctx.fill();
       
-      // Add mouth
       const mouthY = player.y + headRadius * 0.25;
       const mouthWidth = headRadius * 0.4;
       
-      // Expression based on boosting
       if (player.boosting) {
-        // Open mouth when boosting
         ctx.fillStyle = "#333333";
         ctx.beginPath();
         ctx.arc(player.x, mouthY, mouthWidth * 0.6, 0, Math.PI);
         ctx.fill();
         
-        // Add teeth
         ctx.fillStyle = "#FFFFFF";
         const teethWidth = mouthWidth * 0.15;
         const teethHeight = mouthWidth * 0.2;
@@ -654,7 +767,6 @@ const GameCanvas = ({
         ctx.fillRect(player.x - teethGap - teethWidth, mouthY - teethHeight, teethWidth, teethHeight);
         ctx.fillRect(player.x + teethGap, mouthY - teethHeight, teethWidth, teethHeight);
       } else {
-        // Regular smile when not boosting
         ctx.strokeStyle = "#333333";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -662,25 +774,22 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Add boost glow if boosting
-      if (player.boosting) {
-        const glowColor = playerColor;
-        
-        const glowRadius = headRadius * 1.5;
-        const boostGradient = ctx.createRadialGradient(
-          player.x, player.y, headRadius,
-          player.x, player.y, glowRadius
-        );
-        
-        boostGradient.addColorStop(0, `${glowColor}40`);
-        boostGradient.addColorStop(0.5, `${glowColor}20`);
-        boostGradient.addColorStop(1, `${glowColor}00`);
-        
-        ctx.fillStyle = boostGradient;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      const glowColor = playerColor;
+      
+      const glowRadius = headRadius * 1.5;
+      const boostGradient = ctx.createRadialGradient(
+        player.x, player.y, headRadius,
+        player.x, player.y, glowRadius
+      );
+      
+      boostGradient.addColorStop(0, `${glowColor}40`);
+      boostGradient.addColorStop(0.5, `${glowColor}20`);
+      boostGradient.addColorStop(1, `${glowColor}00`);
+      
+      ctx.fillStyle = boostGradient;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
       
       ctx.restore();
     };
@@ -877,7 +986,6 @@ const GameCanvas = ({
               ctx.arc(segment.x, segment.y, segmentRadius, 0, Math.PI * 2);
               ctx.fill();
               
-              // Draw internal border
               ctx.strokeStyle = darkenColor(baseColor, 30);
               ctx.lineWidth = 2;
               ctx.beginPath();
