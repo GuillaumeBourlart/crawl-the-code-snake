@@ -31,18 +31,23 @@ export function useGlobalLeaderboard(socketUrl: string) {
     async function fetchLeaderboard() {
       try {
         setIsLoading(true);
-        // Utiliser directement l'URL du serveur
-        const baseUrl = "https://codecrawl-production.up.railway.app";
+        // URL directe au lieu d'essayer de l'extraire du socketUrl
+        const url = "https://codecrawl-production.up.railway.app/globalLeaderboard";
+        
+        console.log("Fetching global leaderboard from:", url);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 secondes timeout
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // Augmenté à 8 secondes
         
-        const response = await fetch(`${baseUrl}/globalLeaderboard`, {
+        const response = await fetch(url, {
           signal: controller.signal,
           method: 'GET',
           headers: {
             'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
           },
+          // Ajout du mode 'cors' pour les requêtes cross-origin
+          mode: 'cors'
         });
         
         clearTimeout(timeoutId);
@@ -54,6 +59,7 @@ export function useGlobalLeaderboard(socketUrl: string) {
         const data = await response.json();
         
         if (isMounted) {
+          console.log("Global leaderboard data received:", data);
           setLeaderboard(data);
           setError(null);
           setUsesFallback(false);
@@ -74,7 +80,8 @@ export function useGlobalLeaderboard(socketUrl: string) {
           } else if (isMounted) {
             // Sinon, réessayer après un délai
             retryCount++;
-            const delay = Math.min(1000 * Math.pow(2, retryCount), .5000); // Exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
+            console.log(`Retrying in ${delay}ms (attempt ${retryCount}/${maxRetries})`);
             setTimeout(fetchLeaderboard, delay);
             return; // Ne pas définir isLoading à false pour continuer à afficher le loader
           }
@@ -86,22 +93,16 @@ export function useGlobalLeaderboard(socketUrl: string) {
       }
     }
 
-    if (socketUrl) {
-      fetchLeaderboard();
-      
-      // Rafraîchir toutes les 60 secondes (réduit par rapport à 30s pour diminuer la charge)
-      const intervalId = setInterval(fetchLeaderboard, 60000);
-      
-      return () => {
-        isMounted = false;
-        clearInterval(intervalId);
-      };
-    }
+    fetchLeaderboard();
+    
+    // Rafraîchir toutes les 60 secondes
+    const intervalId = setInterval(fetchLeaderboard, 60000);
     
     return () => {
       isMounted = false;
+      clearInterval(intervalId);
     };
-  }, [socketUrl]);
+  }, []);
 
   return { leaderboard, isLoading, error, usesFallback };
 }

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Trophy, Users, Medal, AlertCircle, WifiOff } from "lucide-react";
+import { Trophy, Users, Medal, AlertCircle, WifiOff, Loader } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -125,20 +125,27 @@ const LeaderboardPanel = ({
                 </TableHeader>
                 <TableBody>
                   {isGlobalLeaderboardLoading ? (
-                    // Afficher des skeletons pendant le chargement
-                    Array(5).fill(0).map((_, index) => (
-                      <TableRow key={`loading-${index}`} className="border-gray-700">
-                        <TableCell className="px-2 py-1 text-xs"><Skeleton className="h-4 w-4 bg-gray-700"/></TableCell>
-                        <TableCell className="px-2 py-1 text-xs"><Skeleton className="h-4 w-16 bg-gray-700"/></TableCell>
-                        <TableCell className="text-right px-2 py-1 text-xs"><Skeleton className="h-4 w-8 bg-gray-700 ml-auto"/></TableCell>
-                      </TableRow>
-                    ))
+                    // Afficher un loader pendant le chargement
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-xs py-4 text-gray-400">
+                        <div className="flex flex-col items-center justify-center">
+                          <Loader className="h-4 w-4 animate-spin mb-1" />
+                          <span>Chargement...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ) : globalLeaderboardError && !usesFallbackData ? (
                     // Afficher une erreur si la récupération a échoué et pas de fallback
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-xs py-2 text-red-400 flex items-center justify-center">
-                        <AlertCircle className="h-4 w-4 mr-1 text-red-400" />
-                        Erreur de chargement
+                      <TableCell colSpan={3} className="text-center text-xs py-2 text-red-400">
+                        <div className="flex flex-col items-center justify-center">
+                          <AlertCircle className="h-4 w-4 mb-1 text-red-400" />
+                          <span>Erreur de chargement</span>
+                          <span className="text-xs text-red-300/70 mt-1">
+                            {globalLeaderboardError.message.substring(0, 35)}
+                            {globalLeaderboardError.message.length > 35 ? '...' : ''}
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : globalLeaderboard.length > 0 ? (
