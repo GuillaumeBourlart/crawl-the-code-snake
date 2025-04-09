@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -40,6 +39,7 @@ interface GameCanvasProps {
 }
 
 const BASE_SIZE = 20;
+const DEFAULT_ITEM_EATEN_COUNT = 18; // Ajout de la constante utilisée dans le serveur
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -96,18 +96,14 @@ export const handleJoystickDirection = (direction: { x: number; y: number }) => 
   _joystickDirection = direction;
 };
 
-// Updated to incorporate growth based on itemEatenCount
+// Mise à jour pour correspondre exactement au code serveur
 const getHeadRadius = (player: Player): number => {
-  const baseRadius = BASE_SIZE / 2;
-  const growthFactor = player.itemEatenCount || 0;
-  return baseRadius + (growthFactor * 0.2); // Scale by 0.2 per item eaten
+  return BASE_SIZE / 2 + Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT) * 0.001;
 };
 
-// Updated to incorporate growth based on itemEatenCount
+// Mise à jour pour correspondre exactement au code serveur
 const getSegmentRadius = (player: Player): number => {
-  const baseRadius = BASE_SIZE / 2;
-  const growthFactor = player.itemEatenCount || 0; 
-  return baseRadius + (growthFactor * 0.15); // Slightly smaller scaling for segments
+  return BASE_SIZE / 2 + Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT) * 0.001;
 };
 
 const GameCanvas = ({ 
