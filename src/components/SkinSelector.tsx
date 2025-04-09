@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,10 @@ const SkinSelector = ({
   } = useSkins();
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
+  
+  useEffect(() => {
+    console.log("SkinSelector: selectedSkinId =", selectedSkinId);
+  }, [selectedSkinId]);
 
   // Determine which skins to display
   const displaySkins = showPurchasable 
@@ -39,6 +43,8 @@ const SkinSelector = ({
     : availableSkins;
 
   const handleSkinSelect = (skinId: number) => {
+    console.log("SkinSelector: selecting skin", skinId);
+    
     // First set the selected skin in the hook
     setSelectedSkin(skinId);
     
@@ -104,7 +110,7 @@ const SkinSelector = ({
               key={skin.id}
               className={`relative rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
                 isSelected 
-                  ? 'bg-indigo-500/20' 
+                  ? 'bg-indigo-500/20 ring-2 ring-indigo-500' 
                   : isPurchasable 
                     ? 'opacity-80' 
                     : 'hover:bg-gray-800/30'

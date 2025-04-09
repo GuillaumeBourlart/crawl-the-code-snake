@@ -92,11 +92,23 @@ const Index = () => {
   const directionIntervalRef = useRef<number | null>(null);
   
   const { user, profile, loading: authLoading, updateProfile } = useAuth();
-  const { selectedSkin, selectedSkinId, availableSkins: userSkins, loading: skinsLoading, setSelectedSkin } = useSkins();
+  const { 
+    selectedSkin, 
+    selectedSkinId, 
+    availableSkins: userSkins, 
+    loading: skinsLoading, 
+    setSelectedSkin,
+    refresh: refreshSkins
+  } = useSkins();
+  
+  useEffect(() => {
+    refreshSkins();
+  }, []);
   
   useEffect(() => {
     if (userSkins && userSkins.length > 0) {
       setAvailableSkins(userSkins);
+      console.log("Available skins for gameplay:", userSkins.length);
     }
   }, [userSkins]);
   
@@ -197,6 +209,8 @@ const Index = () => {
       return;
     }
     
+    console.log("Starting game with skin ID:", selectedSkinId);
+    
     setConnecting(true);
     setShowGameOverDialog(false);
     setIsSpectator(false);
@@ -263,6 +277,7 @@ const Index = () => {
       setPlayerId(newSocket.id);
       setGameStarted(true);
       
+      console.log("Sending player info to server with skin:", selectedSkinId);
       newSocket.emit("setPlayerInfo", { 
         pseudo: username,
         skin_id: selectedSkinId

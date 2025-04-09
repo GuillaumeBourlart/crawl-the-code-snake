@@ -48,32 +48,46 @@ export const useSkins = () => {
     skin.is_paid && !ownedSkinIds.has(skin.id)
   );
 
-  // Load saved skin from localStorage on initial load
+  // Load all skins and then fetch saved skin from localStorage
   useEffect(() => {
-    const savedSkinId = localStorage.getItem('selected_skin_id');
-    if (savedSkinId) {
-      setSelectedSkinId(parseInt(savedSkinId, 10));
-    }
-    fetchAllSkins();
+    const loadInitialData = async () => {
+      await fetchAllSkins();
+      
+      // After skins are loaded, check localStorage
+      const savedSkinId = localStorage.getItem('selected_skin_id');
+      if (savedSkinId) {
+        const parsedId = parseInt(savedSkinId, 10);
+        setSelectedSkinId(parsedId);
+        console.log("Loaded selected skin ID from localStorage:", parsedId);
+      }
+    };
+    
+    loadInitialData();
   }, []);
 
+  // Load user-specific skins and default skin when user state changes
   useEffect(() => {
     if (user) {
-      fetchUserSkins();
-      fetchUserDefaultSkin();
+      const loadUserData = async () => {
+        await fetchUserSkins();
+        await fetchUserDefaultSkin();
+      };
+      loadUserData();
     } else {
       setUserSkins([]);
     }
   }, [user]);
 
-  // Select the first available skin if none is selected
+  // Select the first available skin if none is selected and skins are loaded
   useEffect(() => {
-    if (!selectedSkinId && availableSkins.length > 0) {
+    if ((!selectedSkinId || !allSkins.find(skin => skin.id === selectedSkinId)) && 
+        availableSkins.length > 0 && 
+        !loading) {
+      console.log("No skin selected, selecting first available:", availableSkins[0].id);
       setSelectedSkinId(availableSkins[0].id);
-      // Save the selected skin to localStorage
       localStorage.setItem('selected_skin_id', availableSkins[0].id.toString());
     }
-  }, [availableSkins, selectedSkinId]);
+  }, [availableSkins, selectedSkinId, loading]);
 
   const fetchAllSkins = async () => {
     try {
@@ -86,6 +100,7 @@ export const useSkins = () => {
 
       if (error) throw error;
       setAllSkins(data as GameSkin[]);
+      console.log("Fetched all skins:", data.length);
     } catch (error) {
       console.error('Error fetching skins:', error);
       toast.error('Failed to load skins');
@@ -105,6 +120,7 @@ export const useSkins = () => {
 
       if (error) throw error;
       setUserSkins(data as UserSkin[]);
+      console.log("Fetched user skins:", data.length);
     } catch (error) {
       console.error('Error fetching user skins:', error);
       toast.error('Failed to load your skins');
@@ -124,8 +140,11 @@ export const useSkins = () => {
       if (error) throw error;
       
       if (data && data.default_skin_id) {
+        console.log("Found user default skin in profile:", data.default_skin_id);
         setSelectedSkinId(data.default_skin_id);
         localStorage.setItem('selected_skin_id', data.default_skin_id.toString());
+      } else {
+        console.log("No default skin in profile");
       }
     } catch (error) {
       console.error('Error fetching default skin:', error);
@@ -141,6 +160,7 @@ export const useSkins = () => {
       return;
     }
     
+    console.log("Setting selected skin to:", skinId);
     setSelectedSkinId(skinId);
     
     // Always store in localStorage for immediate use
@@ -149,12 +169,14 @@ export const useSkins = () => {
     // If the user is authenticated, update their profile with the selected skin
     if (user) {
       try {
+        console.log("Updating user profile with selected skin:", skinId);
         const { error } = await supabase
           .from('profiles')
           .update({ default_skin_id: skinId })
           .eq('id', user.id);
           
         if (error) throw error;
+        toast.success("Skin preference saved to your profile");
       } catch (error) {
         console.error('Error updating default skin:', error);
         toast.error('Failed to save skin preference');
@@ -179,6 +201,7 @@ export const useSkins = () => {
     loading,
     getSkinById,
     refresh: () => {
+      console.log("Refreshing skins data");
       fetchAllSkins();
       if (user) {
         fetchUserSkins();

@@ -52,6 +52,7 @@ const SkinsPage = () => {
   };
 
   const handleSkinSelectAndSave = (skinId: number) => {
+    console.log("Selecting skin in SkinsPage:", skinId);
     setSelectedSkin(skinId);
     toast.success("Skin sélectionné !");
   };
@@ -62,6 +63,9 @@ const SkinsPage = () => {
       return;
     }
     
+    console.log("Confirming skin selection:", selectedSkin.id);
+    // Make sure the skin is saved one last time before navigating
+    setSelectedSkin(selectedSkin.id);
     navigate('/');
     toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
   };
