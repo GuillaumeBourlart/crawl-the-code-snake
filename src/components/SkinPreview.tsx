@@ -54,7 +54,7 @@ const SkinPreview = ({
         ctx.arc(centerX, centerY, segmentSize * 1.2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw 19 snake segments in a circular pattern
+        // Draw 19 snake segments in a circular pattern (for a total of 20 including the head)
         for (let i = 0; i < 19; i++) {
           const segmentAngle = animate 
             ? angle + (i * 0.3) 
@@ -67,15 +67,15 @@ const SkinPreview = ({
           
           // Use the appropriate color from the skin's colors array
           // The pattern repeats every 20 circles (head + 19 segments)
-          const colorIndex = (i % skin.data.colors.length) + 1;
-          ctx.fillStyle = skin.data.colors[i % skin.data.colors.length];
+          const colorIndex = (i % skin.data.colors.length);
+          ctx.fillStyle = skin.data.colors[colorIndex];
           
           ctx.beginPath();
           ctx.arc(x, y, segmentSize / 2, 0, Math.PI * 2);
           ctx.fill();
         }
       } else if (pattern === 'snake') {
-        // Draw snake segments in a snake-like pattern
+        // Draw snake segments in a snake-like pattern - exactly 20 circles
         const pathLength = width * 0.7;
         const amplitude = height * 0.2;
         const frequency = 2;
@@ -110,7 +110,7 @@ const SkinPreview = ({
         ctx.arc(headX - headSize * 0.25, headY + headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw 19 body segments to match server's skin structure
+        // Draw exactly 19 body segments to match server's skin structure
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
           const wavePhase = animate ? angle * 3 : 0;

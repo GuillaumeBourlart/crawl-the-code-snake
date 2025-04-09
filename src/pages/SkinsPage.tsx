@@ -1,17 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
 import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
-import SkinPreview from "@/components/SkinPreview";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
 
 // Your Stripe publishable key
 const stripePromise = loadStripe("pk_test_your_stripe_key"); // Replace with your actual key
@@ -21,22 +19,6 @@ const SkinsPage = () => {
   const { user, profile, supabase } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [pseudo, setPseudo] = useState("");
-
-  // Charger le pseudo enregistré si disponible
-  useEffect(() => {
-    const savedPseudo = localStorage.getItem('player_pseudo');
-    if (savedPseudo) {
-      setPseudo(savedPseudo);
-    } else if (profile?.pseudo) {
-      // Si l'utilisateur est connecté et a un pseudo dans son profil
-      setPseudo(profile.pseudo);
-    }
-  }, [profile]);
-
-  const handlePseudoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPseudo(e.target.value);
-  };
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -75,29 +57,18 @@ const SkinsPage = () => {
   const handleSkinSelectAndSave = (skinId: number) => {
     // Mettre à jour le skin sélectionné via le hook
     setSelectedSkin(skinId);
-    
-    // Sauvegarder le pseudo
-    if (pseudo.trim()) {
-      localStorage.setItem('player_pseudo', pseudo);
-    }
-    
-    toast.success("Skin sélectionné et pseudo enregistré !");
+    toast.success("Skin sélectionné !");
   };
 
-  const handleStartGame = () => {
+  const handleConfirmSelection = () => {
     if (!selectedSkin) {
-      toast.error("Veuillez sélectionner un skin avant de commencer");
+      toast.error("Veuillez sélectionner un skin avant de continuer");
       return;
     }
     
-    if (!pseudo.trim()) {
-      toast.error("Veuillez entrer un pseudo avant de commencer");
-      return;
-    }
-    
-    // Sauvegarder le pseudo et rediriger vers le jeu
-    localStorage.setItem('player_pseudo', pseudo);
+    // Retourner à la page d'accueil
     navigate('/');
+    toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
   };
 
   return (
@@ -130,29 +101,20 @@ const SkinsPage = () => {
 
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-6 bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
-          <div className="flex flex-col md:flex-row gap-6 items-center">
-            <div className="w-full md:w-1/3">
-              <Input
-                id="pseudo"
-                value={pseudo}
-                onChange={handlePseudoChange}
-                className="bg-gray-800 border-gray-700 text-white"
-                placeholder="Entrez votre pseudo"
-                maxLength={20}
-              />
-              <Button 
-                className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700"
-                onClick={handleStartGame}
-                disabled={!selectedSkin || !pseudo.trim()}
-              >
-                Commencer à jouer
-              </Button>
-            </div>
-            <div className="w-full md:w-2/3 text-center">
-              <p className="text-sm text-gray-300 mb-2">
-                Choisissez un skin et entrez votre pseudo pour jouer
+          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+            <div className="text-center">
+              <p className="text-lg font-medium mb-2">Choisissez votre skin</p>
+              <p className="text-sm text-gray-300">
+                Sélectionnez un skin pour votre serpent
               </p>
             </div>
+            <Button 
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleConfirmSelection}
+              disabled={!selectedSkin}
+            >
+              Valider mon choix
+            </Button>
           </div>
         </div>
 
