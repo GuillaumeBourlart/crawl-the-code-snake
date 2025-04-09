@@ -6,9 +6,15 @@ interface SkinPreviewProps {
   skin: GameSkin;
   size?: 'small' | 'medium' | 'large';
   animate?: boolean;
+  pattern?: 'circular' | 'snake'; // Add pattern prop for different rendering modes
 }
 
-const SkinPreview = ({ skin, size = 'medium', animate = true }: SkinPreviewProps) => {
+const SkinPreview = ({ 
+  skin, 
+  size = 'medium', 
+  animate = true, 
+  pattern = 'circular' 
+}: SkinPreviewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const dimensions = {
@@ -31,7 +37,7 @@ const SkinPreview = ({ skin, size = 'medium', animate = true }: SkinPreviewProps
     // Snake properties
     const segmentSize = width / 12;
     const segmentSpacing = skin.data.segmentSpacing || 0.9;
-    const segmentCount = 8;
+    const segmentCount = pattern === 'snake' ? 12 : 8;
     
     // Animation properties
     let animationFrame: number;
@@ -40,24 +46,77 @@ const SkinPreview = ({ skin, size = 'medium', animate = true }: SkinPreviewProps
     const renderSnake = () => {
       ctx.clearRect(0, 0, width, height);
       
-      // Draw snake segments in a curved pattern
-      for (let i = 0; i < segmentCount; i++) {
-        const segmentAngle = animate 
-          ? angle + (i * 0.4) 
-          : (Math.PI / 4) + (i * 0.4);
+      if (pattern === 'circular') {
+        // Draw snake segments in a circular pattern
+        for (let i = 0; i < segmentCount; i++) {
+          const segmentAngle = animate 
+            ? angle + (i * 0.4) 
+            : (Math.PI / 4) + (i * 0.4);
+            
+          const distance = i * segmentSize * segmentSpacing;
           
-        const distance = i * segmentSize * segmentSpacing;
+          const x = centerX + Math.cos(segmentAngle) * distance;
+          const y = centerY + Math.sin(segmentAngle) * distance;
+          
+          // Use colors from the skin, cycling through them
+          const colorIndex = i % skin.data.colors.length;
+          ctx.fillStyle = skin.data.colors[colorIndex];
+          
+          ctx.beginPath();
+          ctx.arc(x, y, segmentSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (pattern === 'snake') {
+        // Draw snake segments in a snake-like pattern
+        const pathLength = width * 0.7;
+        const amplitude = height * 0.2;
+        const frequency = 2;
         
-        const x = centerX + Math.cos(segmentAngle) * distance;
-        const y = centerY + Math.sin(segmentAngle) * distance;
+        // Draw head
+        const headX = centerX - pathLength * 0.3;
+        const headY = centerY;
+        const headSize = segmentSize * 1.2;
         
-        // Use colors from the skin, cycling through them
-        const colorIndex = i % skin.data.colors.length;
-        ctx.fillStyle = skin.data.colors[colorIndex];
-        
+        // Set head color
+        ctx.fillStyle = skin.data.colors[0];
         ctx.beginPath();
-        ctx.arc(x, y, segmentSize / 2, 0, Math.PI * 2);
+        ctx.arc(headX, headY, headSize / 2, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Eyes
+        const eyeSize = headSize * 0.3;
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath();
+        ctx.arc(headX - headSize * 0.2, headY - headSize * 0.2, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(headX - headSize * 0.2, headY + headSize * 0.2, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pupils
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(headX - headSize * 0.25, headY - headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(headX - headSize * 0.25, headY + headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw body segments
+        for (let i = 1; i < segmentCount; i++) {
+          const progress = i / segmentCount;
+          const wavePhase = animate ? angle * 3 : 0;
+          const x = headX + progress * pathLength;
+          const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
+          
+          // Use colors from the skin, cycling through them
+          const colorIndex = i % skin.data.colors.length;
+          ctx.fillStyle = skin.data.colors[colorIndex];
+          
+          ctx.beginPath();
+          ctx.arc(x, y, segmentSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       if (animate) {
@@ -73,7 +132,7 @@ const SkinPreview = ({ skin, size = 'medium', animate = true }: SkinPreviewProps
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [skin, size, animate]);
+  }, [skin, size, animate, pattern]);
 
   const { width, height } = dimensions[size];
 

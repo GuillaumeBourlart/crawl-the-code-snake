@@ -12,13 +12,17 @@ interface SkinSelectorProps {
   showPurchasable?: boolean;
   onPurchase?: (skin: GameSkin) => void;
   showPreview?: boolean;
+  previewPattern?: 'circular' | 'snake';
+  simpleMode?: boolean; // Add simple mode for just showing names in a list
 }
 
 const SkinSelector = ({ 
   onSelectSkin, 
   showPurchasable = false,
   onPurchase,
-  showPreview = true
+  showPreview = true,
+  previewPattern = 'circular',
+  simpleMode = false
 }: SkinSelectorProps) => {
   const { 
     availableSkins, 
@@ -47,6 +51,43 @@ const SkinSelector = ({
     }
   };
 
+  if (simpleMode) {
+    return (
+      <div className="w-full">
+        <div className="flex flex-col space-y-2">
+          {displaySkins.map(skin => {
+            const isSelected = skin.id === selectedSkinId;
+            const isOwned = availableSkins.some(s => s.id === skin.id);
+            const isPurchasable = !isOwned && skin.is_paid;
+            
+            return (
+              <Button
+                key={skin.id}
+                variant={isSelected ? "default" : "outline"}
+                className={`text-sm justify-start ${
+                  isSelected 
+                    ? 'bg-indigo-600 hover:bg-indigo-700' 
+                    : 'bg-gray-800/70 hover:bg-gray-700/70'
+                }`}
+                onClick={() => handleSkinSelect(skin.id)}
+                disabled={isPurchasable}
+              >
+                {isSelected && <CheckCircle2 className="h-4 w-4 mr-2 text-white" />}
+                {isPurchasable && <Lock className="h-4 w-4 mr-2 text-gray-400" />}
+                {skin.name}
+                {skin.is_paid && (
+                  <span className="ml-auto text-xs text-indigo-300 font-semibold">
+                    {isOwned ? 'Purchased' : `${skin.price} €`}
+                  </span>
+                )}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
@@ -72,7 +113,12 @@ const SkinSelector = ({
                 {showPreview && (
                   <div className="mb-2 relative w-full">
                     <div className="flex justify-center">
-                      <SkinPreview skin={skin} size="small" animate={hoveredSkin?.id === skin.id} />
+                      <SkinPreview 
+                        skin={skin} 
+                        size="small" 
+                        animate={hoveredSkin?.id === skin.id}
+                        pattern={previewPattern}
+                      />
                     </div>
                     
                     {isSelected && (
