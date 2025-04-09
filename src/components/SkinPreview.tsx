@@ -34,9 +34,10 @@ const SkinPreview = ({
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // Snake properties
+    // Snake properties - use consistent spacing
     const segmentSize = width / 12;
-    const segmentSpacing = skin.data.segmentSpacing || 0.9;
+    const segmentGap = 0.1; // Consistent gap between segments (10% of segment size)
+    const segmentSpacing = 1 + segmentGap; // Consistent spacing factor
     const segmentCount = 20; // Showing exactly 20 segments to match server structure
     
     // Animation properties
@@ -97,7 +98,7 @@ const SkinPreview = ({
         // Create an array to store all segments (including head)
         let segments = [];
         
-        // Add body segments to the array
+        // Add body segments to the array - use consistent spacing for segments
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
           const wavePhase = animate ? angle * 3 : 0;

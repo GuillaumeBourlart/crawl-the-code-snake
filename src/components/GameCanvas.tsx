@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -441,7 +440,6 @@ const GameCanvas = ({
       rendererStateRef.current.gridNeedsUpdate = false;
     };
     
-    // Update the drawPlayerHead function to use the color from the player object
     const drawPlayerHead = (player: Player, isCurrentPlayer: boolean) => {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
@@ -454,7 +452,6 @@ const GameCanvas = ({
       
       ctx.save();
       
-      // Draw circular head
       const gradient = ctx.createRadialGradient(
         player.x, player.y, 0,
         player.x, player.y, headRadius
@@ -467,24 +464,17 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Draw normal border with better visibility
       ctx.strokeStyle = shadeColor(playerColor, -30);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Draw circuit board pattern
       ctx.save();
       ctx.beginPath();
       ctx.arc(player.x, player.y, headRadius * 0.9, 0, Math.PI * 2);
       ctx.clip();
       
-      // Circuit lines
-      ctx.strokeStyle = `${darkenColor(playerColor, 30)}80`;
-      ctx.lineWidth = 1;
-      
-      // Horizontal lines
       const lineSpacing = headRadius * 0.25;
       for (let y = -headRadius; y <= headRadius; y += lineSpacing) {
         ctx.beginPath();
@@ -493,7 +483,6 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Vertical lines
       for (let x = -headRadius; x <= headRadius; x += lineSpacing) {
         ctx.beginPath();
         ctx.moveTo(player.x + x, player.y - headRadius);
@@ -501,7 +490,6 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Circuit nodes
       const nodeColor = shadeColor(playerColor, 20);
       const nodePositions = [
         { x: -0.5, y: -0.3 },
@@ -530,7 +518,6 @@ const GameCanvas = ({
       
       ctx.restore();
       
-      // Add inner circular detail
       const innerRadius = headRadius * 0.65;
       const coreGradient = ctx.createRadialGradient(
         player.x, player.y, innerRadius * 0.1,
@@ -544,12 +531,10 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add eyes - REPOSITIONED BASED ON HEAD SIZE
       const eyeSize = headRadius * 0.35;
       const eyeDistance = headRadius * 0.4;
       const eyeOffsetY = -headRadius * 0.15;
       
-      // Calculate pupil offsets based on input or direction
       if (isCurrentPlayer) {
         if (isMobile) {
           const joystickDir = rendererStateRef.current.joystickDirection;
@@ -580,7 +565,6 @@ const GameCanvas = ({
         }
       }
       
-      // Draw eye whites with improved contrast
       const eyeGradient = ctx.createRadialGradient(
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize * 0.2,
         player.x - eyeDistance, player.y + eyeOffsetY, eyeSize
@@ -588,34 +572,27 @@ const GameCanvas = ({
       eyeGradient.addColorStop(0, "#FFFFFF");
       eyeGradient.addColorStop(1, "#F0F0F0");
       
-      // Left eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Eye border - normal border
       ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Right eye
       ctx.fillStyle = eyeGradient;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Eye border - normal border
       ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
-      
-      // Improved pupils - keeping large size
-      const pupilSize = eyeSize * 0.75;
       
       const pupilGradient = ctx.createRadialGradient(
         player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
@@ -624,22 +601,18 @@ const GameCanvas = ({
       pupilGradient.addColorStop(0, "#000000");
       pupilGradient.addColorStop(1, "#111111");
       
-      // Left pupil
       ctx.fillStyle = pupilGradient;
       ctx.beginPath();
       ctx.arc(player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Right pupil
       ctx.beginPath();
       ctx.arc(player.x + eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Improved eye highlights - repositioned based on new eye positions
       const highlightSize = eyeSize * 0.4;
       ctx.fillStyle = "#FFFFFF";
       
-      // Left eye highlight
       ctx.beginPath();
       ctx.arc(
         player.x - eyeDistance + pupilOffsetX - eyeSize * 0.25, 
@@ -649,7 +622,6 @@ const GameCanvas = ({
       );
       ctx.fill();
       
-      // Right eye highlight
       ctx.beginPath();
       ctx.arc(
         player.x + eyeDistance + pupilOffsetX - eyeSize * 0.25, 
@@ -659,19 +631,15 @@ const GameCanvas = ({
       );
       ctx.fill();
       
-      // Add mouth - POSITION LOWERED FURTHER
       const mouthY = player.y + headRadius * 0.45;
       const mouthWidth = headRadius * 0.4;
       
-      // Expression based on boosting
       if (player.boosting) {
-        // Open mouth when boosting
         ctx.fillStyle = "#333333";
         ctx.beginPath();
         ctx.arc(player.x, mouthY, mouthWidth * 0.6, 0, Math.PI);
         ctx.fill();
         
-        // Add teeth
         ctx.fillStyle = "#FFFFFF";
         const teethWidth = mouthWidth * 0.15;
         const teethHeight = mouthWidth * 0.2;
@@ -680,7 +648,6 @@ const GameCanvas = ({
         ctx.fillRect(player.x - teethGap - teethWidth, mouthY - teethHeight, teethWidth, teethHeight);
         ctx.fillRect(player.x + teethGap, mouthY - teethHeight, teethWidth, teethHeight);
       } else {
-        // Regular smile when not boosting
         ctx.strokeStyle = "#333333";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -688,7 +655,6 @@ const GameCanvas = ({
         ctx.stroke();
       }
       
-      // Add boost glow if boosting
       if (player.boosting) {
         const glowColor = playerColor;
         
@@ -767,37 +733,48 @@ const GameCanvas = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      // Draw queue segments for all players
+      const allSegments = [];
+      
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
         if (player.queue && player.queue.length > 0) {
           player.queue.forEach((segment, index) => {
             const radius = getSegmentRadius(player);
             const segmentColor = segment.color || player.color || '#8B5CF6';
             
-            // Draw segment
-            const gradient = ctx.createRadialGradient(
-              segment.x, segment.y, 0,
-              segment.x, segment.y, radius
-            );
-            gradient.addColorStop(0, segmentColor);
-            gradient.addColorStop(1, shadeColor(segmentColor, -15));
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw segment outline
-            ctx.strokeStyle = shadeColor(segmentColor, -30);
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(segment.x, segment.y, radius, 0, Math.PI * 2);
-            ctx.stroke();
+            allSegments.push({
+              x: segment.x,
+              y: segment.y,
+              radius,
+              color: segmentColor,
+              zIndex: player.queue!.length - index,
+              playerId: id
+            });
           });
         }
       });
       
-      // Draw items
+      allSegments.sort((a, b) => a.zIndex - b.zIndex);
+      
+      allSegments.forEach(segment => {
+        const gradient = ctx.createRadialGradient(
+          segment.x, segment.y, 0,
+          segment.x, segment.y, segment.radius
+        );
+        gradient.addColorStop(0, segment.color);
+        gradient.addColorStop(1, shadeColor(segment.color, -15));
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(segment.color, -30);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
       rendererStateRef.current.items.forEach(item => {
         const animation = rendererStateRef.current.itemAnimations[item.id];
         if (!animation) return;
@@ -840,7 +817,6 @@ const GameCanvas = ({
         ctx.stroke();
       });
       
-      // Draw player heads
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
         drawPlayerHead(player, id === playerId);
       });
