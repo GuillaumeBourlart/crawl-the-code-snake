@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,15 +11,32 @@ import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 // Your Stripe publishable key
 const stripePromise = loadStripe("pk_test_your_stripe_key"); // Replace with your actual key
 
 const SkinsPage = () => {
-  const { selectedSkin, availableSkins, purchasableSkins } = useSkins();
+  const { selectedSkin, availableSkins, purchasableSkins, setSelectedSkin } = useSkins();
   const { user, profile, supabase } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pseudo, setPseudo] = useState("");
+
+  // Charger le pseudo enregistré si disponible
+  useEffect(() => {
+    const savedPseudo = localStorage.getItem('player_pseudo');
+    if (savedPseudo) {
+      setPseudo(savedPseudo);
+    } else if (profile?.pseudo) {
+      // Si l'utilisateur est connecté et a un pseudo dans son profil
+      setPseudo(profile.pseudo);
+    }
+  }, [profile]);
+
+  const handlePseudoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPseudo(e.target.value);
+  };
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -55,6 +72,34 @@ const SkinsPage = () => {
     }
   };
 
+  const handleSkinSelectAndSave = (skinId: number) => {
+    // Mettre à jour le skin sélectionné via le hook
+    setSelectedSkin(skinId);
+    
+    // Sauvegarder le pseudo
+    if (pseudo.trim()) {
+      localStorage.setItem('player_pseudo', pseudo);
+    }
+    
+    toast.success("Skin sélectionné et pseudo enregistré !");
+  };
+
+  const handleStartGame = () => {
+    if (!selectedSkin) {
+      toast.error("Veuillez sélectionner un skin avant de commencer");
+      return;
+    }
+    
+    if (!pseudo.trim()) {
+      toast.error("Veuillez entrer un pseudo avant de commencer");
+      return;
+    }
+    
+    // Sauvegarder le pseudo et rediriger vers le jeu
+    localStorage.setItem('player_pseudo', pseudo);
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">
@@ -66,7 +111,7 @@ const SkinsPage = () => {
             className="mr-4 text-gray-200 hover:text-white"
           >
             <ArrowLeft className="h-5 w-5 mr-1" />
-            Back to Game
+            Retour
           </Button>
           <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-500">
             Code Crawl Skins
@@ -87,7 +132,7 @@ const SkinsPage = () => {
         <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Skin Preview Section */}
           <div className="w-full md:w-1/3 bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-indigo-500/20 shadow-xl">
-            <h2 className="text-xl font-bold mb-4 text-center">Preview</h2>
+            <h2 className="text-xl font-bold mb-4 text-center">Prévisualization</h2>
             {selectedSkin ? (
               <div className="flex flex-col items-center">
                 <SkinPreview skin={selectedSkin} size="large" animate={true} />
@@ -97,10 +142,34 @@ const SkinsPage = () => {
                     {selectedSkin.description}
                   </p>
                 )}
+                
+                <div className="mt-6 w-full space-y-4">
+                  <div>
+                    <label htmlFor="pseudo" className="block text-sm font-medium text-gray-300 mb-1">
+                      Votre pseudo
+                    </label>
+                    <Input
+                      id="pseudo"
+                      value={pseudo}
+                      onChange={handlePseudoChange}
+                      className="bg-gray-800 border-gray-700 text-white"
+                      placeholder="Entrez votre pseudo"
+                      maxLength={20}
+                    />
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                    onClick={handleStartGame}
+                    disabled={!selectedSkin || !pseudo.trim()}
+                  >
+                    Commencer à jouer
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
-                No skin selected
+                Aucun skin sélectionné
               </div>
             )}
           </div>
@@ -108,17 +177,17 @@ const SkinsPage = () => {
           {/* Skin Selection Section */}
           <div className="w-full md:w-2/3">
             <div className="mb-6">
-              <h2 className="text-xl font-bold mb-1">Your Skins</h2>
+              <h2 className="text-xl font-bold mb-1">Vos skins</h2>
               <p className="text-sm text-gray-300 mb-4">
-                Select from your available skins
+                Sélectionnez parmi vos skins disponibles
               </p>
               
               <div className="bg-gray-900/50 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
                 {availableSkins.length > 0 ? (
-                  <SkinSelector />
+                  <SkinSelector onSelectSkin={handleSkinSelectAndSave} />
                 ) : (
                   <div className="text-center py-8 text-gray-400">
-                    No skins available yet
+                    Aucun skin disponible pour le moment
                   </div>
                 )}
               </div>
@@ -126,20 +195,20 @@ const SkinsPage = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold">Skin Shop</h2>
+                <h2 className="text-xl font-bold">Boutique</h2>
                 <div className="flex items-center text-sm text-gray-300">
                   <ShoppingCart className="h-4 w-4 mr-1 text-indigo-400" />
-                  Get more skins
+                  Obtenir plus de skins
                 </div>
               </div>
               <p className="text-sm text-gray-300 mb-4">
-                Purchase premium skins to stand out in the game
+                Achetez des skins premium pour vous démarquer dans le jeu
               </p>
               
               {!user && (
                 <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
                   <p className="text-center">
-                    Sign in with Google to purchase and save your skins
+                    Connectez-vous avec Google pour acheter et sauvegarder vos skins
                   </p>
                 </div>
               )}
@@ -149,10 +218,11 @@ const SkinsPage = () => {
                   <SkinSelector 
                     showPurchasable={true} 
                     onPurchase={handlePurchase}
+                    onSelectSkin={handleSkinSelectAndSave}
                   />
                 ) : (
                   <div className="text-center py-8 text-gray-400">
-                    No skins available for purchase
+                    Aucun skin disponible à l'achat
                   </div>
                 )}
               </div>
@@ -162,7 +232,7 @@ const SkinsPage = () => {
       </main>
 
       <footer className="py-4 px-6 text-center bg-gray-900/80 text-gray-400 text-sm">
-        © 2025 Code Crawl - All skins purchased are linked to your account
+        © 2025 Code Crawl - Tous les skins achetés sont liés à votre compte
       </footer>
     </div>
   );

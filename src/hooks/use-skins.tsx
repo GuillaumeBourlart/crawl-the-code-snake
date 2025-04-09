@@ -123,10 +123,16 @@ export const useSkins = () => {
           .eq('id', user.id);
           
         if (error) throw error;
+        
+        // Stocker l'ID du skin dans le localStorage pour le récupérer lors de la connexion au jeu
+        localStorage.setItem('selected_skin_id', skinId.toString());
       } catch (error) {
         console.error('Error updating default skin:', error);
         toast.error('Failed to save skin preference');
       }
+    } else {
+      // Même si l'utilisateur n'est pas connecté, on stocke le skin sélectionné
+      localStorage.setItem('selected_skin_id', skinId.toString());
     }
   };
 
