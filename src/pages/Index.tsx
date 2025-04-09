@@ -78,7 +78,7 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   
-  const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError } = useGlobalLeaderboard(SOCKET_SERVER_URL);
+  const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
   const isMobile = useIsMobile();
   const moveThrottleRef = useRef(false);
@@ -492,6 +492,7 @@ const Index = () => {
             isVisible={showLeaderboard}
             isGlobalLeaderboardLoading={isGlobalLeaderboardLoading}
             globalLeaderboardError={globalLeaderboardError}
+            usesFallbackData={usesFallback}
           />
           
           <GameCanvas

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Trophy, Users, Medal, AlertCircle } from "lucide-react";
+import { Trophy, Users, Medal, AlertCircle, WifiOff } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PlayerScore {
   id: string;
@@ -26,6 +27,7 @@ interface LeaderboardPanelProps {
   isVisible: boolean;
   isGlobalLeaderboardLoading?: boolean;
   globalLeaderboardError?: Error | null;
+  usesFallbackData?: boolean;
 }
 
 const LeaderboardPanel = ({
@@ -34,7 +36,8 @@ const LeaderboardPanel = ({
   currentPlayerId,
   isVisible,
   isGlobalLeaderboardLoading = false,
-  globalLeaderboardError = null
+  globalLeaderboardError = null,
+  usesFallbackData = false
 }: LeaderboardPanelProps) => {
   const [activeTab, setActiveTab] = useState<string>("room");
 
@@ -104,6 +107,14 @@ const LeaderboardPanel = ({
             </TabsContent>
             
             <TabsContent value="global" className="mt-0 p-0">
+              {usesFallbackData && (
+                <Alert variant="destructive" className="mb-2 py-2 bg-amber-950/50 border-amber-800 text-amber-200">
+                  <AlertDescription className="text-xs flex items-center">
+                    <WifiOff className="h-3 w-3 mr-1" />
+                    Données hors ligne (fallback)
+                  </AlertDescription>
+                </Alert>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-700">
@@ -122,8 +133,8 @@ const LeaderboardPanel = ({
                         <TableCell className="text-right px-2 py-1 text-xs"><Skeleton className="h-4 w-8 bg-gray-700 ml-auto"/></TableCell>
                       </TableRow>
                     ))
-                  ) : globalLeaderboardError ? (
-                    // Afficher une erreur si la récupération a échoué
+                  ) : globalLeaderboardError && !usesFallbackData ? (
+                    // Afficher une erreur si la récupération a échoué et pas de fallback
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-xs py-2 text-red-400 flex items-center justify-center">
                         <AlertCircle className="h-4 w-4 mr-1 text-red-400" />
