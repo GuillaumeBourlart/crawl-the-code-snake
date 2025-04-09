@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -18,45 +19,19 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Create Supabase client instance outside the component to avoid recreating it
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const supabase = createClient(supabaseUrl, supabaseKey);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setUser(session?.user || null);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          await fetchProfile(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
 
   const fetchProfile = async (userId: string) => {
+    if (!userId || profileFetchAttempted) return;
+    
+    setProfileFetchAttempted(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -93,18 +68,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  useEffect(() => {
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Session retrieval error:", error);
+        setLoading(false);
+      }
+    };
+
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user);
+          setProfileFetchAttempted(false); // Reset to allow fetch on new sign in
+          await fetchProfile(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          setProfileFetchAttempted(false);
+          setLoading(false);
+        } else {
+          setUser(session?.user || null);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const signInWithGoogle = async () => {
     try {
       console.log("Attempting to sign in with Google...");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        },
       });
       
       if (error) {
@@ -122,12 +134,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear user data
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+      
       toast.success('Signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
+    } finally {
+      setLoading(false);
     }
   };
 

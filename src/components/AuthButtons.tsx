@@ -5,13 +5,15 @@ import { LogOut, LogIn, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const AuthButtons = () => {
-  const { user, signInWithGoogle, signOut } = useAuth();
+  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
-  // Reset loading state if user changes
+  // Reset loading state if user changes or auth loading state changes
   useEffect(() => {
-    setIsLoading(false);
-  }, [user]);
+    if (!authLoading) {
+      setIsLoading(false);
+    }
+  }, [user, authLoading]);
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -27,10 +29,25 @@ const AuthButtons = () => {
     setIsLoading(true);
     try {
       await signOut();
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Sign out error:", error);
     }
+    // Loading state will be reset by the useEffect
   };
+
+  if (authLoading) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md"
+        disabled
+      >
+        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+        Loading...
+      </Button>
+    );
+  }
 
   return user ? (
     <Button
