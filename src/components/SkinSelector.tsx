@@ -99,13 +99,14 @@ const SkinSelector = ({
           return (
             <div
               key={skin.id}
-              className={`relative rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+              className={`relative rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
                 isSelected 
-                  ? 'border-indigo-500 shadow-lg shadow-indigo-500/30' 
+                  ? 'bg-indigo-500/20' 
                   : isPurchasable 
-                    ? 'border-gray-700 opacity-80' 
-                    : 'border-gray-800 hover:border-gray-600'
+                    ? 'opacity-80' 
+                    : 'hover:bg-gray-800/30'
               }`}
+              onClick={() => !isPurchasable && handleSkinSelect(skin.id)}
               onMouseEnter={() => setHoveredSkin(skin)}
               onMouseLeave={() => setHoveredSkin(null)}
             >
@@ -145,32 +146,21 @@ const SkinSelector = ({
                   </div>
                 )}
                 
-                <div className="mt-2 w-full">
-                  {isPurchasable && user && showPurchasable ? (
+                {isPurchasable && user && showPurchasable && (
+                  <div className="mt-2 w-full">
                     <Button
                       size="sm"
                       variant="outline"
                       className="w-full text-xs bg-indigo-950/50 hover:bg-indigo-900/50 border-indigo-800"
-                      onClick={() => handlePurchase(skin)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePurchase(skin);
+                      }}
                     >
                       Buy
                     </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant={isSelected ? "default" : "outline"}
-                      className={`w-full text-xs ${
-                        isSelected 
-                          ? 'bg-indigo-600 hover:bg-indigo-700' 
-                          : 'bg-transparent hover:bg-gray-700/70'
-                      }`}
-                      onClick={() => handleSkinSelect(skin.id)}
-                      disabled={isPurchasable}
-                    >
-                      {isSelected ? 'Selected' : isPurchasable ? 'Locked' : 'Select'}
-                    </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           );

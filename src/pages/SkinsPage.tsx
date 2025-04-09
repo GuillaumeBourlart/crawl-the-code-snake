@@ -100,20 +100,14 @@ const SkinsPage = () => {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6 rounded-xl p-6 backdrop-blur-sm border border-gray-800 shadow-xl">
-          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-            <div className="text-center">
-              <p className="text-lg font-medium mb-2">Choisissez votre skin</p>
-              <p className="text-sm text-gray-300">
-                Sélectionnez un skin pour votre serpent
-              </p>
-            </div>
+        <div className="mb-6 rounded-xl p-6 border border-gray-800 shadow-xl">
+          <div className="flex justify-end">
             <Button 
               className="bg-indigo-600 hover:bg-indigo-700"
               onClick={handleConfirmSelection}
               disabled={!selectedSkin}
             >
-              Valider mon choix
+              Valider
             </Button>
           </div>
         </div>
