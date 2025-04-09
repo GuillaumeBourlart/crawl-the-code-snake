@@ -34,11 +34,10 @@ const SkinPreview = ({
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // Snake properties - use consistent spacing
-    const segmentSize = width / 12;
-    const segmentGap = 0.1; // Consistent gap between segments (10% of segment size)
-    const segmentSpacing = 1 + segmentGap; // Consistent spacing factor
-    const segmentCount = 20; // Showing exactly 20 segments to match server structure
+    // Snake properties
+    const segmentSize = width / 12; // Taille de base du segment
+    const segmentGap = 0.2; // Facteur d'espacement entre segments (20% de la taille)
+    const segmentCount = 20; // Montrer exactement 20 segments pour correspondre à la structure du serveur
     
     // Animation properties
     let animationFrame: number;
@@ -51,13 +50,17 @@ const SkinPreview = ({
         // Create an array to store all segments (including head)
         let segments = [];
         
-        // Add the 19 snake segments in a circular pattern to the array
+        // Calcul de l'espacement identique au serveur
+        const tailSpacing = segmentSize * 0.2;
+        const segmentSpacing = (segmentSize * 2) + tailSpacing;
+        
+        // Add the 19 snake segments (body) in a circular pattern to the array
         for (let i = 0; i < 19; i++) {
           const segmentAngle = animate 
-            ? angle + (i * 0.3) 
-            : (Math.PI / 4) + (i * 0.3);
+            ? angle + (i * 0.2) // Réduire l'ondulation de 0.3 à 0.2
+            : (Math.PI / 4) + (i * 0.2);
             
-          const distance = (i + 1) * segmentSize * segmentSpacing;
+          const distance = (i + 1) * segmentSpacing;
           
           const x = centerX + Math.cos(segmentAngle) * distance;
           const y = centerY + Math.sin(segmentAngle) * distance;
@@ -83,25 +86,41 @@ const SkinPreview = ({
           ctx.fill();
         }
         
+        // Calculer la position de la tête pour qu'elle suive le premier segment
+        // plutôt que de rester fixe au centre
+        const headAngle = animate ? angle : Math.PI / 4;
+        const headX = centerX + Math.cos(headAngle) * segmentSpacing * 0.5;
+        const headY = centerY + Math.sin(headAngle) * segmentSpacing * 0.5;
+        
         // Draw head (premier segment) last - so it's on top with the highest z-index
         const headColor = skin.data.colors[0];
         ctx.fillStyle = headColor;
         ctx.beginPath();
-        ctx.arc(centerX, centerY, segmentSize * 1.2, 0, Math.PI * 2);
+        ctx.arc(headX, headY, segmentSize * 0.6, 0, Math.PI * 2);
         ctx.fill();
       } else if (pattern === 'snake') {
         // Draw snake segments in a snake-like pattern - exactly 20 circles
         const pathLength = width * 0.7;
-        const amplitude = height * 0.2;
-        const frequency = 2;
+        const amplitude = height * 0.15; // Réduire l'amplitude de 0.2 à 0.15 pour moins d'ondulation
+        const frequency = 1.5; // Réduire la fréquence pour moins d'ondulation
+        
+        // Calcul de l'espacement identique au serveur
+        const tailSpacing = segmentSize * 0.2;
+        const segmentSpacing = (segmentSize * 2) + tailSpacing;
+        const distanceBetweenSegments = pathLength / 20;
         
         // Create an array to store all segments (including head)
         let segments = [];
         
-        // Add body segments to the array - use consistent spacing for segments
+        // Calculate head position - first element of the snake
+        const headProgress = 0;
+        const wavePhase = animate ? angle * 2 : 0;
+        const headX = centerX - pathLength * 0.3;
+        const headY = centerY + Math.sin(headProgress * frequency * Math.PI + wavePhase) * amplitude;
+        
+        // Add body segments to the array with consistent spacing
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
-          const wavePhase = animate ? angle * 3 : 0;
           const x = centerX - pathLength * 0.3 + progress * pathLength;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
           
@@ -127,8 +146,6 @@ const SkinPreview = ({
         }
         
         // Draw head with the first color (highest z-index)
-        const headX = centerX - pathLength * 0.3;
-        const headY = centerY;
         const headSize = segmentSize * 1.2;
         
         // Set head color - premier élément du tableau colors
@@ -158,7 +175,7 @@ const SkinPreview = ({
       }
 
       if (animate) {
-        angle += 0.02;
+        angle += 0.01; // Réduire la vitesse d'animation de 0.02 à 0.01
         animationFrame = requestAnimationFrame(renderSnake);
       }
     };
