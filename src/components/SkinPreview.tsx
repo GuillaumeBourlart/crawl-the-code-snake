@@ -65,8 +65,9 @@ const SkinPreview = ({
           const x = centerX + Math.cos(segmentAngle) * distance;
           const y = centerY + Math.sin(segmentAngle) * distance;
           
-          // Use the appropriate color from the skin's colors array
-          const colorIndex = (i % skin.data.colors.length);
+          // Use the appropriate color from the skin's colors array - match server logic
+          // For segments, use colors[1] through colors[19], repeating if needed
+          const colorIndex = (i % 19) + 1; // Use 1-19 indices for segments
           
           segments.push({
             x,
@@ -92,8 +93,8 @@ const SkinPreview = ({
         const headX = centerX + Math.cos(headAngle) * segmentSpacing * 0.5;
         const headY = centerY + Math.sin(headAngle) * segmentSpacing * 0.5;
         
-        // Draw head (premier segment) last - so it's on top with the highest z-index
-        const headColor = skin.data.colors[0];
+        // Draw head (premier segment) last with colors[0] - so it's on top with the highest z-index
+        const headColor = skin.data.colors[0]; // Always use first color for head
         ctx.fillStyle = headColor;
         ctx.beginPath();
         ctx.arc(headX, headY, segmentSize * 0.6, 0, Math.PI * 2);
@@ -112,20 +113,16 @@ const SkinPreview = ({
         // Create an array to store all segments (including head)
         let segments = [];
         
-        // Calculate head position - first element of the snake
-        const headProgress = 0;
-        const wavePhase = animate ? angle * 2 : 0;
-        const headX = centerX - pathLength * 0.3;
-        const headY = centerY + Math.sin(headProgress * frequency * Math.PI + wavePhase) * amplitude;
-        
-        // Add body segments to the array with consistent spacing
+        // Calculate body segments to draw first - using colors 1-19
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
           const x = centerX - pathLength * 0.3 + progress * pathLength;
+          const wavePhase = animate ? angle * 2 : 0;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
           
           // Use the color at the corresponding index in the skin's color array
-          const colorIndex = (i - 1) % skin.data.colors.length;
+          // For segments, use colors[1] through colors[19], repeating if needed
+          const colorIndex = ((i - 1) % 19) + 1; // Use 1-19 indices for segments
           
           segments.push({
             x,
@@ -147,9 +144,13 @@ const SkinPreview = ({
         
         // Draw head with the first color (highest z-index)
         const headSize = segmentSize * 1.2;
+        const headProgress = 0;
+        const wavePhase = animate ? angle * 2 : 0;
+        const headX = centerX - pathLength * 0.3;
+        const headY = centerY + Math.sin(headProgress * frequency * Math.PI + wavePhase) * amplitude;
         
-        // Set head color - premier élément du tableau colors
-        ctx.fillStyle = skin.data.colors[0];
+        // Set head color - use colors[0] to match server-side logic
+        ctx.fillStyle = skin.data.colors[0]; // Always use first color for head
         ctx.beginPath();
         ctx.arc(headX, headY, headSize / 2, 0, Math.PI * 2);
         ctx.fill();
