@@ -11,12 +11,14 @@ interface SkinSelectorProps {
   onSelectSkin?: (skinId: number) => void;
   showPurchasable?: boolean;
   onPurchase?: (skin: GameSkin) => void;
+  showPreview?: boolean;
 }
 
 const SkinSelector = ({ 
   onSelectSkin, 
   showPurchasable = false,
-  onPurchase 
+  onPurchase,
+  showPreview = true
 }: SkinSelectorProps) => {
   const { 
     availableSkins, 
@@ -67,23 +69,25 @@ const SkinSelector = ({
               onMouseLeave={() => setHoveredSkin(null)}
             >
               <div className="flex flex-col items-center p-2 bg-gray-900/70">
-                <div className="mb-2 relative w-full">
-                  <div className="flex justify-center">
-                    <SkinPreview skin={skin} size="small" animate={hoveredSkin?.id === skin.id} />
+                {showPreview && (
+                  <div className="mb-2 relative w-full">
+                    <div className="flex justify-center">
+                      <SkinPreview skin={skin} size="small" animate={hoveredSkin?.id === skin.id} />
+                    </div>
+                    
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 bg-indigo-500 rounded-full p-0.5">
+                        <CheckCircle2 className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    
+                    {isPurchasable && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                        <Lock className="h-6 w-6 text-gray-300" />
+                      </div>
+                    )}
                   </div>
-                  
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 bg-indigo-500 rounded-full p-0.5">
-                      <CheckCircle2 className="h-4 w-4 text-white" />
-                    </div>
-                  )}
-                  
-                  {isPurchasable && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                      <Lock className="h-6 w-6 text-gray-300" />
-                    </div>
-                  )}
-                </div>
+                )}
                 
                 <h3 className="text-sm font-medium text-gray-200 truncate w-full text-center">
                   {skin.name}

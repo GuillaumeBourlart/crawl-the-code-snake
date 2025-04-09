@@ -13,7 +13,7 @@ import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
 import { useAuth } from "@/hooks/use-auth";
 import { useSkins } from "@/hooks/use-skins";
-import SkinSelector from "@/components/SkinSelector";
+import SkinPreview from "@/components/SkinPreview";
 import { Link } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 
@@ -81,7 +81,9 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
-  
+  const [selectedSkinId, setSelectedSkinId] = useState<string | null>(null);
+  const [availableSkins, setAvailableSkins] = useState<any[]>([]);
+
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
   const isMobile = useIsMobile();
@@ -491,13 +493,41 @@ const Index = () => {
                 Plus de skins
               </Link>
             </div>
+            
             <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
               {skinsLoading ? (
                 <div className="flex justify-center py-2">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
                 </div>
               ) : (
-                <SkinSelector />
+                <>
+                  {selectedSkin && (
+                    <div className="flex flex-col items-center mb-4">
+                      <SkinPreview skin={selectedSkin} size="medium" animate={true} />
+                      <h3 className="mt-2 text-md font-medium">{selectedSkin.name}</h3>
+                    </div>
+                  )}
+                  <div className="mt-4">
+                    <h4 className="text-xs text-gray-400 mb-2">Sélectionner un skin</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableSkins.map(skin => (
+                        <Button
+                          key={skin.id}
+                          size="sm"
+                          variant={selectedSkinId === skin.id ? "default" : "outline"}
+                          className={`w-full text-xs ${
+                            selectedSkinId === skin.id 
+                              ? 'bg-indigo-600 hover:bg-indigo-700' 
+                              : 'bg-gray-800/70 hover:bg-gray-700/70'
+                          }`}
+                          onClick={() => setSelectedSkin(skin.id)}
+                        >
+                          {skin.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
