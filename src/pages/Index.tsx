@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ interface ServerPlayer {
   boosting?: boolean;
   itemEatenCount?: number;
   pseudo?: string;
+  spectator?: boolean;
 }
 
 interface GameItem {
@@ -79,6 +81,7 @@ const Index = () => {
   const [roomLeaderboard, setRoomLeaderboard] = useState<PlayerLeaderboardEntry[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
+  const [isSpectator, setIsSpectator] = useState(false);
   
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
@@ -106,7 +109,7 @@ const Index = () => {
   }, [socket]);
 
   useEffect(() => {
-    if (gameStarted && socket && playerId) {
+    if (gameStarted && socket && playerId && !isSpectator) {
       directionIntervalRef.current = window.setInterval(() => {
         if (lastDirectionRef.current.x !== 0 || lastDirectionRef.current.y !== 0) {
           socket.emit("changeDirection", { direction: lastDirectionRef.current });
@@ -127,7 +130,7 @@ const Index = () => {
         directionIntervalRef.current = null;
       }
     };
-  }, [gameStarted, socket, playerId]);
+  }, [gameStarted, socket, playerId, isSpectator]);
   
   const attemptReconnect = useCallback(() => {
     if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
@@ -171,8 +174,10 @@ const Index = () => {
     
     setConnecting(true);
     setShowGameOverDialog(false);
+    setIsSpectator(false);
     
     if (socket) {
+      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
@@ -266,11 +271,18 @@ const Index = () => {
       setRoomLeaderboard(leaderboard);
     });
     
+    // Nouvelle gestion de l'élimination: passer en mode spectateur
     newSocket.on("player_eliminated", () => {
       console.log("You were eliminated!");
       toast.error("Vous avez été éliminé!");
-      setGameStarted(false);
+      setIsSpectator(true);
       setShowGameOverDialog(true);
+    });
+    
+    // Gestion explicite du statut de spectateur
+    newSocket.on("set_spectator", (isSpectator: boolean) => {
+      console.log("Set spectator mode:", isSpectator);
+      setIsSpectator(isSpectator);
     });
     
     newSocket.on("player_grew", (data: { growth: number }) => {
@@ -350,19 +362,19 @@ const Index = () => {
   };
   
   const handleBoostStart = () => {
-    if (socket && gameStarted) {
+    if (socket && gameStarted && !isSpectator) {
       socket.emit("boostStart");
     }
   };
   
   const handleBoostStop = () => {
-    if (socket && gameStarted) {
+    if (socket && gameStarted && !isSpectator) {
       socket.emit("boostStop");
     }
   };
   
   const handlePlayerCollision = (otherPlayerId: string) => {
-    if (socket && gameStarted && playerId) {
+    if (socket && gameStarted && playerId && !isSpectator) {
       const currentPlayer = gameState.players[playerId];
       const otherPlayer = gameState.players[otherPlayerId];
       if (!currentPlayer || !otherPlayer) return;
@@ -377,7 +389,7 @@ const Index = () => {
         if (currentQueueLength <= otherQueueLength) {
           socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
           toast.error("Vous avez été éliminé!");
-          setGameStarted(false);
+          setIsSpectator(true);
           setShowGameOverDialog(true);
         } else {
           socket.emit("eat_player", { eatenPlayer: otherPlayerId });
@@ -385,7 +397,7 @@ const Index = () => {
       } else {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
-        setGameStarted(false);
+        setIsSpectator(true);
         setShowGameOverDialog(true);
       }
     }
@@ -400,6 +412,20 @@ const Index = () => {
     setShowGameOverDialog(false);
     setPlayerId(null);
     setRoomId(null);
+    setIsSpectator(false);
+  };
+
+  const handleRetry = () => {
+    // Pour rejouer, nous allons d'abord quitter la room actuelle puis rejoindre une nouvelle
+    if (socket) {
+      socket.emit("clean_disconnect");
+      socket.disconnect();
+    }
+    
+    // Ensuite, nous appelons handlePlay pour rejoindre une nouvelle room
+    setShowGameOverDialog(false);
+    setIsSpectator(false);
+    handlePlay();
   };
 
   const handleJoystickMove = (direction: { x: number; y: number }) => {
@@ -506,6 +532,12 @@ const Index = () => {
             </Button>
           </div>
           
+          {isSpectator && (
+            <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-red-600/70 text-white rounded-lg shadow-md">
+              Mode Spectateur
+            </div>
+          )}
+          
           <PlayerScore 
             playerId={playerId} 
             players={gameState.players}
@@ -529,9 +561,10 @@ const Index = () => {
             onBoostStart={handleBoostStart}
             onBoostStop={handleBoostStop}
             onPlayerCollision={handlePlayerCollision}
+            isSpectator={isSpectator}
           />
           
-          {isMobile && (
+          {isMobile && !isSpectator && (
             <MobileControls 
               onMove={handleMove} 
               onBoostStart={handleBoostStart} 
@@ -545,11 +578,13 @@ const Index = () => {
       <GameOverDialog 
         isOpen={showGameOverDialog}
         onClose={() => setShowGameOverDialog(false)}
-        onRetry={handlePlay}
+        onRetry={handleRetry}
         onQuit={handleQuitGame}
+        playerColor={playerId && gameState.players[playerId]?.color}
       />
     </div>
   );
 };
 
 export default Index;
+
