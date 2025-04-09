@@ -646,8 +646,8 @@ const GameCanvas = ({
       );
       ctx.fill();
       
-      // Add mouth - POSITION LOWERED
-      const mouthY = player.y + headRadius * 0.35; // Moved from 0.25 to 0.35 to place mouth lower
+      // Add mouth - POSITION LOWERED FURTHER
+      const mouthY = player.y + headRadius * 0.45; // Moved from 0.35 to 0.45 to place mouth even lower
       const mouthWidth = headRadius * 0.4;
       
       // Expression based on boosting
