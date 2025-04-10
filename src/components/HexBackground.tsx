@@ -69,7 +69,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           const time = Date.now() * 0.001;
           const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
           
-          // Dessin de l'hexagone
+      // Dessin de l'hexagone
 ctx.beginPath();
 for (let i = 0; i < 6; i++) {
   const angle = (i * Math.PI) / 3;
@@ -91,6 +91,7 @@ ctx.fill();
 
 ctx.strokeStyle = '#000000';
 ctx.stroke();
+
 
         }
       }
