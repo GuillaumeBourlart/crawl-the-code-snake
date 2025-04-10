@@ -470,7 +470,7 @@ const GameCanvas = ({
       const perpDirX = -directionY;
       const perpDirY = directionX;
       
-      const eyeSize = headRadius * 0.5;
+      const eyeSize = headRadius * 0.40;
       const pupilSize = eyeSize * 0.55;
       const eyeDistance = headRadius * 0.32;
       const eyeForwardOffset = headRadius * 0.30;
