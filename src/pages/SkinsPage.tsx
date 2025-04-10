@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// Utilisation de la Publishable key fournie
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
 const SkinsPage = () => {
@@ -56,14 +57,12 @@ const SkinsPage = () => {
       setIsProcessing(true);
       console.log("Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
       
-      // Important: We're invoking the swift-endpoint function directly
-      // The routing is handled inside the function based on the request body
-      console.log("Invocation de la fonction swift-endpoint...");
+      // Appel à la fonction create-checkout-session avec les paramètres requis
       const { data, error } = await supabase.functions.invoke("swift-endpoint", {
         body: { 
-          skinId: skin.id,
-          priceAmount: skin.price,
-          skinName: skin.name
+          path: "/create-checkout-session",
+          skin_id: skin.id,
+          user_id: user.id
         }
       });
 
@@ -72,19 +71,26 @@ const SkinsPage = () => {
         throw new Error(`Erreur d'invocation: ${error.message || JSON.stringify(error)}`);
       }
       
-      console.log("Réponse reçue de swift-endpoint:", data);
+      console.log("Réponse reçue de swift-endpoint/create-checkout-session:", data);
       
       if (!data) {
         console.error("Réponse vide de swift-endpoint");
         throw new Error("Réponse vide du serveur");
       }
       
-      if (data?.url) {
-        console.log("Redirection vers l'URL de paiement:", data.url);
-        window.location.href = data.url;
+      if (data?.sessionId) {
+        // Redirection vers Stripe Checkout avec le sessionId
+        const stripe = await stripePromise;
+        const result = await stripe.redirectToCheckout({
+          sessionId: data.sessionId
+        });
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
       } else {
-        console.error("Réponse sans URL:", data);
-        throw new Error("Pas d'URL de paiement retournée");
+        console.error("Réponse sans sessionId:", data);
+        throw new Error("Pas de sessionId retourné");
       }
     } catch (error: any) {
       console.error("Erreur détaillée lors de la création de la session de paiement:", error);

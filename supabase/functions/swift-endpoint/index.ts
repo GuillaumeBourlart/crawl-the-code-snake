@@ -9,22 +9,13 @@ const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_AN
 const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
-// Log détaillé pour voir quelles variables d'environnement sont définies
-console.log("Initialisation de swift-endpoint avec les variables d'environnement:", {
+// Log des variables d'environnement pour débogage
+console.log("Variables d'environnement:", {
   supabaseUrl: supabaseUrl ? "défini" : "non défini",
   supabaseAnonKey: supabaseAnonKey ? "défini" : "non défini",
   stripeSecretKey: stripeSecretKey ? "défini" : "non défini",
   stripeWebhookSecret: stripeWebhookSecret ? "défini" : "non défini"
 });
-
-// Vérification des variables essentielles
-if (!supabaseUrl || !supabaseAnonKey || !stripeSecretKey) {
-  console.error("Variables d'environnement manquantes. Assurez-vous que les suivantes sont définies:");
-  console.error("- SUPABASE_URL ou SB_URL");
-  console.error("- SUPABASE_ANON_KEY ou SB_ANON_KEY");
-  console.error("- STRIPE_SECRET_KEY");
-  console.error("Le webhook nécessite également STRIPE_WEBHOOK_SECRET pour la vérification de signature");
-}
 
 const stripe = new Stripe(stripeSecretKey, { apiVersion: "2022-11-15" });
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -46,8 +37,7 @@ serve(async (req) => {
 
   console.log(`Requête reçue sur: ${pathname}`);
 
-  // --- Endpoint Webhook Stripe ---
-  // Doit être appelé via https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/webhook-stripe
+  // Webhook Stripe - chemin complet
   if (pathname.includes("/webhook-stripe")) {
     console.log("Traitement d'un webhook Stripe");
     
@@ -61,7 +51,7 @@ serve(async (req) => {
     let event;
     
     try {
-      console.log("Vérification de la signature du webhook avec le secret...");
+      console.log("Vérification de la signature du webhook...");
       event = stripe.webhooks.constructEvent(body, sig, stripeWebhookSecret);
       console.log("Événement Stripe validé:", event.type);
     } catch (err) {
@@ -72,11 +62,11 @@ serve(async (req) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       console.log("Session de paiement complétée:", session.id);
-      console.log("Métadonnées de la session:", session.metadata);
+      console.log("Métadonnées:", session.metadata);
       
       const { user_id, skin_id } = session.metadata;
       if (!user_id || !skin_id) {
-        console.error("Métadonnées user_id ou skin_id manquantes dans la session");
+        console.error("Métadonnées user_id ou skin_id manquantes");
         return new Response("Métadonnées incomplètes", { status: 400, headers: corsHeaders });
       }
       
@@ -103,12 +93,11 @@ serve(async (req) => {
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  }
-  // --- Endpoint pour créer une session de paiement ---
-  // Normalement appelé via supabase.functions.invoke("swift-endpoint", { body: {...} })
+  } 
+  // Traitement de l'invocation directe de la fonction avec body.path
   else {
     try {
-      console.log("Demande de création de session de paiement reçue");
+      console.log("Traitement d'une invocation directe de la fonction");
       
       // Vérifier l'authentification
       const authHeader = req.headers.get("Authorization");
@@ -135,75 +124,94 @@ serve(async (req) => {
         return {};
       });
       
-      const { skinId, priceAmount, skinName } = requestData;
-      console.log("Détails de la demande de paiement:", { skinId, priceAmount, skinName });
-      
-      if (!skinId) {
-        console.error("ID du skin manquant");
-        throw new Error("ID du skin requis");
-      }
-
-      if (!priceAmount || isNaN(priceAmount)) {
-        console.error("Prix invalide:", priceAmount);
-        throw new Error("Prix valide requis");
-      }
-
-      // Vérifier si l'utilisateur a déjà un customer Stripe
-      console.log("Recherche d'un client Stripe pour l'email:", user.email);
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-      let customerId;
-      
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
-        console.log("Utilisation du client Stripe existant:", customerId);
-      } else {
-        // Créer un nouveau client si aucun n'existe
-        console.log("Création d'un nouveau client Stripe pour l'utilisateur:", user.id);
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: {
-            userId: user.id,
-          },
-        });
-        customerId = customer.id;
-        console.log("Nouveau client Stripe créé:", customerId);
-      }
-
-      // Créer une session de paiement unique
-      console.log("Création d'une session de paiement avec prix:", priceAmount, "pour le skin:", skinName);
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        payment_method_types: ['card', 'google_pay'],
-        line_items: [
-          {
-            price_data: {
-              currency: "eur",
-              product_data: { 
-                name: `${skinName || "Game Skin"}`, 
-                description: "Skin personnalisé pour Code Crawl"
+      // Pour l'endpoint create-checkout-session
+      if (requestData.path === "/create-checkout-session") {
+        console.log("Endpoint create-checkout-session");
+        const { skin_id, user_id } = requestData;
+        
+        if (!skin_id || !user_id) {
+          console.error("skin_id ou user_id manquant");
+          return new Response(JSON.stringify({
+            error: "skin_id et user_id sont requis."
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        
+        // Récupérer les informations du skin
+        console.log(`Récupération des informations pour le skin ${skin_id}`);
+        const { data: skinData, error: skinError } = await supabase
+          .from("game_skins")
+          .select("*")
+          .eq("id", skin_id)
+          .single();
+        
+        if (skinError || !skinData) {
+          console.error("Erreur récupération du skin:", skinError);
+          return new Response(JSON.stringify({
+            error: "Skin introuvable"
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        
+        if (!skinData.is_paid || !skinData.price) {
+          console.error("Le skin n'est pas payant ou n'a pas de prix défini");
+          return new Response(JSON.stringify({
+            error: "Ce skin n'est pas disponible à l'achat"
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        
+        // Créer la session de paiement Stripe
+        console.log("Création de la session de paiement Stripe...");
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price_data: {
+                currency: "eur",
+                product_data: { 
+                  name: skinData.name || "Game Skin",
+                  description: skinData.description || "Skin personnalisé pour Code Crawl"
+                },
+                unit_amount: Math.round(skinData.price * 100), // Conversion en centimes
               },
-              unit_amount: Math.round(priceAmount * 100), // Conversion en centimes
+              quantity: 1,
             },
-            quantity: 1,
-          },
-        ],
-        mode: "payment",
-        success_url: `https://crawl-the-code-snake.lovable.app/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `https://crawl-the-code-snake.lovable.app/skins`,
-        metadata: {
-          userId: user.id,
-          skinId: skinId.toString(),
-        },
-      });
-
-      console.log("Session de paiement créée:", session.id, session.url);
-      return new Response(JSON.stringify({ url: session.url }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+          ],
+          mode: "payment",
+          success_url: "https://crawl-the-code-snake.lovable.app/payment-success?session_id={CHECKOUT_SESSION_ID}",
+          cancel_url: "https://crawl-the-code-snake.lovable.app/skins",
+          metadata: {
+            user_id,
+            skin_id
+          }
+        });
+        
+        console.log("Session de paiement créée:", session.id);
+        return new Response(JSON.stringify({
+          sessionId: session.id
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        });
+      } else {
+        console.error("Endpoint non reconnu");
+        return new Response(JSON.stringify({
+          error: "Endpoint non reconnu"
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
     } catch (err) {
-      console.error("Erreur de création de session de paiement:", err.message);
-      console.error("Stack d'erreur:", err.stack);
+      console.error("Erreur générale:", err.message);
+      console.error("Stack:", err.stack);
       
       return new Response(JSON.stringify({ error: err.message }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

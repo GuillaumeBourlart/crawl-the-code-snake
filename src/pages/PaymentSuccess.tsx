@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -40,7 +39,7 @@ const PaymentSuccess = () => {
 
       try {
         console.log("Vérification du paiement pour la session:", sessionId);
-        // Appel de la fonction verify-payment pour confirmer l'achat
+        // Nous contactons Stripe directement pour vérifier le statut de la session
         const { data, error } = await supabase.functions.invoke("verify-payment", {
           body: { sessionId }
         });
@@ -77,7 +76,6 @@ const PaymentSuccess = () => {
     verifySkin();
   }, [user, location.search, supabase, refresh]);
 
-  // Auto-redirect after a short delay
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isLoading) {
