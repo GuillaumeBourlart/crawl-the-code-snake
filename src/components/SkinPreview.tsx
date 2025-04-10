@@ -129,8 +129,8 @@ const SkinPreview = ({
         ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Direction vector for eye placement (now pointing right in preview)
-        const dirX = 1; // Right direction
+        // Direction vector for eye placement (now pointing LEFT in preview)
+        const dirX = -1; // Left direction
         const dirY = 0;
         
         // Get perpendicular direction for eye placement
@@ -140,12 +140,12 @@ const SkinPreview = ({
         // Eye parameters per requirements
         const eyeRadius = headRadius * 0.35; // Slightly smaller relative to head
         const eyeDistance = eyeRadius * 1.2; // Placed side by side without overlap
-        const eyeOffsetX = headRadius * 0.3; // Offset to the right side of head
+        const eyeOffsetX = headRadius * 0.3; // Offset to the LEFT side of head
         
         // Eye positions
-        const leftEyeX = headX + eyeOffsetX - perpDirX * eyeDistance;
+        const leftEyeX = headX - eyeOffsetX - perpDirX * eyeDistance;
         const leftEyeY = headY + perpDirY * eyeDistance;
-        const rightEyeX = headX + eyeOffsetX + perpDirX * eyeDistance;
+        const rightEyeX = headX - eyeOffsetX + perpDirX * eyeDistance;
         const rightEyeY = headY - perpDirY * eyeDistance;
         
         // Draw eyes with white background
@@ -171,18 +171,18 @@ const SkinPreview = ({
         ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Draw pupils (looking right)
+        // Draw pupils (looking LEFT)
         const pupilSize = eyeRadius * 0.6;
-        const pupilOffsetX = eyeRadius * 0.35; // Pupils looking right
+        const pupilOffsetX = eyeRadius * 0.35; // Pupils looking LEFT
         
         ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(leftEyeX + pupilOffsetX, leftEyeY, pupilSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX - pupilOffsetX, leftEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(rightEyeX + pupilOffsetX, rightEyeY, pupilSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX - pupilOffsetX, rightEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Add highlights to eyes
@@ -193,7 +193,7 @@ const SkinPreview = ({
         ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
         ctx.arc(
-          leftEyeX + pupilOffsetX + highlightOffsetX, 
+          leftEyeX - pupilOffsetX - highlightOffsetX, 
           leftEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
@@ -202,7 +202,7 @@ const SkinPreview = ({
         
         ctx.beginPath();
         ctx.arc(
-          rightEyeX + pupilOffsetX + highlightOffsetX, 
+          rightEyeX - pupilOffsetX - highlightOffsetX, 
           rightEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
@@ -297,19 +297,19 @@ const SkinPreview = ({
         ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Direction is right in the snake preview
-        const dirX = 1; // Right direction
+        // Direction is LEFT in the snake preview
+        const dirX = -1; // Left direction
         const dirY = 0;
         
         // Eye parameters per requirements
         const eyeRadius = headRadius * 0.35; // Smaller relative to head
         const eyeDistance = eyeRadius * 1.2; // Side by side without overlap
-        const eyeOffsetX = headRadius * 0.3; // Offset to the right side of head
+        const eyeOffsetX = headRadius * 0.3; // Offset to the LEFT side of head
         
-        // Eye positions (perpendicular to the right direction)
-        const leftEyeX = headX + eyeOffsetX;
+        // Eye positions (perpendicular to the LEFT direction)
+        const leftEyeX = headX - eyeOffsetX;
         const leftEyeY = headY + eyeDistance;
-        const rightEyeX = headX + eyeOffsetX;
+        const rightEyeX = headX - eyeOffsetX;
         const rightEyeY = headY - eyeDistance;
         
         // Draw eyes with white background
@@ -335,18 +335,18 @@ const SkinPreview = ({
         ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Draw pupils (looking right)
+        // Draw pupils (looking LEFT)
         const pupilSize = eyeRadius * 0.6;
-        const pupilOffsetX = eyeRadius * 0.35; // Pupils looking right
+        const pupilOffsetX = eyeRadius * 0.35; // Pupils looking LEFT
         
         ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(leftEyeX + pupilOffsetX, leftEyeY, pupilSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX - pupilOffsetX, leftEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(rightEyeX + pupilOffsetX, rightEyeY, pupilSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX - pupilOffsetX, rightEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Add highlights to eyes
@@ -358,7 +358,7 @@ const SkinPreview = ({
         
         ctx.beginPath();
         ctx.arc(
-          leftEyeX + pupilOffsetX + highlightOffsetX, 
+          leftEyeX - pupilOffsetX - highlightOffsetX, 
           leftEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
@@ -367,7 +367,7 @@ const SkinPreview = ({
         
         ctx.beginPath();
         ctx.arc(
-          rightEyeX + pupilOffsetX + highlightOffsetX, 
+          rightEyeX - pupilOffsetX - highlightOffsetX, 
           rightEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
