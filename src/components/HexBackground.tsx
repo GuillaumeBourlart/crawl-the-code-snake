@@ -56,7 +56,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       const rows = Math.ceil(height / (hexHeight * 0.75)) + 2;
       const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
       
-      // Increase border width to match the canvas style
+      // Increased border width to match the canvas style
       ctx.lineWidth = 20;
       
       for (let row = -2; row < rows; row++) {
@@ -84,12 +84,12 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           ctx.closePath();
           
           // Use gray color for fill to match the canvas
-          const fillColor = `rgba(130, 130, 140, 0.15)`;
+          const fillColor = `rgb(130, 130, 140, 0.15)`;
           ctx.fillStyle = fillColor;
           ctx.fill();
           
-          // Use black for stroke (border) color
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+          // Use solid black for stroke (border) color - no alpha
+          ctx.strokeStyle = '#000000';
           ctx.stroke();
         }
       }

@@ -470,10 +470,10 @@ const GameCanvas = ({
       const perpDirX = -directionY;
       const perpDirY = directionX;
       
-      const eyeSize = headRadius * 0.28;
-      const pupilSize = eyeSize * 0.5;
-      const eyeDistance = headRadius * 0.4;
-      const eyeForwardOffset = headRadius * 0.35;
+      const eyeSize = headRadius * 0.40;
+      const pupilSize = eyeSize * 0.55;
+      const eyeDistance = headRadius * 0.32;
+      const eyeForwardOffset = headRadius * 0.30;
       
       ctx.save();
       
@@ -556,10 +556,10 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      const leftEyeX = player.x + directionX * eyeForwardOffset + perpDirX * eyeDistance/2;
-      const leftEyeY = player.y + directionY * eyeForwardOffset + perpDirY * eyeDistance/2;
-      const rightEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance/2;
-      const rightEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance/2;
+      const leftEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance;
+      const leftEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance;
+      const rightEyeX = player.x + directionX * eyeForwardOffset + perpDirX * eyeDistance;
+      const rightEyeY = player.y + directionY * eyeForwardOffset + perpDirY * eyeDistance;
       
       if (isCurrentPlayer) {
         if (isMobile) {

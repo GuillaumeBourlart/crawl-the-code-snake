@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { GameSkin } from '@/types/supabase';
 
@@ -120,17 +119,17 @@ const SkinPreview = ({
         const perpDirY = normalizedDirX;
         
         // Move eyes more toward front of head but keep them within the circle
-        const eyeDistance = segmentSize * 0.35; // Decreased from 0.45 to 0.35
-        const eyeForwardOffset = segmentSize * 0.4; // Increased from 0.3 to 0.4 to move forward
+        const eyeDistance = segmentSize * 0.32; // Decreased from 0.35 to 0.32
+        const eyeForwardOffset = segmentSize * 0.3; // Decreased from 0.4 to 0.3
         
-        // Eye positions - more forward facing
-        const leftEyeX = headX + normalizedDirX * eyeForwardOffset + perpDirX * eyeDistance;
-        const leftEyeY = headY + normalizedDirY * eyeForwardOffset + perpDirY * eyeDistance;
-        const rightEyeX = headX + normalizedDirX * eyeForwardOffset - perpDirX * eyeDistance;
-        const rightEyeY = headY + normalizedDirY * eyeForwardOffset - perpDirY * eyeDistance;
+        // Eye positions - more forward facing but not overlapping
+        const leftEyeX = headX + normalizedDirX * eyeForwardOffset - perpDirX * eyeDistance;
+        const leftEyeY = headY + normalizedDirY * eyeForwardOffset - perpDirY * eyeDistance;
+        const rightEyeX = headX + normalizedDirX * eyeForwardOffset + perpDirX * eyeDistance;
+        const rightEyeY = headY + normalizedDirY * eyeForwardOffset + perpDirY * eyeDistance;
         
-        // Increase eye size
-        const eyeSize = segmentSize * 0.25; // Increased from 0.18 to 0.25
+        // Increase eye size but keep it proportional to head
+        const eyeSize = segmentSize * 0.32; // Increased from 0.25 to 0.32
         const pupilSize = eyeSize * 0.6;
         
         // Eyes
@@ -232,17 +231,17 @@ const SkinPreview = ({
         const perpDirX = -dirY;
         const perpDirY = dirX;
         
-        // Eye parameters - moved more forward and increased in size
-        const eyeDistance = headSize * 0.32; // Kept the same
-        const eyeForwardOffset = headSize * 0.4; // Kept the same
-        const eyeSize = headSize * 0.28; // Increased from 0.22 to 0.28
+        // Eye parameters - fixed positioning to prevent overlap
+        const eyeDistance = headSize * 0.25; // Decreased from 0.32 to 0.25
+        const eyeForwardOffset = headSize * 0.3; // Decreased from 0.4 to 0.3
+        const eyeSize = headSize * 0.35; // Increased from 0.28 to 0.35
         const pupilSize = eyeSize * 0.5;
         
-        // Eye positions - more forward facing
-        const leftEyeX = headX + dirX * eyeForwardOffset + perpDirX * eyeDistance/2;
-        const leftEyeY = headY + dirY * eyeForwardOffset + perpDirY * eyeDistance/2;
-        const rightEyeX = headX + dirX * eyeForwardOffset - perpDirX * eyeDistance/2;
-        const rightEyeY = headY + dirY * eyeForwardOffset - perpDirY * eyeDistance/2;
+        // Eye positions - Switched sides to match the image
+        const leftEyeX = headX + dirX * eyeForwardOffset - perpDirX * eyeDistance;
+        const leftEyeY = headY + dirY * eyeForwardOffset - perpDirY * eyeDistance;
+        const rightEyeX = headX + dirX * eyeForwardOffset + perpDirX * eyeDistance;
+        const rightEyeY = headY + dirY * eyeForwardOffset + perpDirY * eyeDistance;
         
         // Eyes
         ctx.fillStyle = "#FFF";
