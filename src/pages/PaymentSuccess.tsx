@@ -49,7 +49,7 @@ const PaymentSuccess = () => {
           throw new Error("Token d'authentification non disponible");
         }
         
-        // Appel à l'endpoint verify-payment
+        // Mettre à jour l'URL pour inclure le segment de chemin correct
         const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/verify-payment', {
           method: 'POST',
           headers: {

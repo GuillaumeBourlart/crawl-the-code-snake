@@ -43,8 +43,13 @@ serve(async (req) => {
     
     console.log(`Requête reçue sur: ${pathname}, méthode: ${req.method}`);
     
+    // Vérification des sous-routes
+    const isWebhookRoute = pathname.includes("/webhook-stripe");
+    const isCheckoutRoute = pathname.includes("/create-checkout-session");
+    const isVerifyRoute = pathname.includes("/verify-payment");
+    
     // Vérifier l'authentification pour les endpoints autres que le webhook
-    if (!pathname.includes("/webhook-stripe")) {
+    if (!isWebhookRoute) {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
         console.error("Authentification manquante");
@@ -71,11 +76,11 @@ serve(async (req) => {
     }
 
     // Router vers le bon handler en fonction du chemin
-    if (pathname.includes("/webhook-stripe")) {
+    if (isWebhookRoute) {
       return await handleWebhookStripe(req, corsHeaders);
-    } else if (pathname.includes("/create-checkout-session")) {
+    } else if (isCheckoutRoute) {
       return await handleCreateCheckoutSession(req, corsHeaders);
-    } else if (pathname.includes("/verify-payment")) {
+    } else if (isVerifyRoute) {
       return await handleVerifyPayment(req, corsHeaders);
     } else {
       console.error("Endpoint non reconnu:", pathname);

@@ -65,7 +65,7 @@ const SkinsPage = () => {
         throw new Error("Token d'authentification non disponible");
       }
       
-      // Appel à l'endpoint create-checkout-session
+      // Mettre à jour l'URL pour inclure le segment de chemin correct
       const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/create-checkout-session', {
         method: 'POST',
         headers: {
