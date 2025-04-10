@@ -178,7 +178,8 @@ const SkinSelector = ({
                   skinId: skin.id,
                   isSelectable,
                   isOwned,
-                  isPaid: skin.is_paid
+                  isPaid: skin.is_paid,
+                  currentSelectedSkinId: selectedSkinId
                 });
                 
                 if (isSelectable) {

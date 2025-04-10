@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -40,7 +41,8 @@ const SkinsPage = () => {
     fetchError: fetchError ? fetchError.message : null,
     freeSkins: freeSkins?.length || 0,
     availableSkins: availableSkins?.length || 0,
-    purchasableSkins: purchasableSkins?.length || 0
+    purchasableSkins: purchasableSkins?.length || 0,
+    selectedSkin: selectedSkin?.id
   });
 
   useEffect(() => {
@@ -165,6 +167,7 @@ const SkinsPage = () => {
 
   const isLoading = authLoading || skinsLoading;
 
+  // Utilisation de Tabs pour mieux séparer visuellement les skins gratuits et la boutique
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">

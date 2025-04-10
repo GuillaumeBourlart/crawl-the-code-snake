@@ -186,7 +186,7 @@ export const useSkins = () => {
       return;
     }
     
-    console.log("Setting selected skin to:", skinId);
+    console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
     // Cette ligne est cruciale - elle désélectionne tout skin précédent en définissant le nouveau
     setSelectedSkinId(skinId);
     
