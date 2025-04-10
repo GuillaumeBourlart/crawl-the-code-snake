@@ -105,11 +105,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user || null);
         
         if (session?.user) {
+          setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
+          setUser(null);
           setLoading(false);
         }
       } catch (error) {
