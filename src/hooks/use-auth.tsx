@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loadingTimerRef = useRef<number | null>(null);
   const sessionErrorCountRef = useRef<number>(0);
   const lastSessionCheckRef = useRef<number>(Date.now());
+  const authOperationInProgressRef = useRef<boolean>(false);
 
   // Function to track session errors in localStorage
   const trackSessionError = useCallback(() => {
@@ -105,11 +106,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
+    // Prevent concurrent profile fetches
+    if (authOperationInProgressRef.current) {
+      console.log("Auth operation already in progress, skipping profile fetch");
+      return;
+    }
+    
     // Update last session check timestamp
     lastSessionCheckRef.current = Date.now();
     
     try {
       console.log("Fetching profile for user:", userId);
+      authOperationInProgressRef.current = true;
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -183,12 +192,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setProfileFetchAttempted(true);
       setLoading(false);
+      authOperationInProgressRef.current = false;
     }
   }, [trackSessionError]);
 
   const signOut = useCallback(async () => {
+    // Prevent concurrent auth operations
+    if (authOperationInProgressRef.current) {
+      console.log("Auth operation already in progress, skipping sign out");
+      return;
+    }
+    
     try {
       setLoading(true);
+      authOperationInProgressRef.current = true;
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -211,13 +229,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfileFetchAttempted(false);
     } finally {
       setLoading(false);
+      authOperationInProgressRef.current = false;
     }
   }, []);
 
   const forceSignOut = useCallback(async () => {
+    // Prevent concurrent auth operations
+    if (authOperationInProgressRef.current) {
+      console.log("Auth operation already in progress, skipping force sign out");
+      return;
+    }
+    
     try {
       console.log("Force signing out user");
       setLoading(true);
+      authOperationInProgressRef.current = true;
+      
       await supabase.auth.signOut();
       
       // Clear all auth state
@@ -239,6 +266,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfileFetchAttempted(false);
     } finally {
       setLoading(false);
+      authOperationInProgressRef.current = false;
     }
   }, []);
 
@@ -251,6 +279,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearTimeout(loadingTimerRef.current);
       loadingTimerRef.current = null;
     }
+    
+    // Reset operation in progress flag
+    authOperationInProgressRef.current = false;
     
     // Reset loading state
     setLoading(false);
@@ -270,6 +301,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Function to check for existing session
     const getSession = async () => {
+      // Prevent duplicate session checks
+      if (authOperationInProgressRef.current) {
+        console.log("Auth operation already in progress, skipping session check");
+        return;
+      }
+      
       // Check if we have excessive session errors first
       if (checkExcessiveSessionErrors()) {
         console.log("Excessive session errors detected, forcing sign out");
@@ -280,6 +317,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log("Checking for existing session...");
         setLoading(true);
+        authOperationInProgressRef.current = true;
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -310,6 +348,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // Track session error
           trackSessionError();
+        }
+      } finally {
+        if (isMounted) {
+          authOperationInProgressRef.current = false;
         }
       }
     };
@@ -361,6 +403,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       const now = Date.now();
+      
+      // Throttle visibility change events to prevent multiple consecutive triggers
+      if (now - visibilityChangeTimeRef.current < 1000) {
+        console.log("Ignoring rapid visibility change event");
+        return;
+      }
+      
       visibilityChangeTimeRef.current = now;
       
       if (document.visibilityState === 'visible') {
@@ -375,6 +424,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loadingTimerRef.current = window.setTimeout(() => {
           if (loading) {
             console.log("Loading state was stuck, resetting and refreshing data");
+            authOperationInProgressRef.current = false;
             setLoading(false);
             
             // If we have a user, verify their session and profile
@@ -412,8 +462,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [loading, user, fetchProfile]);
 
   const signInWithGoogle = useCallback(async () => {
+    // Prevent concurrent auth operations
+    if (authOperationInProgressRef.current) {
+      console.log("Auth operation already in progress, skipping Google sign in");
+      return;
+    }
+    
     try {
       setLoading(true);
+      authOperationInProgressRef.current = true;
       console.log("Attempting to sign in with Google...");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -433,13 +490,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
       setLoading(false);
+      authOperationInProgressRef.current = false;
     }
   }, []);
 
   const updateProfile = useCallback(async (data: Partial<Profile>) => {
+    // Prevent concurrent auth operations
+    if (authOperationInProgressRef.current) {
+      console.log("Auth operation already in progress, skipping profile update");
+      return;
+    }
+    
     try {
       if (!user) throw new Error('Non authentifié');
       
+      authOperationInProgressRef.current = true;
       const { error } = await supabase
         .from('profiles')
         .update(data)
@@ -452,6 +517,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Échec de mise à jour du profil');
+    } finally {
+      authOperationInProgressRef.current = false;
     }
   }, [user]);
 

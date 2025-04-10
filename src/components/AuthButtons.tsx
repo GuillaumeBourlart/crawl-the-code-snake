@@ -20,16 +20,22 @@ const AuthButtons = () => {
 
   // Detect if loading state is stuck for too long
   useEffect(() => {
+    let stuckTimer: number | null = null;
+    
     if (authLoading) {
-      const stuckTimer = setTimeout(() => {
+      stuckTimer = window.setTimeout(() => {
         if (authLoading) {
           console.log("Auth loading state appears to be stuck");
           setStuckLoadingDetected(true);
         }
       }, 5000); // Consider loading stuck after 5 seconds
-      
-      return () => clearTimeout(stuckTimer);
     }
+    
+    return () => {
+      if (stuckTimer !== null) {
+        clearTimeout(stuckTimer);
+      }
+    };
   }, [authLoading]);
 
   const handleSignIn = async () => {

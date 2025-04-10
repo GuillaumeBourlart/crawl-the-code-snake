@@ -20,6 +20,7 @@ export const useSkins = () => {
   const loadingTimerRef = useRef<number | null>(null);
   const lastSkinsUpdateRef = useRef<number>(Date.now());
   const loadingStartTimeRef = useRef<number | null>(null);
+  const fetchInProgressRef = useRef<boolean>(false);
   
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
@@ -44,10 +45,17 @@ export const useSkins = () => {
   );
 
   const fetchAllSkins = useCallback(async () => {
+    // Prevent multiple concurrent fetches
+    if (fetchInProgressRef.current) {
+      console.log("Fetch already in progress, skipping duplicate call");
+      return;
+    }
+    
     try {
       console.log("Fetching all skins...");
       setLoading(true);
       setFetchError(null);
+      fetchInProgressRef.current = true;
       loadingStartTimeRef.current = Date.now();
       
       const { data, error } = await supabase
@@ -69,6 +77,7 @@ export const useSkins = () => {
     } finally {
       setLoading(false);
       loadingStartTimeRef.current = null;
+      fetchInProgressRef.current = false;
     }
   }, [supabase]);
 
@@ -79,9 +88,16 @@ export const useSkins = () => {
       return;
     }
     
+    // Don't run multiple fetches simultaneously
+    if (fetchInProgressRef.current) {
+      console.log("Another fetch is in progress, waiting");
+      return;
+    }
+    
     try {
       console.log("Fetching user skins for user:", user.id);
       setFetchError(null);
+      fetchInProgressRef.current = true;
       
       const { data, error } = await supabase
         .from('user_skins')
@@ -98,6 +114,8 @@ export const useSkins = () => {
       console.error('Error fetching user skins:', error);
       setFetchError(error);
       toast.error('Failed to load your skins');
+    } finally {
+      fetchInProgressRef.current = false;
     }
   }, [user, supabase]);
 
@@ -129,13 +147,35 @@ export const useSkins = () => {
     } catch (error: any) {
       console.error('Error fetching default skin:', error);
       setFetchError(error);
-      // Don't sign out here, just use local storage instead
     }
   }, [user, supabase]);
 
+  const refresh = useCallback(() => {
+    // Only refresh if not already fetching
+    if (fetchInProgressRef.current) {
+      console.log("Fetch already in progress, skipping refresh");
+      return;
+    }
+    
+    console.log("Refreshing skins data");
+    setLoading(true);
+    setSkinsLoaded(false);
+    setUserSkinsLoaded(false);
+    fetchAllSkins();
+    if (user) {
+      fetchUserSkins();
+      fetchUserDefaultSkin();
+    } else {
+      setUserSkinsLoaded(true);
+    }
+  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user]);
+
   // Initial load of all skins - executed once on component mount
   useEffect(() => {
-    fetchAllSkins();
+    // Only fetch if we haven't already loaded the skins
+    if (!skinsLoaded && !fetchInProgressRef.current) {
+      fetchAllSkins();
+    }
     
     // Set up visibility change listener for skins
     const handleVisibilityChange = () => {
@@ -145,6 +185,7 @@ export const useSkins = () => {
         // Clear any existing loading reset timer
         if (loadingTimerRef.current) {
           clearTimeout(loadingTimerRef.current);
+          loadingTimerRef.current = null;
         }
         
         // Check if loading has been active for too long
@@ -153,6 +194,7 @@ export const useSkins = () => {
           if (loadingDuration > 5000) { // 5 seconds threshold
             console.log("Skins loading state appears stuck, resetting");
             setLoading(false);
+            fetchInProgressRef.current = false;
             setSkinsRefreshNeeded(true);
           }
         }
@@ -167,7 +209,7 @@ export const useSkins = () => {
           setSkinsRefreshNeeded(true);
         }
         
-        if (skinsRefreshNeeded) {
+        if (skinsRefreshNeeded && !fetchInProgressRef.current) {
           console.log("Refreshing skins data after tab visibility change");
           refresh();
           setSkinsRefreshNeeded(false);
@@ -181,9 +223,10 @@ export const useSkins = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (loadingTimerRef.current) {
         clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
       }
     };
-  }, [fetchAllSkins, loading, skinsRefreshNeeded]);
+  }, [fetchAllSkins, loading, skinsRefreshNeeded, skinsLoaded, refresh]);
 
   // Load saved skin from localStorage if no skin is selected
   useEffect(() => {
@@ -204,16 +247,22 @@ export const useSkins = () => {
 
   // Load user-specific data when user state changes
   useEffect(() => {
+    // Clear the fetch in progress flag when user changes
+    fetchInProgressRef.current = false;
+    
     if (user) {
       console.log("User detected, loading user-specific skin data");
-      fetchUserSkins();
-      fetchUserDefaultSkin();
+      // Only fetch if we haven't already loaded the user skins
+      if (!userSkinsLoaded) {
+        fetchUserSkins();
+        fetchUserDefaultSkin();
+      }
     } else {
       console.log("No user, resetting user skins data");
       setUserSkins([]);
       setUserSkinsLoaded(true); // Mark as loaded even if we have no user
     }
-  }, [user, fetchUserSkins, fetchUserDefaultSkin]);
+  }, [user, fetchUserSkins, fetchUserDefaultSkin, userSkinsLoaded]);
 
   const setSelectedSkin = async (skinId: number) => {
     // Check if the skin exists
@@ -262,20 +311,6 @@ export const useSkins = () => {
     if (!id) return null;
     return allSkins.find(skin => skin.id === id) || null;
   };
-
-  const refresh = useCallback(() => {
-    console.log("Refreshing skins data");
-    setLoading(true);
-    setSkinsLoaded(false);
-    setUserSkinsLoaded(false);
-    fetchAllSkins();
-    if (user) {
-      fetchUserSkins();
-      fetchUserDefaultSkin();
-    } else {
-      setUserSkinsLoaded(true);
-    }
-  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user]);
 
   return {
     allSkins,
