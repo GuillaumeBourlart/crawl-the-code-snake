@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
 import { useAuth } from './use-auth';
@@ -13,7 +14,13 @@ export const useSkins = () => {
   const [skinsLoaded, setSkinsLoaded] = useState(false);
   const [userSkinsLoaded, setUserSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
-
+  const [skinsRefreshNeeded, setSkinsRefreshNeeded] = useState(false);
+  
+  // Refs for tracking loading state
+  const loadingTimerRef = useRef<number | null>(null);
+  const lastSkinsUpdateRef = useRef<number>(Date.now());
+  const loadingStartTimeRef = useRef<number | null>(null);
+  
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
 
@@ -41,6 +48,7 @@ export const useSkins = () => {
       console.log("Fetching all skins...");
       setLoading(true);
       setFetchError(null);
+      loadingStartTimeRef.current = Date.now();
       
       const { data, error } = await supabase
         .from('game_skins')
@@ -53,12 +61,14 @@ export const useSkins = () => {
       console.log("Fetched all skins:", data.length);
       setAllSkins(data as GameSkin[]);
       setSkinsLoaded(true);
+      lastSkinsUpdateRef.current = Date.now();
     } catch (error: any) {
       console.error('Error fetching skins:', error);
       setFetchError(error);
       toast.error('Failed to load skins');
     } finally {
       setLoading(false);
+      loadingStartTimeRef.current = null;
     }
   }, [supabase]);
 
@@ -83,6 +93,7 @@ export const useSkins = () => {
       console.log("Fetched user skins:", data.length);
       setUserSkins(data as UserSkin[]);
       setUserSkinsLoaded(true);
+      lastSkinsUpdateRef.current = Date.now();
     } catch (error: any) {
       console.error('Error fetching user skins:', error);
       setFetchError(error);
@@ -125,7 +136,54 @@ export const useSkins = () => {
   // Initial load of all skins - executed once on component mount
   useEffect(() => {
     fetchAllSkins();
-  }, [fetchAllSkins]);
+    
+    // Set up visibility change listener for skins
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Tab became visible, checking skins state");
+        
+        // Clear any existing loading reset timer
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+        }
+        
+        // Check if loading has been active for too long
+        if (loading && loadingStartTimeRef.current) {
+          const loadingDuration = Date.now() - loadingStartTimeRef.current;
+          if (loadingDuration > 5000) { // 5 seconds threshold
+            console.log("Skins loading state appears stuck, resetting");
+            setLoading(false);
+            setSkinsRefreshNeeded(true);
+          }
+        }
+        
+        // Check if we haven't updated skins in a while
+        const lastUpdateTime = lastSkinsUpdateRef.current;
+        const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+        const REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+        
+        if (timeSinceLastUpdate > REFRESH_THRESHOLD) {
+          console.log("Skins data is stale, marking for refresh");
+          setSkinsRefreshNeeded(true);
+        }
+        
+        if (skinsRefreshNeeded) {
+          console.log("Refreshing skins data after tab visibility change");
+          refresh();
+          setSkinsRefreshNeeded(false);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
+  }, [fetchAllSkins, loading, skinsRefreshNeeded]);
 
   // Load saved skin from localStorage if no skin is selected
   useEffect(() => {

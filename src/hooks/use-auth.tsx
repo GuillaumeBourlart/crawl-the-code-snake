@@ -1,10 +1,16 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Profile } from '@/types/supabase';
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
+
+// Session error tracking in localStorage
+const SESSION_ERROR_KEY = 'auth_session_error';
+const MAX_SESSION_ERRORS = 3;
+const SESSION_ERROR_RESET_TIME = 30 * 60 * 1000; // 30 minutes
 
 // Create Supabase client instance as a singleton to avoid duplicate instances
 let supabaseInstance: SupabaseClient | null = null;
@@ -30,6 +36,7 @@ type AuthContextType = {
   loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   forceSignOut: () => Promise<void>;
+  resetAuthState: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,13 +51,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   const [initialSessionCheckDone, setInitialSessionCheckDone] = useState(false);
   const [sessionCheckError, setSessionCheckError] = useState<Error | null>(null);
+  const visibilityChangeTimeRef = useRef<number>(0);
+  const loadingTimerRef = useRef<number | null>(null);
+  const sessionErrorCountRef = useRef<number>(0);
+  const lastSessionCheckRef = useRef<number>(Date.now());
 
-  const fetchProfile = async (userId: string) => {
+  // Function to track session errors in localStorage
+  const trackSessionError = useCallback(() => {
+    try {
+      const now = Date.now();
+      const storedErrors = localStorage.getItem(SESSION_ERROR_KEY);
+      let errors: number[] = storedErrors ? JSON.parse(storedErrors) : [];
+      
+      // Remove errors older than SESSION_ERROR_RESET_TIME
+      errors = errors.filter(timestamp => now - timestamp < SESSION_ERROR_RESET_TIME);
+      
+      // Add current error
+      errors.push(now);
+      localStorage.setItem(SESSION_ERROR_KEY, JSON.stringify(errors));
+      
+      // Update ref for current component instance
+      sessionErrorCountRef.current = errors.length;
+      
+      return errors.length;
+    } catch (error) {
+      console.error("Error tracking session errors:", error);
+      return 0;
+    }
+  }, []);
+
+  // Check for excessive session errors
+  const checkExcessiveSessionErrors = useCallback(() => {
+    try {
+      const now = Date.now();
+      const storedErrors = localStorage.getItem(SESSION_ERROR_KEY);
+      if (!storedErrors) return false;
+      
+      const errors: number[] = JSON.parse(storedErrors);
+      const recentErrors = errors.filter(timestamp => now - timestamp < SESSION_ERROR_RESET_TIME);
+      
+      sessionErrorCountRef.current = recentErrors.length;
+      return recentErrors.length >= MAX_SESSION_ERRORS;
+    } catch (error) {
+      console.error("Error checking session errors:", error);
+      return false;
+    }
+  }, []);
+
+  const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
       console.log("No user ID provided to fetchProfile");
       setLoading(false);
       return;
     }
+    
+    // Update last session check timestamp
+    lastSessionCheckRef.current = Date.now();
     
     try {
       console.log("Fetching profile for user:", userId);
@@ -113,15 +169,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Critical error handling profile:', error);
       toast.error('Problème de connexion au profil');
       
+      // Track session error for pattern detection
+      const errorCount = trackSessionError();
+      console.log(`Session error count: ${errorCount}/${MAX_SESSION_ERRORS}`);
+      
+      if (errorCount >= MAX_SESSION_ERRORS) {
+        toast.error('Problèmes de connexion répétés. Déconnexion pour sécurité.');
+        forceSignOut();
+      }
+      
       // Ne pas se déconnecter automatiquement, laisser l'utilisateur choisir
       setSessionCheckError(error as Error);
     } finally {
       setProfileFetchAttempted(true);
       setLoading(false);
     }
-  };
+  }, [trackSessionError]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signOut();
@@ -130,6 +195,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
+      
+      // Clear session error tracking
+      localStorage.removeItem(SESSION_ERROR_KEY);
+      sessionErrorCountRef.current = 0;
       
       toast.success('Déconnexion réussie');
     } catch (error) {
@@ -143,32 +212,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const forceSignOut = async () => {
+  const forceSignOut = useCallback(async () => {
     try {
       console.log("Force signing out user");
       setLoading(true);
       await supabase.auth.signOut();
       
+      // Clear all auth state
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
+      
+      // Clear session error tracking
+      localStorage.removeItem(SESSION_ERROR_KEY);
+      sessionErrorCountRef.current = 0;
+      
+      toast.info("Déconnexion forcée pour résoudre les problèmes de session");
     } catch (error) {
       console.error('Error force signing out:', error);
       
+      // Reset state even if sign out fails
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // New function to reset auth state without sign out
+  const resetAuthState = useCallback(() => {
+    console.log("Resetting auth state manually");
+    
+    // Clear any pending timers
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+      loadingTimerRef.current = null;
+    }
+    
+    // Reset loading state
+    setLoading(false);
+    
+    // Trigger a new session check if we have a user
+    if (user) {
+      console.log("Re-fetching session and profile data for current user");
+      fetchProfile(user.id);
+    }
+    
+    toast.info("État d'authentification réinitialisé");
+  }, [user, fetchProfile]);
+
+  // Check session on initial load and set up auth state listener
   useEffect(() => {
     let isMounted = true;
     
+    // Function to check for existing session
     const getSession = async () => {
+      // Check if we have excessive session errors first
+      if (checkExcessiveSessionErrors()) {
+        console.log("Excessive session errors detected, forcing sign out");
+        await forceSignOut();
+        return;
+      }
+      
       try {
         console.log("Checking for existing session...");
         setLoading(true);
@@ -194,16 +302,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setInitialSessionCheckDone(true);
       } catch (error) {
         console.error("Session retrieval error:", error);
+        
         if (isMounted) {
           setSessionCheckError(error as Error);
           setLoading(false);
           setInitialSessionCheckDone(true);
+          
+          // Track session error
+          trackSessionError();
         }
       }
     };
 
     getSession();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
@@ -224,7 +337,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log("Token refreshed for user:", session.user.id);
           setUser(session.user);
-          // Don't refetch profile on token refresh to avoid unnecessary database calls
+          
+          // Check if it's been a while since our last profile check
+          const now = Date.now();
+          const timeSinceLastCheck = now - lastSessionCheckRef.current;
+          const TOKEN_REFRESH_PROFILE_CHECK_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+          
+          if (timeSinceLastCheck > TOKEN_REFRESH_PROFILE_CHECK_THRESHOLD) {
+            console.log("It's been a while since profile check, refreshing profile data");
+            await fetchProfile(session.user.id);
+          }
         }
       }
     );
@@ -233,21 +355,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile, forceSignOut, checkExcessiveSessionErrors, trackSessionError]);
 
+  // Tab visibility change handler with improved stability
   useEffect(() => {
     const handleVisibilityChange = () => {
+      const now = Date.now();
+      visibilityChangeTimeRef.current = now;
+      
       if (document.visibilityState === 'visible') {
         console.log("Tab became visible, checking session state");
-        // Reset loading state if it's been stuck
-        const checkLoadingState = setTimeout(() => {
-          if (loading) {
-            console.log("Loading state was stuck, resetting");
-            setLoading(false);
-          }
-        }, 2000);
         
-        return () => clearTimeout(checkLoadingState);
+        // Clear any existing loading reset timer
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+        }
+        
+        // Reset loading state if it's been stuck for too long
+        loadingTimerRef.current = window.setTimeout(() => {
+          if (loading) {
+            console.log("Loading state was stuck, resetting and refreshing data");
+            setLoading(false);
+            
+            // If we have a user, verify their session and profile
+            if (user) {
+              console.log("User exists, refreshing profile data");
+              fetchProfile(user.id);
+            } else {
+              // If no user, check if there might be a session we didn't catch
+              console.log("No user, checking for session");
+              supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session?.user) {
+                  console.log("Found session for user:", session.user.id);
+                  setUser(session.user);
+                  fetchProfile(session.user.id);
+                }
+              }).catch(error => {
+                console.error("Error checking session on visibility change:", error);
+              });
+            }
+          }
+          loadingTimerRef.current = null;
+        }, 2000);
       }
     };
     
@@ -255,10 +404,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
     };
-  }, [loading]);
+  }, [loading, user, fetchProfile]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       setLoading(true);
       console.log("Attempting to sign in with Google...");
@@ -281,9 +434,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Échec de connexion avec Google');
       setLoading(false);
     }
-  };
+  }, []);
 
-  const updateProfile = async (data: Partial<Profile>) => {
+  const updateProfile = useCallback(async (data: Partial<Profile>) => {
     try {
       if (!user) throw new Error('Non authentifié');
       
@@ -300,7 +453,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error updating profile:', error);
       toast.error('Échec de mise à jour du profil');
     }
-  };
+  }, [user]);
 
   return (
     <AuthContext.Provider
@@ -313,6 +466,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         updateProfile,
         forceSignOut,
+        resetAuthState,
       }}
     >
       {children}
