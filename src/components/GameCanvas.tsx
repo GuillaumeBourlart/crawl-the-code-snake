@@ -473,7 +473,7 @@ const GameCanvas = ({
       // Adjust eye size to be exactly half of head radius, matching the preview
       const eyeSize = headRadius * 0.5;
       const pupilSize = eyeSize * 0.6;
-      const eyeDistance = eyeRadius * 1.1;
+      const eyeDistance = eyeSize * 1.1;
       const eyeForwardOffset = headRadius * 0.30;
       
       ctx.save();
@@ -764,3 +764,38 @@ const GameCanvas = ({
         ctx.fill();
         
         ctx.strokeStyle = shadeColor(item.color, 20);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        drawPlayerHead(player, id === playerId);
+      });
+      
+      ctx.restore();
+      
+      previousTimeRef.current = timestamp;
+      requestRef.current = requestAnimationFrame(renderFrame);
+    };
+    
+    requestRef.current = requestAnimationFrame(renderFrame);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [gameState, camera, playerId, isMobile]);
+  
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="absolute inset-0 w-full h-full touch-none"
+    />
+  );
+};
+
+export default GameCanvas;
