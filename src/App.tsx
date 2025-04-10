@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SkinsPage from "./pages/SkinsPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
-import HexBackground from "./components/HexBackground";
 
 const queryClient = new QueryClient();
 
@@ -17,7 +16,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <HexBackground />
         <Toaster />
         <Sonner />
         <BrowserRouter>
