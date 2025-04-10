@@ -152,7 +152,7 @@ const SkinSelector = ({
           return (
             <div
               key={skin.id}
-              className={`relative rounded-lg overflow-hidden transition-all duration-200 ${
+              className={`relative rounded-lg overflow-hidden transition-all duration-200 p-3 ${
                 isSelectable ? 'cursor-pointer' : 'cursor-default opacity-80'
               } ${
                 isSelected 
@@ -175,10 +175,10 @@ const SkinSelector = ({
               onMouseEnter={() => setHoveredSkin(skin)}
               onMouseLeave={() => setHoveredSkin(null)}
             >
-              <div className="flex flex-col items-center p-2">
+              <div className="flex flex-col items-center">
                 {showPreview && (
-                  <div className="mb-2 relative w-full">
-                    <div className="flex justify-center">
+                  <div className="mb-3 relative">
+                    <div className="flex justify-center items-center">
                       <SkinPreview 
                         skin={skin} 
                         size="small" 
@@ -195,7 +195,7 @@ const SkinSelector = ({
                     
                     {/* Only show lock for skins that cannot be selected */}
                     {!isSelectable && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
                         <Lock className="h-6 w-6 text-gray-300" />
                       </div>
                     )}

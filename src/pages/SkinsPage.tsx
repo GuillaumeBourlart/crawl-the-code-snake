@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const stripePromise = loadStripe("pk_test_your_stripe_key");
 
@@ -98,7 +99,7 @@ const SkinsPage = () => {
   const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="min-h-screen flex flex-col text-white">
+    <div className="h-screen flex flex-col text-white overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">
         <div className="flex items-center">
           <Button 
@@ -125,14 +126,14 @@ const SkinsPage = () => {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <>
+          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
             <div className="mb-6 flex justify-center">
               <Button 
                 className="bg-indigo-600 hover:bg-indigo-700"
@@ -161,7 +162,7 @@ const SkinsPage = () => {
               </div>
             </div>
 
-            <div>
+            <div className="mb-6">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-xl font-bold mb-3">Boutique</h2>
               </div>
@@ -190,7 +191,7 @@ const SkinsPage = () => {
                 )}
               </div>
             </div>
-          </>
+          </ScrollArea>
         )}
       </main>
 

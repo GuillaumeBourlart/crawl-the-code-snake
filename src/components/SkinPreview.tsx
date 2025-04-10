@@ -16,10 +16,11 @@ const SkinPreview = ({
 }: SkinPreviewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Increase the dimensions for better visibility
   const dimensions = {
-    small: { width: 100, height: 100 },
-    medium: { width: 200, height: 200 },
-    large: { width: 300, height: 300 },
+    small: { width: 120, height: 120 }, // Increased from 100x100
+    medium: { width: 220, height: 220 }, // Increased from 200x200
+    large: { width: 320, height: 320 }, // Increased from 300x300
   };
 
   useEffect(() => {
@@ -33,10 +34,10 @@ const SkinPreview = ({
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // Snake properties - with doubled radius
-    const segmentSize = width / 6; // Double the size (changed from width/12)
-    const segmentGap = 0.2; // Facteur d'espacement entre segments (20% de la taille)
-    const segmentCount = 20; // Montrer exactement 20 segments pour correspondre à la structure du serveur
+    // Increase segment size for better visibility but ensure snake stays within canvas
+    const segmentSize = width / 5; // Increased from width/6 for larger segments
+    const segmentGap = 0.2; // Spacing factor between segments (20% of size)
+    const segmentCount = 20; // Show exactly 20 segments to match server structure
     
     // Animation properties
     let animationFrame: number;
@@ -49,17 +50,19 @@ const SkinPreview = ({
         // Create an array to store all segments (including head)
         let segments = [];
         
-        // Calcul de l'espacement identique au serveur
+        // Calculate spacing identical to server
         const tailSpacing = segmentSize * 0.2;
-        const segmentSpacing = (segmentSize * 2) + tailSpacing;
+        // Reduce spacing to keep snake within bounds
+        const segmentSpacing = (segmentSize * 1.5) + tailSpacing; // Reduced from 2.0 to 1.5
         
         // Add the 19 snake segments (body) in a circular pattern to the array
         for (let i = 0; i < 19; i++) {
           const segmentAngle = animate 
-            ? angle + (i * 0.2) // Réduire l'ondulation de 0.3 à 0.2
+            ? angle + (i * 0.2) // Reduced undulation from 0.3 to 0.2
             : (Math.PI / 4) + (i * 0.2);
             
-          const distance = (i + 1) * segmentSpacing;
+          // Scale the distance to ensure snake stays within canvas
+          const distance = Math.min((i + 1) * segmentSpacing, width * 0.4);
           
           const x = centerX + Math.cos(segmentAngle) * distance;
           const y = centerY + Math.sin(segmentAngle) * distance;
@@ -86,13 +89,13 @@ const SkinPreview = ({
           ctx.fill();
         }
         
-        // Calculer la position de la tête pour qu'elle suive le premier segment
-        // plutôt que de rester fixe au centre
+        // Calculate head position to follow the first segment
+        // rather than staying fixed at center
         const headAngle = animate ? angle : Math.PI / 4;
         const headX = centerX + Math.cos(headAngle) * segmentSpacing * 0.5;
         const headY = centerY + Math.sin(headAngle) * segmentSpacing * 0.5;
         
-        // Draw head (premier segment) last with colors[0] - so it's on top with the highest z-index
+        // Draw head (first segment) last with colors[0] - so it's on top with the highest z-index
         const headColor = skin.data.colors[0]; // Always use first color for head
         ctx.fillStyle = headColor;
         ctx.beginPath();
@@ -153,13 +156,13 @@ const SkinPreview = ({
         ctx.fill();
       } else if (pattern === 'snake') {
         // Draw snake segments in a snake-like pattern - exactly 20 circles
-        const pathLength = width * 0.7;
-        const amplitude = height * 0.15; // Réduire l'amplitude de 0.2 à 0.15 pour moins d'ondulation
-        const frequency = 1.5; // Réduire la fréquence pour moins d'ondulation
+        const pathLength = width * 0.65; // Reduced from 0.7 to 0.65 to ensure it's fully visible
+        const amplitude = height * 0.12; // Reduced from 0.15 to 0.12 for less undulation
+        const frequency = 1.5; // Reduced frequency for less undulation
         
-        // Calcul de l'espacement identique au serveur
+        // Calculate spacing identical to server
         const tailSpacing = segmentSize * 0.2;
-        const segmentSpacing = (segmentSize * 2) + tailSpacing;
+        const segmentSpacing = (segmentSize * 1.8) + tailSpacing; // Reduced from 2.0 to 1.8
         const distanceBetweenSegments = pathLength / 20;
         
         // Create an array to store all segments (including head)
@@ -168,7 +171,8 @@ const SkinPreview = ({
         // Calculate body segments to draw first - using colors 1-19
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
-          const x = centerX - pathLength * 0.3 + progress * pathLength;
+          // Adjust positioning to ensure the snake stays fully within the canvas
+          const x = centerX - pathLength * 0.25 + progress * pathLength * 0.8;
           const wavePhase = animate ? angle * 2 : 0;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
           
@@ -198,7 +202,8 @@ const SkinPreview = ({
         const headSize = segmentSize * 1.2;
         const headProgress = 0;
         const wavePhase = animate ? angle * 2 : 0;
-        const headX = centerX - pathLength * 0.3;
+        // Position head at the beginning of the path, adjusted to stay within canvas
+        const headX = centerX - pathLength * 0.25;
         const headY = centerY + Math.sin(headProgress * frequency * Math.PI + wavePhase) * amplitude;
         
         // Set head color - use colors[0] to match server-side logic
@@ -263,7 +268,7 @@ const SkinPreview = ({
       }
 
       if (animate) {
-        angle += 0.01; // Réduire la vitesse d'animation de 0.02 à 0.01
+        angle += 0.01; // Reduced animation speed from 0.02 to 0.01
         animationFrame = requestAnimationFrame(renderSnake);
       }
     };
