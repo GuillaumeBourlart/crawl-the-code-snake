@@ -15,6 +15,22 @@ const AuthButtons = () => {
     }
   }, [user, authLoading]);
 
+  // Also handle tab visibility to reset loading states when returning to the tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Tab visible in AuthButtons, resetting loading state");
+        setIsLoading(false);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const handleSignIn = async () => {
     setIsLoading(true);
     try {

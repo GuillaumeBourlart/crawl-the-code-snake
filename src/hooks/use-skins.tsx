@@ -37,6 +37,34 @@ export const useSkins = () => {
     skin.is_paid && !ownedSkinIds.has(skin.id)
   );
 
+  // Handle tab visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Tab visible in useSkins, checking loading state");
+        // If loading has been stuck for too long, reset it
+        if (loading) {
+          const timeoutId = setTimeout(() => {
+            console.log("Loading state was stuck, resetting and refreshing skins");
+            setLoading(false);
+            // Only refresh if we haven't loaded skins yet
+            if (!skinsLoaded) {
+              refresh();
+            }
+          }, 2000);
+          
+          return () => clearTimeout(timeoutId);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loading, skinsLoaded]);
+
   const fetchAllSkins = useCallback(async () => {
     try {
       console.log("Fetching all skins...");
@@ -209,6 +237,8 @@ export const useSkins = () => {
   const refresh = useCallback(() => {
     console.log("Refreshing skins data");
     setLoading(true);
+    setSkinsLoaded(false);
+    setUserSkinsLoaded(false);
     fetchAllSkins();
     if (user) {
       fetchUserSkins();

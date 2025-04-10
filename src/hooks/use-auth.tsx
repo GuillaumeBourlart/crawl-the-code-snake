@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -6,6 +5,16 @@ import { Profile } from '@/types/supabase';
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
+
+// Create Supabase client instance as a singleton to avoid duplicate instances
+let supabaseInstance: SupabaseClient | null = null;
+const getSupabaseClient = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseKey);
+    console.log("Created new Supabase client instance");
+  }
+  return supabaseInstance;
+};
 
 type AuthContextType = {
   user: User | null;
@@ -20,8 +29,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create Supabase client instance outside the component to avoid recreating it
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Get the Supabase client once
+const supabase = getSupabaseClient();
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -217,6 +226,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Tab became visible, checking session state");
+        // Reset loading state if it's been stuck
+        const checkLoadingState = setTimeout(() => {
+          if (loading) {
+            console.log("Loading state was stuck, resetting");
+            setLoading(false);
+          }
+        }, 2000);
+        
+        return () => clearTimeout(checkLoadingState);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loading]);
 
   const signInWithGoogle = async () => {
     try {
