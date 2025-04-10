@@ -69,26 +69,36 @@ serve(async (req) => {
       throw new Error("Skin not found");
     }
 
+    // Get the user's profile to update the skins array
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("skins")
+      .eq("id", userId)
+      .single();
+
+    if (profileError) {
+      throw new Error("Failed to get user profile");
+    }
+
+    // Prepare the updated skins array
+    let userSkins = [];
+    if (profileData && profileData.skins) {
+      userSkins = Array.isArray(profileData.skins) ? [...profileData.skins] : [];
+    }
+
     // Check if the user already owns this skin
-    const { data: existingUserSkin, error: userSkinError } = await supabaseClient
-      .from("user_skins")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("skin_id", skinId)
-      .maybeSingle();
+    if (!userSkins.includes(skinId)) {
+      // Add the new skin to the array
+      userSkins.push(skinId);
 
-    if (!existingUserSkin) {
-      // Record the purchase in the user_skins table
-      const { error: insertError } = await supabaseClient
-        .from("user_skins")
-        .insert({
-          user_id: userId,
-          skin_id: skinId,
-          transaction_id: session.id,
-        });
+      // Update the profile with the new skins array
+      const { error: updateError } = await supabaseClient
+        .from("profiles")
+        .update({ skins: userSkins })
+        .eq("id", userId);
 
-      if (insertError) {
-        throw new Error("Failed to record purchase");
+      if (updateError) {
+        throw new Error("Failed to update profile with new skin");
       }
     }
 
