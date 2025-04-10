@@ -92,6 +92,7 @@ const SkinSelector = ({
           {displaySkins.map(skin => {
             const isSelected = skin.id === selectedSkinId;
             const isOwned = availableSkins?.some(s => s.id === skin.id);
+            // Un skin est achetable uniquement s'il est payant ET que l'utilisateur ne le possède pas
             const isPurchasable = !isOwned && skin.is_paid;
             
             return (
@@ -136,6 +137,7 @@ const SkinSelector = ({
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
           const isOwned = availableSkins?.some(s => s.id === skin.id);
+          // Un skin n'est achetable que s'il est dans la section des skins achetables, qu'il est payant, et que l'utilisateur ne le possède pas
           const isPurchasable = showPurchasable && skin.is_paid && !isOwned;
           
           return (
@@ -213,3 +215,4 @@ const SkinSelector = ({
 };
 
 export default SkinSelector;
+

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -143,7 +144,7 @@ const SkinsPage = () => {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-xl font-bold mb-4">Skins gratuits</h2>
+              <h2 className="text-xl font-bold mb-4">Skins disponibles</h2>
               
               <div>
                 {availableSkins && availableSkins.length > 0 ? (
@@ -162,7 +163,7 @@ const SkinsPage = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold mb-3">Skins payants</h2>
+                <h2 className="text-xl font-bold mb-3">Boutique</h2>
               </div>
               
               {!user && (
@@ -201,3 +202,4 @@ const SkinsPage = () => {
 };
 
 export default SkinsPage;
+

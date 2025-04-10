@@ -1,11 +1,9 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
 import { useAuth } from './use-auth';
 
-// Create a single Supabase client instance to avoid warnings
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
 let supabaseInstance: any = null;
@@ -29,24 +27,18 @@ export const useSkins = () => {
   const [userSkinsLoaded, setUserSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
-  // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
 
-  // Calculate which skins the user owns
   const ownedSkinIds = new Set(userSkins.map(us => us.skin_id));
 
-  // Free skins that user can use without purchase
   const freeSkins = allSkins.filter(skin => !skin.is_paid);
   
-  // Paid skins that the user has purchased
   const purchasedSkins = allSkins.filter(skin => 
     skin.is_paid && ownedSkinIds.has(skin.id)
   );
   
-  // All skins available to the user (free + purchased)
   const availableSkins = [...freeSkins, ...purchasedSkins];
   
-  // Skins that could be purchased
   const purchasableSkins = allSkins.filter(skin => 
     skin.is_paid && !ownedSkinIds.has(skin.id)
   );
@@ -75,7 +67,6 @@ export const useSkins = () => {
       setFetchError(error);
       toast.error('Failed to load skins');
       
-      // If the error is severe and we're authenticated, sign out
       if (user) {
         signOut();
       }
@@ -106,7 +97,6 @@ export const useSkins = () => {
       setFetchError(error);
       toast.error('Failed to load your skins');
       
-      // If there's an error loading user skins, sign out
       signOut();
     }
   }, [user, supabase, signOut, userSkinsLoaded]);
@@ -136,16 +126,13 @@ export const useSkins = () => {
     } catch (error: any) {
       console.error('Error fetching default skin:', error);
       setFetchError(error);
-      // Don't sign out here, just use local storage instead
     }
   }, [user, supabase]);
 
-  // Initial load of all skins - executed once on component mount
   useEffect(() => {
     fetchAllSkins();
   }, [fetchAllSkins]);
 
-  // Load saved skin from localStorage if no skin is selected
   useEffect(() => {
     if (allSkins.length > 0 && !selectedSkinId) {
       const savedSkinId = localStorage.getItem('selected_skin_id');
@@ -154,7 +141,6 @@ export const useSkins = () => {
         console.log("Loading selected skin ID from localStorage:", parsedId);
         setSelectedSkinId(parsedId);
       } else if (allSkins[0]) {
-        // If no skin is selected and nothing in localStorage, select the first free skin
         console.log("No skin selected, selecting first available:", allSkins[0].id);
         setSelectedSkinId(allSkins[0].id);
         localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
@@ -162,7 +148,6 @@ export const useSkins = () => {
     }
   }, [allSkins, selectedSkinId]);
 
-  // Load user-specific data when user state changes
   useEffect(() => {
     if (user) {
       console.log("User detected, loading user-specific skin data");
@@ -176,7 +161,6 @@ export const useSkins = () => {
   }, [user, fetchUserSkins, fetchUserDefaultSkin]);
 
   const setSelectedSkin = async (skinId: number) => {
-    // Check if the skin exists
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
     if (!skinExists) {
@@ -184,7 +168,6 @@ export const useSkins = () => {
       return;
     }
     
-    // Check if the skin is available for the user
     const skinData = allSkins.find(skin => skin.id === skinId);
     const isFreeSkin = skinData && !skinData.is_paid;
     const isPurchasedSkin = skinData && skinData.is_paid && ownedSkinIds.has(skinId);
@@ -197,10 +180,8 @@ export const useSkins = () => {
     console.log("Setting selected skin to:", skinId);
     setSelectedSkinId(skinId);
     
-    // Always store in localStorage for immediate use
     localStorage.setItem('selected_skin_id', skinId.toString());
     
-    // If the user is authenticated, update their profile with the selected skin
     if (user) {
       try {
         console.log("Updating user profile with selected skin:", skinId);
@@ -225,7 +206,6 @@ export const useSkins = () => {
 
   const refresh = useCallback(() => {
     console.log("Refreshing skins data");
-    // Reset loading states to trigger refetching
     setSkinsLoaded(false);
     setUserSkinsLoaded(false);
     fetchAllSkins();
