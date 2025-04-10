@@ -7,7 +7,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut, Trophy, User, Gamepad2, ArrowRight, Settings } from "lucide-react";
+import { LogOut, Trophy, User, Gamepad2, ArrowRight, Settings, Palette } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
@@ -585,7 +585,7 @@ const Index = () => {
                 size="sm"
                 className="bg-gray-900/70 border-indigo-500/30 text-white hover:bg-indigo-900/30 rounded-lg shadow-md"
               >
-                <Brush className="mr-1 h-4 w-4 text-indigo-400" />
+                <Palette className="mr-1 h-4 w-4 text-indigo-400" />
                 Skins
               </Button>
             </Link>
