@@ -83,8 +83,8 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           }
           ctx.closePath();
           
-          // Use gray color for fill to match the canvas
-          const fillColor = `rgb(130, 130, 140, 0.15)`;
+          // Use much darker gray color for fill
+          const fillColor = `rgb(60, 60, 70, 0.15)`;
           ctx.fillStyle = fillColor;
           ctx.fill();
           
