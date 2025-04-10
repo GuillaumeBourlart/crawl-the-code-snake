@@ -410,7 +410,7 @@ const SkinPreview = ({
       ref={canvasRef} 
       width={width} 
       height={height} 
-      className="rounded-lg max-w-full"
+      className="rounded-lg bg-gray-900/30 max-w-full"
     />
   );
 };

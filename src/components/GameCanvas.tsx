@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -471,11 +470,10 @@ const GameCanvas = ({
       const perpDirX = -directionY;
       const perpDirY = directionX;
       
-      // Eye parameters matching the preview
-      const eyeRadius = headRadius * 0.5; // Half of head radius as required
-      const pupilSize = eyeRadius * 0.6;
-      const eyeDistance = eyeRadius * 1.1; // Side by side without overlap
-      const eyeForwardOffset = headRadius * 0.3; // Similar to preview's offset
+      const eyeSize = headRadius * 0.40;
+      const pupilSize = eyeSize * 0.55;
+      const eyeDistance = headRadius * 0.32;
+      const eyeForwardOffset = headRadius * 0.30;
       
       ctx.save();
       
@@ -558,57 +556,16 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      ctx.restore();
-      
-      // Eye positions calculated to match the preview style
       const leftEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance;
       const leftEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance;
       const rightEyeX = player.x + directionX * eyeForwardOffset + perpDirX * eyeDistance;
       const rightEyeY = player.y + directionY * eyeForwardOffset + perpDirY * eyeDistance;
       
-      // Draw eyes with white background
-      const eyeGradient = ctx.createRadialGradient(
-        leftEyeX, leftEyeY, eyeRadius * 0.2,
-        leftEyeX, leftEyeY, eyeRadius
-      );
-      eyeGradient.addColorStop(0, "#FFFFFF");
-      eyeGradient.addColorStop(1, "#F0F0F0");
-      
-      ctx.fillStyle = eyeGradient;
-      ctx.beginPath();
-      ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      const rightEyeGradient = ctx.createRadialGradient(
-        rightEyeX, rightEyeY, eyeRadius * 0.2,
-        rightEyeX, rightEyeY, eyeRadius
-      );
-      rightEyeGradient.addColorStop(0, "#FFFFFF");
-      rightEyeGradient.addColorStop(1, "#F0F0F0");
-      
-      ctx.fillStyle = rightEyeGradient;
-      ctx.beginPath();
-      ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Calculate pupil positions
       if (isCurrentPlayer) {
         if (isMobile) {
           const joystickDir = rendererStateRef.current.joystickDirection;
           if (joystickDir && (joystickDir.x !== 0 || joystickDir.y !== 0)) {
-            const maxPupilOffset = eyeRadius * 0.3;
+            const maxPupilOffset = eyeSize * 0.3;
             pupilOffsetX = joystickDir.x * maxPupilOffset;
             pupilOffsetY = joystickDir.y * maxPupilOffset;
           }
@@ -626,7 +583,7 @@ const GameCanvas = ({
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance > 0) {
-              const maxPupilOffset = eyeRadius * 0.3;
+              const maxPupilOffset = eyeSize * 0.3;
               pupilOffsetX = (dx / distance) * maxPupilOffset;
               pupilOffsetY = (dy / distance) * maxPupilOffset;
             }
@@ -634,7 +591,42 @@ const GameCanvas = ({
         }
       }
       
-      // Draw pupils based on boost state
+      const eyeGradient = ctx.createRadialGradient(
+        leftEyeX, leftEyeY, eyeSize * 0.2,
+        leftEyeX, leftEyeY, eyeSize
+      );
+      eyeGradient.addColorStop(0, "#FFFFFF");
+      eyeGradient.addColorStop(1, "#F0F0F0");
+      
+      ctx.fillStyle = eyeGradient;
+      ctx.beginPath();
+      ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.strokeStyle = "#666666";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      const rightEyeGradient = ctx.createRadialGradient(
+        rightEyeX, rightEyeY, eyeSize * 0.2,
+        rightEyeX, rightEyeY, eyeSize
+      );
+      rightEyeGradient.addColorStop(0, "#FFFFFF");
+      rightEyeGradient.addColorStop(1, "#F0F0F0");
+      
+      ctx.fillStyle = rightEyeGradient;
+      ctx.beginPath();
+      ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.strokeStyle = "#666666";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.stroke();
+      
       if (player.boosting) {
         const pupilColor = "#ea384c";
         
@@ -678,14 +670,13 @@ const GameCanvas = ({
         ctx.fill();
       }
       
-      // Add highlights to eyes
-      const highlightSize = eyeRadius * 0.4;
+      const highlightSize = eyeSize * 0.4;
       ctx.fillStyle = "#FFFFFF";
       
       ctx.beginPath();
       ctx.arc(
-        leftEyeX + pupilOffsetX - eyeRadius * 0.25, 
-        leftEyeY + pupilOffsetY - eyeRadius * 0.25, 
+        leftEyeX + pupilOffsetX - eyeSize * 0.25, 
+        leftEyeY + pupilOffsetY - eyeSize * 0.25, 
         highlightSize, 
         0, Math.PI * 2
       );
@@ -693,14 +684,13 @@ const GameCanvas = ({
       
       ctx.beginPath();
       ctx.arc(
-        rightEyeX + pupilOffsetX - eyeRadius * 0.25, 
-        rightEyeY + pupilOffsetY - eyeRadius * 0.25, 
+        rightEyeX + pupilOffsetX - eyeSize * 0.25, 
+        rightEyeY + pupilOffsetY - eyeSize * 0.25, 
         highlightSize, 
         0, Math.PI * 2
       );
       ctx.fill();
       
-      // Boost effects
       if (player.boosting) {
         const glowColor = playerColor;
         
@@ -759,196 +749,115 @@ const GameCanvas = ({
         width/2, height/2, 0,
         width/2, height/2, height * 0.4
       );
-      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.2)');
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
       centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
       ctx.fillStyle = centerGlow;
       ctx.fillRect(0, 0, width, height);
       
-      if (rendererStateRef.current.gridNeedsUpdate) {
+      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
         updateGridCache();
       }
       
-      // Draw the grid from the cache
       if (gridCacheCanvasRef.current) {
         ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
       }
       
       ctx.save();
+      
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      // First draw the tails (segments) of all players
+      const allSegments = [];
+      
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        if (!player.queue) return;
-        
-        const segmentRadius = getSegmentRadius(player);
-        
-        for (let i = player.queue.length - 1; i >= 0; i--) {
-          const segment = player.queue[i];
-          const segX = segment.x;
-          const segY = segment.y;
-          
-          const segmentColor = segment.color || (id === playerId ? '#8B5CF6' : '#FFFFFF');
-          
-          const gradient = ctx.createRadialGradient(
-            segX, segY, 0,
-            segX, segY, segmentRadius
-          );
-          gradient.addColorStop(0, segmentColor);
-          gradient.addColorStop(1, shadeColor(segmentColor, -15));
-          
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(segX, segY, segmentRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.strokeStyle = shadeColor(segmentColor, -30);
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(segX, segY, segmentRadius, 0, Math.PI * 2);
-          ctx.stroke();
+        if (player.queue && player.queue.length > 0) {
+          player.queue.forEach((segment, index) => {
+            const radius = getSegmentRadius(player);
+            const segmentColor = segment.color || player.color || '#8B5CF6';
+            
+            allSegments.push({
+              x: segment.x,
+              y: segment.y,
+              radius,
+              color: segmentColor,
+              zIndex: player.queue!.length - index,
+              playerId: id
+            });
+          });
         }
       });
       
-      // Then draw player heads on top so they're always visible
+      allSegments.sort((a, b) => a.zIndex - b.zIndex);
+      
+      allSegments.forEach(segment => {
+        const gradient = ctx.createRadialGradient(
+          segment.x, segment.y, 0,
+          segment.x, segment.y, segment.radius
+        );
+        gradient.addColorStop(0, segment.color);
+        gradient.addColorStop(1, shadeColor(segment.color, -15));
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(segment.color, -30);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
+      rendererStateRef.current.items.forEach(item => {
+        const animation = rendererStateRef.current.itemAnimations[item.id];
+        if (!animation) return;
+        
+        const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius;
+        const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius;
+        
+        animation.rotationAngle += animation.rotationSpeed * 0.01;
+        
+        const itemGradient = ctx.createRadialGradient(
+          itemX, itemY, 0,
+          itemX, itemY, item.radius || 5
+        );
+        
+        itemGradient.addColorStop(0, item.color);
+        itemGradient.addColorStop(1, shadeColor(item.color, -20));
+        
+        ctx.fillStyle = itemGradient;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        const glowGradient = ctx.createRadialGradient(
+          itemX, itemY, (item.radius || 5) * 0.5,
+          itemX, itemY, (item.radius || 5) * 2
+        );
+        glowGradient.addColorStop(0, `${item.color}40`);
+        glowGradient.addColorStop(0.7, `${item.color}10`);
+        glowGradient.addColorStop(1, `${item.color}00`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, (item.radius || 5) * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(item.color, 20);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
         drawPlayerHead(player, id === playerId);
       });
       
-      // Draw items
-      rendererStateRef.current.items.forEach(item => {
-        const anim = rendererStateRef.current.itemAnimations[item.id];
-        
-        if (anim) {
-          const time = timestamp * 0.001;
-          
-          anim.rotationAngle += anim.rotationSpeed * 0.01;
-          anim.offsetX = Math.sin(time * anim.speedX + anim.phaseX) * anim.radius;
-          anim.offsetY = Math.cos(time * anim.speedY + anim.phaseY) * anim.radius;
-          
-          ctx.save();
-          ctx.translate(item.x, item.y);
-          ctx.rotate(anim.rotationAngle);
-          
-          const itemRadius = item.radius || 5;
-          const gradient = ctx.createRadialGradient(
-            anim.offsetX, anim.offsetY, itemRadius * 0.2,
-            anim.offsetX, anim.offsetY, itemRadius
-          );
-          
-          const baseColor = item.color;
-          const highlightColor = shadeColor(baseColor, 30);
-          const shadowColor = shadeColor(baseColor, -30);
-          
-          gradient.addColorStop(0, highlightColor);
-          gradient.addColorStop(0.6, baseColor);
-          gradient.addColorStop(1, shadowColor);
-          
-          ctx.fillStyle = gradient;
-          ctx.shadowColor = baseColor;
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(anim.offsetX, anim.offsetY, itemRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.restore();
-        } else {
-          const itemRadius = item.radius || 5;
-          const gradient = ctx.createRadialGradient(
-            item.x, item.y, itemRadius * 0.2,
-            item.x, item.y, itemRadius
-          );
-          
-          const baseColor = item.color;
-          const highlightColor = shadeColor(baseColor, 30);
-          const shadowColor = shadeColor(baseColor, -30);
-          
-          gradient.addColorStop(0, highlightColor);
-          gradient.addColorStop(0.6, baseColor);
-          gradient.addColorStop(1, shadowColor);
-          
-          ctx.fillStyle = gradient;
-          ctx.shadowColor = baseColor;
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(item.x, item.y, itemRadius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-      });
-      
       ctx.restore();
-      
-      // Update boost particles
-      const particles = rendererStateRef.current.boostParticles;
-      
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const particle = particles[i];
-        
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.alpha -= 0.01;
-        particle.size *= 0.97;
-        
-        if (particle.alpha <= 0 || particle.size < 0.2) {
-          particles.splice(i, 1);
-        } else {
-          ctx.save();
-          ctx.globalAlpha = particle.alpha;
-          ctx.fillStyle = particle.color;
-          ctx.beginPath();
-          ctx.arc(
-            (particle.x - camera.x) * camera.zoom + canvas.width / 2,
-            (particle.y - camera.y) * camera.zoom + canvas.height / 2,
-            particle.size * camera.zoom,
-            0, Math.PI * 2
-          );
-          ctx.fill();
-          ctx.restore();
-        }
-      }
-      
-      // Add boost particles for current player
-      if (playerId && rendererStateRef.current.players[playerId]?.boosting) {
-        const player = rendererStateRef.current.players[playerId];
-        if (player.queue && player.queue.length > 0) {
-          const tailSegments = player.queue;
-          const lastSegment = tailSegments[tailSegments.length - 1];
-          
-          const playerColor = player.color || '#8B5CF6';
-          
-          const angle = Math.atan2(
-            player.y - lastSegment.y,
-            player.x - lastSegment.x
-          ) + Math.PI;
-          
-          for (let i = 0; i < 2; i++) {
-            const speed = 2 + Math.random() * 2;
-            const direction = angle + (Math.random() - 0.5) * 0.5;
-            const vx = Math.cos(direction) * speed;
-            const vy = Math.sin(direction) * speed;
-            
-            const colorVariants = [
-              playerColor,
-              shadeColor(playerColor, 20),
-              shadeColor(playerColor, -20),
-              '#ffffff'
-            ];
-            
-            particles.push({
-              x: lastSegment.x,
-              y: lastSegment.y,
-              size: 4 + Math.random() * 4,
-              alpha: 0.7 + Math.random() * 0.3,
-              vx,
-              vy,
-              color: colorVariants[Math.floor(Math.random() * colorVariants.length)]
-            });
-          }
-        }
-      }
       
       previousTimeRef.current = timestamp;
       requestRef.current = requestAnimationFrame(renderFrame);
@@ -967,7 +876,7 @@ const GameCanvas = ({
   return (
     <canvas 
       ref={canvasRef} 
-      className="absolute top-0 left-0 w-full h-full z-0" 
+      className="absolute inset-0 w-full h-full touch-none"
     />
   );
 };
