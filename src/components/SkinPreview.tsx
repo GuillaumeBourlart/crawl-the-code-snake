@@ -59,8 +59,7 @@ const SkinPreview = ({
         // Add the 19 snake segments (body) in a circular pattern
         for (let i = 0; i < 19; i++) {
           // Always animate regardless of hover state
-          // Reverse the direction of movement by negating the angle
-          const segmentAngle = -angle + (i * 0.2);
+          const segmentAngle = angle + (i * 0.2);
             
           // Calculate appropriate distance to ensure snake stays within canvas
           const maxDistance = width * 0.38; // Reduced to prevent overflow
@@ -94,13 +93,11 @@ const SkinPreview = ({
           ctx.stroke();
         }
         
-        // Calculate head position to lead the snake from the left side
+        // Calculate head position to lead the snake
         // Always animate regardless of hover state
-        // Using negative angle to reverse direction
-        const headAngle = -angle;
-        // Place head on the left side of the circle
-        const headX = centerX - Math.cos(Math.PI/2) * segmentSpacing * 0.5;
-        const headY = centerY - Math.sin(Math.PI/2) * segmentSpacing * 0.5;
+        const headAngle = angle;
+        const headX = centerX + Math.cos(headAngle) * segmentSpacing * 0.5;
+        const headY = centerY + Math.sin(headAngle) * segmentSpacing * 0.5;
         const headRadius = segmentSize * 0.6;
         
         // Draw head with colors[0] to match server-side logic
@@ -223,9 +220,8 @@ const SkinPreview = ({
         // Calculate body segments - using colors 1-19
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
-          // Reverse the x-position calculation to make the snake move from right to left
-          // Position snake within canvas bounds, but start from right side
-          const x = width * (0.75 - progress * 0.8); // Changed from 0.25 + progress to move left
+          // Position snake within canvas bounds
+          const x = width * 0.25 + progress * pathLength * 0.8;
           // Always animate regardless of hover state
           const wavePhase = angle * 2;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
@@ -267,9 +263,9 @@ const SkinPreview = ({
           ctx.stroke();
         }
         
-        // Draw head with the first color - now on the left side
+        // Draw head with the first color
         const headSize = segmentSize * 1.2;
-        const headX = width * 0.25; // Position head on the left side
+        const headX = width * 0.25;
         // Always animate regardless of hover state
         const wavePhase = angle * 2;
         const headY = centerY + Math.sin(wavePhase) * amplitude;
