@@ -595,12 +595,9 @@ const GameCanvas = ({
       ctx.arc(player.x + eyeDistance, player.y + eyeOffsetY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
-      // Modify pupils based on boosting state
       if (player.boosting) {
-        // Angry eyes - red triangular pupils
-        const pupilColor = "#ea384c"; // Red color for angry eyes
+        const pupilColor = "#ea384c";
         
-        // Left eye angry pupil
         ctx.fillStyle = pupilColor;
         ctx.beginPath();
         ctx.moveTo(player.x - eyeDistance + pupilOffsetX - pupilSize, player.y + eyeOffsetY + pupilOffsetY - pupilSize/2);
@@ -609,7 +606,6 @@ const GameCanvas = ({
         ctx.closePath();
         ctx.fill();
         
-        // Right eye angry pupil
         ctx.beginPath();
         ctx.moveTo(player.x + eyeDistance + pupilOffsetX - pupilSize, player.y + eyeOffsetY + pupilOffsetY - pupilSize/2);
         ctx.lineTo(player.x + eyeDistance + pupilOffsetX + pupilSize, player.y + eyeOffsetY + pupilOffsetY);
@@ -617,7 +613,6 @@ const GameCanvas = ({
         ctx.closePath();
         ctx.fill();
       } else {
-        // Normal round pupils
         const pupilGradient = ctx.createRadialGradient(
           player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, 0,
           player.x - eyeDistance + pupilOffsetX, player.y + eyeOffsetY + pupilOffsetY, pupilSize
@@ -757,4 +752,86 @@ const GameCanvas = ({
       allSegments.sort((a, b) => a.zIndex - b.zIndex);
       
       allSegments.forEach(segment => {
-        const gradient
+        const gradient = ctx.createRadialGradient(
+          segment.x, segment.y, 0,
+          segment.x, segment.y, segment.radius
+        );
+        gradient.addColorStop(0, segment.color);
+        gradient.addColorStop(1, shadeColor(segment.color, -15));
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(segment.color, -30);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
+      rendererStateRef.current.items.forEach(item => {
+        const animation = rendererStateRef.current.itemAnimations[item.id];
+        if (!animation) return;
+        
+        const x = item.x + Math.sin(timestamp * 0.001 * animation.speedX + animation.phaseX) * animation.radius;
+        const y = item.y + Math.sin(timestamp * 0.001 * animation.speedY + animation.phaseY) * animation.radius;
+        
+        animation.rotationAngle += animation.rotationSpeed * 0.01;
+        
+        const itemRadius = (item.radius || 4) * (1 + Math.sin(timestamp * 0.002) * 0.1);
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(animation.rotationAngle);
+        
+        const itemGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, itemRadius);
+        itemGradient.addColorStop(0, shadeColor(item.color, 20));
+        itemGradient.addColorStop(0.7, item.color);
+        itemGradient.addColorStop(1, shadeColor(item.color, -20));
+        
+        ctx.fillStyle = itemGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, itemRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        const glowSize = itemRadius * 2;
+        const glowGradient = ctx.createRadialGradient(0, 0, itemRadius, 0, 0, glowSize);
+        glowGradient.addColorStop(0, `${item.color}40`);
+        glowGradient.addColorStop(1, `${item.color}00`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+      });
+      
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        const isCurrentPlayer = id === playerId;
+        drawPlayerHead(player, isCurrentPlayer);
+      });
+      
+      ctx.restore();
+      
+      requestRef.current = requestAnimationFrame(renderFrame);
+    };
+    
+    renderFrame(0);
+    
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [gameState, playerId, camera]);
+  
+  return (
+    <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
+  );
+};
+
+export default GameCanvas;
