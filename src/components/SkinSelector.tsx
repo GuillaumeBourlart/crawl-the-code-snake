@@ -41,10 +41,13 @@ const SkinSelector = ({
   // Determine which skins to display - FIXED to prevent infinite loop
   useEffect(() => {
     if (showPurchasable) {
-      // For the boutique/store section - show all paid skins
-      setDisplaySkins(allSkins?.filter(skin => skin.is_paid) || []);
+      // Pour la boutique/store section - show all paid skins
+      const paidSkins = allSkins?.filter(skin => skin.is_paid) || [];
+      console.log("SkinSelector: Setting paid skins for display", paidSkins.length);
+      setDisplaySkins(paidSkins);
     } else {
-      // For the free skins section - show only free skins
+      // Pour la free skins section - show only free skins
+      console.log("SkinSelector: Setting free skins for display", freeSkins?.length || 0);
       setDisplaySkins(freeSkins || []);
     }
   }, [showPurchasable, allSkins, freeSkins]); // Only depend on these props, not on displaySkins
@@ -76,8 +79,18 @@ const SkinSelector = ({
   };
 
   const handlePurchase = (skin: GameSkin) => {
+    console.log("SkinSelector: Buy button clicked for skin", skin.id, skin.name);
+    
+    if (!user) {
+      console.log("SkinSelector: User not logged in, cannot purchase");
+      return;
+    }
+    
+    console.log("SkinSelector: Calling onPurchase callback", !!onPurchase);
     if (onPurchase) {
       onPurchase(skin);
+    } else {
+      console.warn("SkinSelector: No onPurchase callback provided");
     }
   };
 
@@ -221,6 +234,7 @@ const SkinSelector = ({
                       className="w-full text-xs bg-indigo-950/50 hover:bg-indigo-900/50 border-indigo-800"
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log(`SkinSelector: Buy button clicked for ${skin.name} (ID: ${skin.id})`);
                         handlePurchase(skin);
                       }}
                     >

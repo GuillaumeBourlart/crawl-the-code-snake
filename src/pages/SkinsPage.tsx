@@ -50,21 +50,26 @@ const SkinsPage = () => {
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
       toast.error("Veuillez vous connecter pour acheter des skins");
+      console.error("Tentative d'achat sans authentification");
       return;
     }
 
     try {
       setIsProcessing(true);
-      console.log("Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
+      console.log("⭐ Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
+      console.log("Skin details:", JSON.stringify(skin));
       
       // Obtenir le token d'accès
+      console.log("Récupération du token d'authentification");
       const sessionResponse = await supabase.auth.getSession();
       const accessToken = sessionResponse.data.session?.access_token;
       
       if (!accessToken) {
+        console.error("❌ Token d'authentification non disponible");
         throw new Error("Token d'authentification non disponible");
       }
       
+      console.log("✅ Token récupéré, appel de l'endpoint create-checkout-session-ts");
       // Utilisation du nouvel endpoint dédié à la création de sessions de paiement
       const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/create-checkout-session-ts', {
         method: 'POST',
@@ -78,39 +83,44 @@ const SkinsPage = () => {
         })
       });
       
+      console.log("Réponse de l'API - Status:", response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Erreur de réponse HTTP:", response.status, errorText);
+        console.error("❌ Erreur de réponse HTTP:", response.status, errorText);
         throw new Error(`Erreur HTTP: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log("Réponse reçue de create-checkout-session-ts:", data);
+      console.log("✅ Réponse reçue de create-checkout-session-ts:", data);
       
       if (!data) {
-        console.error("Réponse vide du serveur");
+        console.error("❌ Réponse vide du serveur");
         throw new Error("Réponse vide du serveur");
       }
       
       if (data?.url) {
         // Si l'API retourne directement une URL (nouvelle version de l'API)
+        console.log("✅ URL de redirection reçue:", data.url);
         window.location.href = data.url;
       } else if (data?.sessionId) {
         // Pour compatibilité avec l'ancienne version qui retourne le sessionId
+        console.log("✅ Session ID reçu, redirection via Stripe SDK:", data.sessionId);
         const stripe = await stripePromise;
         const result = await stripe.redirectToCheckout({
           sessionId: data.sessionId
         });
         
         if (result.error) {
+          console.error("❌ Erreur de redirection Stripe:", result.error);
           throw new Error(result.error.message);
         }
       } else {
-        console.error("Réponse sans URL ni sessionId:", data);
+        console.error("❌ Réponse sans URL ni sessionId:", data);
         throw new Error("Format de réponse invalide");
       }
     } catch (error: any) {
-      console.error("Erreur détaillée lors de la création de la session de paiement:", error);
+      console.error("❌ Erreur détaillée lors de la création de la session de paiement:", error);
       const errorMessage = error.message || "Erreur inconnue";
       toast.error(`Échec de traitement du paiement: ${errorMessage}`);
     } finally {
