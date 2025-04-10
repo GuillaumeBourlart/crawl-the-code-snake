@@ -10,7 +10,12 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 let supabaseInstance: SupabaseClient | null = null;
 const getSupabaseClient = () => {
   if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseKey);
+    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
     console.log("Created new Supabase client instance");
   }
   return supabaseInstance;
@@ -168,7 +173,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Checking for existing session...");
         setLoading(true);
         
-        // Utiliser une version sans délai pour éviter les problèmes de race
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (!isMounted) return;
@@ -217,6 +221,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setProfileFetchAttempted(false);
           setLoading(false);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log("Token refreshed for user:", session.user.id);
+          setUser(session.user);
+          // Don't refetch profile on token refresh to avoid unnecessary database calls
         }
       }
     );
