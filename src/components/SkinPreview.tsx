@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { GameSkin } from '@/types/supabase';
 
@@ -128,7 +129,8 @@ const SkinPreview = ({
         const rightEyeX = headX + normalizedDirX * eyeForwardOffset - perpDirX * eyeDistance;
         const rightEyeY = headY + normalizedDirY * eyeForwardOffset - perpDirY * eyeDistance;
         
-        const eyeSize = segmentSize * 0.18; // Increased from 0.15 to 0.18
+        // Increase eye size
+        const eyeSize = segmentSize * 0.25; // Increased from 0.18 to 0.25
         const pupilSize = eyeSize * 0.6;
         
         // Eyes
@@ -230,10 +232,10 @@ const SkinPreview = ({
         const perpDirX = -dirY;
         const perpDirY = dirX;
         
-        // Eye parameters - moved more forward
-        const eyeDistance = headSize * 0.32; // Reduced from 0.4 to 0.32
-        const eyeForwardOffset = headSize * 0.4; // Increased from 0.35 to 0.4
-        const eyeSize = headSize * 0.22; // Increased from 0.2 to 0.22
+        // Eye parameters - moved more forward and increased in size
+        const eyeDistance = headSize * 0.32; // Kept the same
+        const eyeForwardOffset = headSize * 0.4; // Kept the same
+        const eyeSize = headSize * 0.28; // Increased from 0.22 to 0.28
         const pupilSize = eyeSize * 0.5;
         
         // Eye positions - more forward facing

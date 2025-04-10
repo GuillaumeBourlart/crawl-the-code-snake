@@ -56,7 +56,8 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       const rows = Math.ceil(height / (hexHeight * 0.75)) + 2;
       const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
       
-      ctx.lineWidth = 1;
+      // Increase border width to match the canvas style
+      ctx.lineWidth = 20;
       
       for (let row = -2; row < rows; row++) {
         for (let col = -2; col < cols; col++) {
@@ -67,8 +68,6 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           const random = Math.sin(hexId) * 0.5 + 0.5;
           const time = Date.now() * 0.001;
           const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
-          
-          const baseHue = 210 + (random * 40 - 20);
           
           ctx.beginPath();
           for (let i = 0; i < 6; i++) {
@@ -84,11 +83,13 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           }
           ctx.closePath();
           
-          const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
+          // Use gray color for fill to match the canvas
+          const fillColor = `rgba(130, 130, 140, 0.15)`;
           ctx.fillStyle = fillColor;
           ctx.fill();
           
-          ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+          // Use black for stroke (border) color
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
           ctx.stroke();
         }
       }
