@@ -69,28 +69,29 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           const time = Date.now() * 0.001;
           const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
           
-          ctx.beginPath();
-          for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3;
-            const x = centerX + hexSize * Math.cos(angle);
-            const y = centerY + hexSize * Math.sin(angle);
-            
-            if (i === 0) {
-              ctx.moveTo(x, y);
-            } else {
-              ctx.lineTo(x, y);
-            }
-          }
-          ctx.closePath();
-          
-          // Use the exact gray color requested: 3C3C3C with 100% opacity
-          const fillColor = `rgb(60, 60, 60)`;  // 3C3C3C in RGB is 60,60,60
-          ctx.fillStyle = fillColor;
-          ctx.fill();
-          
-          // Use solid black for stroke (border) color - no alpha
-          ctx.strokeStyle = '#000000';
-          ctx.stroke();
+          // Dessin de l'hexagone
+ctx.beginPath();
+for (let i = 0; i < 6; i++) {
+  const angle = (i * Math.PI) / 3;
+  const x = centerX + hexSize * Math.cos(angle);
+  const y = centerY + hexSize * Math.sin(angle);
+  
+  if (i === 0) {
+    ctx.moveTo(x, y);
+  } else {
+    ctx.lineTo(x, y);
+  }
+}
+ctx.closePath();
+
+// Couleur fixe
+const fillColor = `rgb(60, 60, 60)`;
+ctx.fillStyle = fillColor;
+ctx.fill();
+
+ctx.strokeStyle = '#000000';
+ctx.stroke();
+
         }
       }
     };
