@@ -18,7 +18,7 @@ const getSupabase = () => {
 
 export const useSkins = () => {
   const supabase = getSupabase();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
@@ -26,22 +26,29 @@ export const useSkins = () => {
   const [loading, setLoading] = useState(true);
   const [skinsLoaded, setSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
+  const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
 
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
 
-  // Utiliser le champ `skins` du profil au lieu de la table `user_skins`
+  // Process profile skins only once when profile is available
   useEffect(() => {
-    if (profile && profile.skins) {
-      console.log("Using skins from profile:", profile.skins);
-      // Extraire les IDs des skins depuis le tableau skins du profil
-      const skinIds = Array.isArray(profile.skins) 
-        ? profile.skins.map(skin => typeof skin === 'number' ? skin : Number(skin))
-        : [];
-      setOwnedSkinIds(skinIds);
-    } else {
-      setOwnedSkinIds([]);
+    if (profile && profile.skins && !profileSkinsProcessed) {
+      console.log("Processing skins from profile:", profile.skins);
+      try {
+        // Extract the IDs of skins from the profile skins array
+        const skinIds = Array.isArray(profile.skins) 
+          ? profile.skins.map(skin => typeof skin === 'number' ? skin : Number(skin))
+          : [];
+        setOwnedSkinIds(skinIds);
+        setProfileSkinsProcessed(true);
+      } catch (error) {
+        console.error("Error processing profile skins:", error);
+      }
+    } else if (!profile) {
+      // Reset when profile is not available
+      setProfileSkinsProcessed(false);
     }
-  }, [profile]);
+  }, [profile, profileSkinsProcessed]);
 
   const freeSkins = allSkins.filter(skin => !skin.is_paid);
   
@@ -78,14 +85,10 @@ export const useSkins = () => {
       console.error('Error fetching skins:', error);
       setFetchError(error);
       toast.error('Failed to load skins');
-      
-      if (user) {
-        signOut();
-      }
     } finally {
       setLoading(false);
     }
-  }, [supabase, user, signOut, skinsLoaded]);
+  }, [supabase, skinsLoaded]);
 
   useEffect(() => {
     fetchAllSkins();
@@ -188,6 +191,7 @@ export const useSkins = () => {
   const refresh = useCallback(() => {
     console.log("Refreshing skins data");
     setSkinsLoaded(false);
+    setProfileSkinsProcessed(false);
     fetchAllSkins();
     if (user) {
       fetchUserDefaultSkin();

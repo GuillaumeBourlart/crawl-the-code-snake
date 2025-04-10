@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -24,7 +23,7 @@ const SkinsPage = () => {
     refresh: refreshSkins,
     fetchError
   } = useSkins();
-  const { user, profile, supabase, loading: authLoading, signOut } = useAuth();
+  const { user, profile, supabase, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
@@ -38,12 +37,11 @@ const SkinsPage = () => {
   }, [refreshSkins, hasAttemptedRefresh]);
 
   useEffect(() => {
-    if (fetchError && user) {
-      console.error("Critical fetch error, signing out:", fetchError);
-      toast.error("Erreur de chargement des données. Déconnexion en cours...");
-      signOut();
+    if (fetchError) {
+      console.error("Fetch error:", fetchError);
+      toast.error("Erreur de chargement des données. Veuillez réessayer.");
     }
-  }, [fetchError, user, signOut]);
+  }, [fetchError]);
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -202,4 +200,3 @@ const SkinsPage = () => {
 };
 
 export default SkinsPage;
-
