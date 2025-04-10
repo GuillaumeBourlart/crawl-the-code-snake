@@ -83,8 +83,8 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           }
           ctx.closePath();
           
-          // Use the exact gray color requested: 3C3C3C with higher opacity
-          const fillColor = `rgba(60, 60, 60, 0.6)`;  // 3C3C3C in RGB is 60,60,60
+          // Use the exact gray color requested: 3C3C3C with 100% opacity
+          const fillColor = `rgb(60, 60, 60)`;  // 3C3C3C in RGB is 60,60,60
           ctx.fillStyle = fillColor;
           ctx.fill();
           
