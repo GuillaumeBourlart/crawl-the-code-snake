@@ -56,7 +56,8 @@ const SkinsPage = () => {
       setIsProcessing(true);
       console.log("Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
       
-      // Utilisation du nouvel endpoint swift-endpoint avec le chemin /create-checkout-session
+      // Important: We're invoking the swift-endpoint function directly
+      // The routing is handled inside the function based on the request body
       console.log("Invocation de la fonction swift-endpoint...");
       const { data, error } = await supabase.functions.invoke("swift-endpoint", {
         body: { 

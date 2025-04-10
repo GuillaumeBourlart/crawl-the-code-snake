@@ -37,7 +37,8 @@ serve(async (req) => {
   console.log(`Requête reçue sur: ${pathname}`);
 
   // --- Endpoint Webhook Stripe ---
-  if (pathname === "/webhook-stripe") {
+  // Doit être appelé via https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/webhook-stripe
+  if (pathname.includes("/webhook-stripe")) {
     const sig = req.headers.get("stripe-signature");
     const body = await req.text();
     let event;
@@ -69,7 +70,8 @@ serve(async (req) => {
     });
   }
   // --- Endpoint pour créer une session de paiement ---
-  else if (pathname === "/create-checkout-session") {
+  // Normalement appelé via supabase.functions.invoke("swift-endpoint", { body: {...} })
+  else {
     try {
       console.log("Demande de création de session de paiement reçue");
       
@@ -167,10 +169,5 @@ serve(async (req) => {
         status: 500,
       });
     }
-  } else {
-    return new Response("Not Found", { 
-      status: 404,
-      headers: corsHeaders
-    });
   }
 });
