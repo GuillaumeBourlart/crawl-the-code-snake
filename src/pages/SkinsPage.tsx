@@ -126,26 +126,27 @@ const SkinsPage = () => {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 overflow-hidden">
+      <main className="flex-1 container mx-auto px-4 py-6 overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-180px)] pr-4">
+          <ScrollArea className="h-[calc(100vh-150px)] pr-4">
             <div className="mb-6 flex justify-center">
               <Button 
                 className="bg-indigo-600 hover:bg-indigo-700"
                 onClick={handleConfirmSelection}
                 disabled={!selectedSkin}
+                size="lg"
               >
                 Valider
               </Button>
             </div>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-4">Skins Gratuits</h2>
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Skins Gratuits</h2>
               
               <div>
                 {freeSkins && freeSkins.length > 0 ? (
@@ -162,9 +163,9 @@ const SkinsPage = () => {
               </div>
             </div>
 
-            <div className="mb-6">
+            <div className="mb-8">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold mb-3">Boutique</h2>
+                <h2 className="text-xl font-bold mb-3 border-b border-gray-700 pb-2">Boutique</h2>
               </div>
               
               {!user && (

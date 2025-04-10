@@ -137,7 +137,7 @@ const SkinSelector = ({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6">
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
           const isOwned = ownedSkinIds?.includes(skin.id);
@@ -177,7 +177,7 @@ const SkinSelector = ({
             >
               <div className="flex flex-col items-center">
                 {showPreview && (
-                  <div className="mb-3 relative">
+                  <div className="mb-3 flex justify-center items-center py-2">
                     <div className="flex justify-center items-center">
                       <SkinPreview 
                         skin={skin} 
@@ -188,7 +188,7 @@ const SkinSelector = ({
                     </div>
                     
                     {isSelected && (
-                      <div className="absolute top-1 right-1 bg-indigo-500 rounded-full p-0.5">
+                      <div className="absolute top-2 right-2 bg-indigo-500 rounded-full p-0.5">
                         <CheckCircle2 className="h-4 w-4 text-white" />
                       </div>
                     )}
@@ -202,7 +202,7 @@ const SkinSelector = ({
                   </div>
                 )}
                 
-                <h3 className="text-sm font-medium text-gray-200 truncate w-full text-center">
+                <h3 className="text-sm font-medium text-gray-200 truncate w-full text-center mt-1">
                   {skin.name}
                 </h3>
                 
