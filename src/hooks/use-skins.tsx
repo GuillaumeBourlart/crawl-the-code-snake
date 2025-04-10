@@ -50,16 +50,20 @@ export const useSkins = () => {
     }
   }, [profile, profileSkinsProcessed]);
 
+  // Get all free skins (not paid)
   const freeSkins = allSkins.filter(skin => !skin.is_paid);
   
+  // Get paid skins that the user has purchased
   const purchasedSkins = allSkins.filter(skin => 
     skin.is_paid && ownedSkinIds.includes(skin.id)
   );
   
+  // All skins that the user can use (free + purchased)
   const availableSkins = [...freeSkins, ...purchasedSkins];
   
+  // Paid skins that the user can purchase
   const purchasableSkins = allSkins.filter(skin => 
-    skin.is_paid && !ownedSkinIds.includes(skin.id)
+    skin.is_paid
   );
 
   const fetchAllSkins = useCallback(async () => {

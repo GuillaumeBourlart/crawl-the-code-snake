@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -21,7 +22,8 @@ const SkinsPage = () => {
     setSelectedSkin, 
     loading: skinsLoading, 
     refresh: refreshSkins,
-    fetchError
+    fetchError,
+    freeSkins
   } = useSkins();
   const { user, profile, supabase, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -142,10 +144,10 @@ const SkinsPage = () => {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-xl font-bold mb-4">Skins disponibles</h2>
+              <h2 className="text-xl font-bold mb-4">Skins Gratuits</h2>
               
               <div>
-                {availableSkins && availableSkins.length > 0 ? (
+                {freeSkins && freeSkins.length > 0 ? (
                   <SkinSelector 
                     onSelectSkin={handleSkinSelectAndSave}
                     showPreview={true}
@@ -153,7 +155,7 @@ const SkinsPage = () => {
                   />
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-400">Vous n'avez pas encore de skins disponibles</p>
+                    <p className="text-gray-400">Aucun skin gratuit disponible pour le moment</p>
                   </div>
                 )}
               </div>
