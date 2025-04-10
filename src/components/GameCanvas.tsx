@@ -470,9 +470,10 @@ const GameCanvas = ({
       const perpDirX = -directionY;
       const perpDirY = directionX;
       
-      const eyeSize = headRadius * 0.40;
-      const pupilSize = eyeSize * 0.55;
-      const eyeDistance = headRadius * 0.32;
+      // Adjust eye size to be exactly half of head radius, matching the preview
+      const eyeSize = headRadius * 0.5;
+      const pupilSize = eyeSize * 0.6;
+      const eyeDistance = eyeRadius * 1.1;
       const eyeForwardOffset = headRadius * 0.30;
       
       ctx.save();
@@ -495,66 +496,7 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
       ctx.stroke();
       
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, headRadius * 0.9, 0, Math.PI * 2);
-      ctx.clip();
-      
-      const lineSpacing = headRadius * 0.25;
-      for (let y = -headRadius; y <= headRadius; y += lineSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(player.x - headRadius, player.y + y);
-        ctx.lineTo(player.x + headRadius, player.y + y);
-        ctx.stroke();
-      }
-      
-      for (let x = -headRadius; x <= headRadius; x += lineSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(player.x + x, player.y - headRadius);
-        ctx.lineTo(player.x + x, player.y + headRadius);
-        ctx.stroke();
-      }
-      
-      const nodeColor = shadeColor(playerColor, 20);
-      const nodePositions = [
-        { x: -0.5, y: -0.3 },
-        { x: 0.5, y: -0.3 },
-        { x: 0, y: 0.2 },
-        { x: -0.4, y: 0.5 },
-        { x: 0.4, y: 0.5 },
-      ];
-      
-      nodePositions.forEach(pos => {
-        const nodeX = player.x + pos.x * headRadius * 0.7;
-        const nodeY = player.y + pos.y * headRadius * 0.7;
-        const nodeSize = headRadius * 0.1;
-        
-        ctx.fillStyle = nodeColor;
-        ctx.beginPath();
-        ctx.arc(nodeX, nodeY, nodeSize, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.strokeStyle = darkenColor(playerColor, 40);
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(nodeX, nodeY, nodeSize, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      
-      ctx.restore();
-      
-      const innerRadius = headRadius * 0.65;
-      const coreGradient = ctx.createRadialGradient(
-        player.x, player.y, innerRadius * 0.1,
-        player.x, player.y, innerRadius * 0.7
-      );
-      coreGradient.addColorStop(0, shadeColor(playerColor, 20));
-      coreGradient.addColorStop(1, shadeColor(playerColor, -10));
-      
-      ctx.fillStyle = coreGradient;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
-      ctx.fill();
+      // Removed the grid pattern and nodes on the head
       
       const leftEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance;
       const leftEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance;
@@ -822,38 +764,3 @@ const GameCanvas = ({
         ctx.fill();
         
         ctx.strokeStyle = shadeColor(item.color, 20);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        drawPlayerHead(player, id === playerId);
-      });
-      
-      ctx.restore();
-      
-      previousTimeRef.current = timestamp;
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [gameState, camera, playerId, isMobile]);
-  
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute inset-0 w-full h-full touch-none"
-    />
-  );
-};
-
-export default GameCanvas;
