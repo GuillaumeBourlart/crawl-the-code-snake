@@ -99,6 +99,56 @@ const SkinPreview = ({
         ctx.beginPath();
         ctx.arc(headX, headY, segmentSize * 0.6, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Calculate eye positions based on the direction of movement
+        // Place eyes based on the direction the snake is moving
+        const eyeDistance = segmentSize * 0.3;
+        const eyeSize = segmentSize * 0.15;
+        const pupilSize = eyeSize * 0.6;
+        
+        // Determine the direction vector (from head to first segment)
+        const nextAngle = animate ? angle + 0.2 : Math.PI / 4 + 0.2;
+        const nextX = centerX + Math.cos(nextAngle) * segmentSpacing * 1.5;
+        const nextY = centerY + Math.sin(nextAngle) * segmentSpacing * 1.5;
+        
+        // Direction vector
+        const dirX = nextX - headX;
+        const dirY = nextY - headY;
+        
+        // Normalize direction vector
+        const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+        const normalizedDirX = dirX / dirLength;
+        const normalizedDirY = dirY / dirLength;
+        
+        // Get perpendicular direction for eye placement
+        const perpDirX = -normalizedDirY;
+        const perpDirY = normalizedDirX;
+        
+        // Eye positions
+        const leftEyeX = headX + perpDirX * eyeDistance;
+        const leftEyeY = headY + perpDirY * eyeDistance;
+        const rightEyeX = headX - perpDirX * eyeDistance;
+        const rightEyeY = headY - perpDirY * eyeDistance;
+        
+        // Eyes
+        ctx.fillStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pupils
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(leftEyeX + normalizedDirX * eyeSize * 0.3, leftEyeY + normalizedDirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(rightEyeX + normalizedDirX * eyeSize * 0.3, rightEyeY + normalizedDirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
+        ctx.fill();
       } else if (pattern === 'snake') {
         // Draw snake segments in a snake-like pattern - exactly 20 circles
         const pathLength = width * 0.7;
@@ -155,23 +205,57 @@ const SkinPreview = ({
         ctx.arc(headX, headY, headSize / 2, 0, Math.PI * 2);
         ctx.fill();
         
-        // Eyes
+        // Calculate direction vector for eye placement
+        // For snake pattern, we'll use the direction to the next segment
+        let dirX = 1; // Default direction (to the right)
+        let dirY = 0;
+        
+        if (segments.length > 0) {
+          // Get the first segment position
+          const firstSegment = segments[0];
+          // Calculate direction from head to first segment
+          dirX = firstSegment.x - headX;
+          dirY = firstSegment.y - headY;
+          
+          // Normalize the direction vector
+          const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+          if (dirLength > 0) {
+            dirX = dirX / dirLength;
+            dirY = dirY / dirLength;
+          }
+        }
+        
+        // Get perpendicular direction for eye placement
+        const perpDirX = -dirY;
+        const perpDirY = dirX;
+        
+        // Eye parameters
+        const eyeDistance = headSize * 0.25;
         const eyeSize = headSize * 0.3;
-        ctx.fillStyle = '#FFF';
+        const pupilSize = eyeSize * 0.5;
+        
+        // Eye positions
+        const leftEyeX = headX + perpDirX * eyeDistance;
+        const leftEyeY = headY + perpDirY * eyeDistance;
+        const rightEyeX = headX - perpDirX * eyeDistance;
+        const rightEyeY = headY - perpDirY * eyeDistance;
+        
+        // Eyes
+        ctx.fillStyle = "#FFF";
         ctx.beginPath();
-        ctx.arc(headX - headSize * 0.2, headY - headSize * 0.2, eyeSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(headX - headSize * 0.2, headY + headSize * 0.2, eyeSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Pupils
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = "#000";
         ctx.beginPath();
-        ctx.arc(headX - headSize * 0.25, headY - headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
+        ctx.arc(leftEyeX + dirX * eyeSize * 0.3, leftEyeY + dirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(headX - headSize * 0.25, headY + headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
+        ctx.arc(rightEyeX + dirX * eyeSize * 0.3, rightEyeY + dirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
         ctx.fill();
       }
 
