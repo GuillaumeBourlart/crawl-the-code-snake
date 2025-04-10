@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
@@ -182,8 +181,9 @@ const SkinSelector = ({
                       <SkinPreview 
                         skin={skin} 
                         size="small" 
-                        animate={hoveredSkin?.id === skin.id}
                         pattern={previewPattern}
+                        // Always animate regardless of hover state
+                        animate={true}
                       />
                     </div>
                     
