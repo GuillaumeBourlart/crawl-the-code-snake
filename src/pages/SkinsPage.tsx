@@ -54,8 +54,10 @@ const SkinsPage = () => {
 
     try {
       setIsProcessing(true);
+      console.log("Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
       
       // Utilisation du nouvel endpoint swift-endpoint avec le chemin /create-checkout-session
+      console.log("Invocation de la fonction swift-endpoint...");
       const { data, error } = await supabase.functions.invoke("swift-endpoint", {
         body: { 
           skinId: skin.id,
@@ -65,19 +67,28 @@ const SkinsPage = () => {
       });
 
       if (error) {
-        console.error("Erreur d'invocation de la fonction:", error);
-        throw error;
+        console.error("Erreur d'invocation de la fonction swift-endpoint:", error);
+        throw new Error(`Erreur d'invocation: ${error.message || JSON.stringify(error)}`);
+      }
+      
+      console.log("Réponse reçue de swift-endpoint:", data);
+      
+      if (!data) {
+        console.error("Réponse vide de swift-endpoint");
+        throw new Error("Réponse vide du serveur");
       }
       
       if (data?.url) {
+        console.log("Redirection vers l'URL de paiement:", data.url);
         window.location.href = data.url;
       } else {
         console.error("Réponse sans URL:", data);
         throw new Error("Pas d'URL de paiement retournée");
       }
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
-      toast.error("Échec de traitement du paiement");
+    } catch (error: any) {
+      console.error("Erreur détaillée lors de la création de la session de paiement:", error);
+      const errorMessage = error.message || "Erreur inconnue";
+      toast.error(`Échec de traitement du paiement: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }

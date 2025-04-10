@@ -9,6 +9,13 @@ const supabaseAnonKey = Deno.env.get("SB_ANON_KEY");
 const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
+console.log("Initialisation de swift-endpoint avec les variables d'environnement:", {
+  supabaseUrl: supabaseUrl ? "défini" : "non défini",
+  supabaseAnonKey: supabaseAnonKey ? "défini" : "non défini",
+  stripeSecretKey: stripeSecretKey ? "défini" : "non défini",
+  stripeWebhookSecret: stripeWebhookSecret ? "défini" : "non défini"
+});
+
 const stripe = new Stripe(stripeSecretKey, { apiVersion: "2022-11-15" });
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
