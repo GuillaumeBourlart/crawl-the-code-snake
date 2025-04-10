@@ -19,13 +19,10 @@ const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 const SkinsPage = () => {
   const { 
     selectedSkin, 
-    availableSkins, 
-    purchasableSkins, 
     setSelectedSkin, 
     loading: skinsLoading, 
     refresh: refreshSkins,
     fetchError,
-    freeSkins,
     ownedSkinIds
   } = useSkins();
   const { user, profile, supabase, loading: authLoading } = useAuth();
@@ -40,9 +37,6 @@ const SkinsPage = () => {
     skinsLoading,
     authLoading,
     fetchError: fetchError ? fetchError.message : null,
-    freeSkins: freeSkins?.length || 0,
-    availableSkins: availableSkins?.length || 0,
-    purchasableSkins: purchasableSkins?.length || 0,
     selectedSkin: selectedSkin?.id,
     ownedSkins: ownedSkinIds
   });
@@ -169,7 +163,7 @@ const SkinsPage = () => {
 
   const isLoading = authLoading || skinsLoading;
 
-  // Single unified view for all skins, regardless of login status
+  // Unified view for all skins, regardless of login status
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">

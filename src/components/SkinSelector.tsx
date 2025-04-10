@@ -29,41 +29,24 @@ const SkinSelector = ({
     setSelectedSkin,
     loading: skinsLoading,
     ownedSkinIds,
-    freeSkins
+    getUnifiedSkinsList
   } = useSkins();
+  
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
-  // Always use a single unified view for all skins
+  // Use the unified list of skins from the hook
   useEffect(() => {
     if (!allSkins?.length) return;
     
-    // Create a sorted list with free skins first, then owned paid skins, then unpurchased paid skins
-    const freeSkinsArray = allSkins.filter(skin => !skin.is_paid);
-    const paidOwnedSkins = allSkins.filter(skin => 
-      skin.is_paid && ownedSkinIds?.includes(skin.id)
-    );
-    const paidUnownedSkins = allSkins.filter(skin => 
-      skin.is_paid && !ownedSkinIds?.includes(skin.id)
-    );
-    
-    // Combine the arrays in the desired order
-    const orderedSkins = [
-      ...freeSkinsArray,
-      ...paidOwnedSkins,
-      ...paidUnownedSkins
-    ];
-    
-    console.log("SkinSelector: Setting unified skin list", {
-      free: freeSkinsArray.length,
-      paidOwned: paidOwnedSkins.length,
-      paidUnowned: paidUnownedSkins.length,
-      total: orderedSkins.length
+    const unifiedSkins = getUnifiedSkinsList();
+    console.log("SkinSelector: Using unified skins list", {
+      total: unifiedSkins.length
     });
     
-    setDisplaySkins(orderedSkins);
-  }, [allSkins, ownedSkinIds]);
+    setDisplaySkins(unifiedSkins);
+  }, [allSkins, getUnifiedSkinsList]);
 
   // Log debug info when specific dependencies change
   useEffect(() => {
@@ -71,10 +54,9 @@ const SkinSelector = ({
       displaySkins: displaySkins.length,
       selectedSkinId,
       allSkins: allSkins?.length || 0,
-      ownedSkinIds: ownedSkinIds,
-      freeSkins: freeSkins?.length || 0
+      ownedSkinIds: ownedSkinIds
     });
-  }, [displaySkins.length, selectedSkinId, allSkins?.length, ownedSkinIds?.length, freeSkins?.length]);
+  }, [displaySkins.length, selectedSkinId, allSkins?.length, ownedSkinIds?.length]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -160,6 +142,7 @@ const SkinSelector = ({
     );
   }
 
+  // Unified grid display with no sections or separations
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6">
@@ -185,7 +168,6 @@ const SkinSelector = ({
                   : 'hover:bg-gray-800/30'
               }`}
               onClick={() => {
-                // Log more details to help debug the selection issue
                 console.log("Skin click:", {
                   skinId: skin.id,
                   isSelectable,

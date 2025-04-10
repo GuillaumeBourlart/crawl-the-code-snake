@@ -52,13 +52,15 @@ export const useSkins = () => {
     }
   }, [profile, profileSkinsProcessed]);
 
-  // Get all free skins (not paid)
-  const freeSkins = allSkins.filter(skin => !skin.is_paid);
+  // Get sorted skin lists for convenience
+  // Free skins (not paid)
+  const freeSkins = allSkins.filter(skin => !skin.is_paid)
+    .sort((a, b) => a.id - b.id);
   
-  // Get paid skins that the user has purchased
+  // Paid skins that the user has purchased
   const purchasedSkins = allSkins.filter(skin => 
     skin.is_paid && ownedSkinIds.includes(skin.id)
-  );
+  ).sort((a, b) => a.id - b.id);
   
   // All skins that the user can use (free + purchased)
   const availableSkins = [...freeSkins, ...purchasedSkins];
@@ -66,7 +68,20 @@ export const useSkins = () => {
   // Paid skins that the user can purchase
   const purchasableSkins = allSkins.filter(skin => 
     skin.is_paid && !ownedSkinIds.includes(skin.id)
-  );
+  ).sort((a, b) => a.id - b.id);
+
+  // Unified sorted list of all skins according to the specified order
+  const getUnifiedSkinsList = (): GameSkin[] => {
+    if (user) {
+      // For logged in users: free -> paid owned -> paid unowned
+      return [...freeSkins, ...purchasedSkins, ...purchasableSkins];
+    } else {
+      // For logged out users: free -> all paid
+      const paidSkins = allSkins.filter(skin => skin.is_paid)
+        .sort((a, b) => a.id - b.id);
+      return [...freeSkins, ...paidSkins];
+    }
+  };
 
   const fetchAllSkins = useCallback(async () => {
     if (skinsLoaded) return;
@@ -81,9 +96,7 @@ export const useSkins = () => {
       
       const { data, error } = await supabase
         .from('game_skins')
-        .select('*')
-        .order('is_paid', { ascending: true })
-        .order('id', { ascending: true });
+        .select('*');
 
       if (error) {
         console.error("Supabase error fetching skins:", error);
@@ -240,6 +253,7 @@ export const useSkins = () => {
     getSkinById,
     refresh,
     fetchError,
-    ownedSkinIds
+    ownedSkinIds,
+    getUnifiedSkinsList
   };
 };
