@@ -56,9 +56,10 @@ const SkinSelector = ({
       displaySkins: displaySkins.length,
       selectedSkinId,
       showPurchasable,
-      allSkins: allSkins?.length || 0
+      allSkins: allSkins?.length || 0,
+      ownedSkinIds: ownedSkinIds
     });
-  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable, allSkins]);
+  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable, allSkins, ownedSkinIds]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -147,13 +148,25 @@ const SkinSelector = ({
             <div
               key={skin.id}
               className={`relative rounded-lg overflow-hidden transition-all duration-200 ${
-                isSelectable ? 'cursor-pointer' : 'cursor-default opacity-80'
+                isSelectable || isOwned ? 'cursor-pointer' : 'cursor-default opacity-80'
               } ${
                 isSelected 
                   ? 'bg-indigo-500/20 ring-2 ring-indigo-500' 
                   : 'hover:bg-gray-800/30'
               }`}
-              onClick={() => isSelectable && handleSkinSelect(skin.id)}
+              onClick={() => {
+                // Log more details to help debug the selection issue
+                console.log("Skin click:", {
+                  skinId: skin.id,
+                  isSelectable: isSelectable || isOwned,
+                  isOwned: isOwned,
+                  isPaid: skin.is_paid
+                });
+                
+                if (isSelectable || isOwned) {
+                  handleSkinSelect(skin.id);
+                }
+              }}
               onMouseEnter={() => setHoveredSkin(skin)}
               onMouseLeave={() => setHoveredSkin(null)}
             >
@@ -175,7 +188,8 @@ const SkinSelector = ({
                       </div>
                     )}
                     
-                    {!isSelectable && (
+                    {/* Only show lock for skins that cannot be selected */}
+                    {!isOwned && skin.is_paid && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                         <Lock className="h-6 w-6 text-gray-300" />
                       </div>
