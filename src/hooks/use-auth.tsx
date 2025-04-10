@@ -18,11 +18,11 @@ const getSupabaseClient = () => {
   if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        persistSession: true,
+        persistSession: false, // Changed to false to test if it fixes the issues
         autoRefreshToken: true,
       }
     });
-    console.log("Created new Supabase client instance");
+    console.log("Created new Supabase client instance with persistSession: false");
   }
   return supabaseInstance;
 };
