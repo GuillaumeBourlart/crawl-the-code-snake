@@ -29,7 +29,8 @@ const SkinSelector = ({
     purchasableSkins, 
     selectedSkinId, 
     setSelectedSkin,
-    loading: skinsLoading 
+    loading: skinsLoading,
+    allSkins
   } = useSkins();
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
@@ -38,22 +39,25 @@ const SkinSelector = ({
   // Determine which skins to display
   useEffect(() => {
     if (showPurchasable) {
-      setDisplaySkins([...(availableSkins || []), ...(purchasableSkins || [])]);
+      // For the boutique/store section
+      setDisplaySkins(purchasableSkins || []);
     } else {
-      setDisplaySkins([...(availableSkins || [])]);
+      // For the "your skins" section
+      setDisplaySkins(availableSkins || []);
     }
   }, [availableSkins, purchasableSkins, showPurchasable]);
 
-  // Log some debug info when the component mounts
+  // Log some debug info when component mounts or dependencies change
   useEffect(() => {
-    console.log("SkinSelector: Mount", { 
+    console.log("SkinSelector: Update", { 
       availableSkins: availableSkins?.length || 0,
       purchasableSkins: purchasableSkins?.length || 0,
       displaySkins: displaySkins.length,
       selectedSkinId,
-      showPurchasable 
+      showPurchasable,
+      allSkins: allSkins?.length || 0
     });
-  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable]);
+  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable, allSkins]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -132,17 +136,17 @@ const SkinSelector = ({
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
           const isOwned = availableSkins?.some(s => s.id === skin.id);
-          const isPurchasable = !isOwned && skin.is_paid;
+          const isPurchasable = showPurchasable && skin.is_paid && !isOwned;
           
           return (
             <div
               key={skin.id}
-              className={`relative rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
+              className={`relative rounded-lg overflow-hidden transition-all duration-200 ${
+                isPurchasable ? 'cursor-default opacity-80' : 'cursor-pointer'
+              } ${
                 isSelected 
                   ? 'bg-indigo-500/20 ring-2 ring-indigo-500' 
-                  : isPurchasable 
-                    ? 'opacity-80' 
-                    : 'hover:bg-gray-800/30'
+                  : 'hover:bg-gray-800/30'
               }`}
               onClick={() => !isPurchasable && handleSkinSelect(skin.id)}
               onMouseEnter={() => setHoveredSkin(skin)}
@@ -184,7 +188,7 @@ const SkinSelector = ({
                   </div>
                 )}
                 
-                {isPurchasable && user && showPurchasable && (
+                {isPurchasable && user && (
                   <div className="mt-2 w-full">
                     <Button
                       size="sm"
