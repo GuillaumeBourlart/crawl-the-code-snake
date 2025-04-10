@@ -762,3 +762,4 @@ const GameCanvas = ({
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
         ctx.arc(itemX, itemY, (item.radius || 5) * 3.5, 0, Math.PI * 2);
+        ctx
