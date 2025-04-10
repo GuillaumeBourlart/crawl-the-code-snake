@@ -28,7 +28,8 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       ctx.clearRect(0, 0, width, height);
       
       // Draw background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillStyle = "#303030";
+
       ctx.fillRect(0, 0, width, height);
       
       // Draw stars
