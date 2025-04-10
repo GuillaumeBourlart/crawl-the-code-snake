@@ -29,24 +29,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
 
   const fetchProfile = async (userId: string) => {
-    if (!userId || profileFetchAttempted) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     
-    setProfileFetchAttempted(true);
     try {
+      console.log("Fetching profile for user:", userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      
-      if (data) {
-        console.log("Profile fetched:", data);
-        setProfile(data as Profile);
-      } else {
-        console.log("Creating new profile for user:", userId);
-        const newProfile = {
+      if (error) {
+        // If error is not 'no rows returned', it's a real error
+        if (error.code !== 'PGRST116') {
+          console.error('Database error fetching profile:', error);
+          throw error;
+        }
+        
+        // No profile found, create a new one
+        console.log("No profile found, creating new profile for user:", userId);
+        const newProfile: Profile = {
           id: userId,
           pseudo: `Player_${Math.floor(Math.random() * 10000)}`,
           skins: [], // Initialize with empty skins array
@@ -57,14 +62,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from('profiles')
           .insert([newProfile]);
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          throw insertError;
+        }
         
-        setProfile(newProfile as Profile);
+        // Fetch the newly created profile to ensure we have the server-generated values
+        const { data: newData, error: refetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (refetchError) {
+          console.error('Error fetching created profile:', refetchError);
+          throw refetchError;
+        }
+        
+        console.log("New profile created and fetched:", newData);
+        setProfile(newData as Profile);
+      } else {
+        // Profile successfully fetched
+        console.log("Profile retrieved:", data);
+        setProfile(data as Profile);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile');
+      console.error('Critical error handling profile:', error);
+      toast.error('Problème de connexion au profil');
+      
+      // Critical failure, sign out the user
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
     } finally {
+      setProfileFetchAttempted(true);
       setLoading(false);
     }
   };
@@ -72,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const getSession = async () => {
       try {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user || null);
         
@@ -101,8 +133,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setProfileFetchAttempted(false);
           setLoading(false);
-        } else {
-          setUser(session?.user || null);
         }
       }
     );
@@ -129,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error('Error signing in with Google:', error);
-      toast.error('Failed to sign in with Google');
+      toast.error('Échec de connexion avec Google');
     }
   };
 
@@ -144,10 +174,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfile(null);
       setProfileFetchAttempted(false);
       
-      toast.success('Signed out successfully');
+      toast.success('Déconnexion réussie');
     } catch (error) {
       console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
+      toast.error('Échec de déconnexion');
     } finally {
       setLoading(false);
     }
@@ -155,7 +185,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = async (data: Partial<Profile>) => {
     try {
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error('Non authentifié');
       
       const { error } = await supabase
         .from('profiles')
@@ -165,10 +195,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       setProfile(prev => prev ? { ...prev, ...data } : null);
-      toast.success('Profile updated successfully');
+      toast.success('Profil mis à jour');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error('Échec de mise à jour du profil');
     }
   };
 
