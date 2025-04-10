@@ -138,7 +138,11 @@ serve(async (req) => {
       console.log("Updating profile with new skin:", skinId);
       const { error: updateError } = await supabaseClient
         .from("profiles")
-        .update({ skins: userSkins })
+        .update({ 
+          skins: userSkins,
+          // Aussi mettre à jour default_skin_id si c'est le premier skin de l'utilisateur
+          ...(userSkins.length === 1 ? { default_skin_id: skinId } : {})
+        })
         .eq("id", userId);
 
       if (updateError) {
@@ -170,7 +174,7 @@ serve(async (req) => {
         .insert({
           user_id: userId,
           skin_id: skinId,
-          purchase_date: new Date().toISOString(),
+          purchased_at: new Date().toISOString(), // Corrigé de purchase_date à purchased_at
           transaction_id: session.id
         });
 

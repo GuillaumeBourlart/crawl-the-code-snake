@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.125.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js?target=deno";
@@ -138,7 +137,7 @@ async function handleWebhookStripe(req, corsHeaders) {
     const { error } = await supabase.from("user_skins").insert({
       user_id,
       skin_id,
-      purchase_date: new Date().toISOString(),
+      purchased_at: new Date().toISOString(),
       transaction_id: session.id
     });
     

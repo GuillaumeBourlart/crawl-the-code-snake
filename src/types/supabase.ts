@@ -2,9 +2,9 @@
 export interface Profile {
   id: string;
   pseudo: string;
-  skins?: any[]; // For the jsonb skins field
+  skins?: any[]; // Pour le champ jsonb skins
   created_at?: string;
-  default_skin_id?: number; // Keep this to maintain compatibility
+  default_skin_id?: number; // Champ ajouté pour la compatibilité
 }
 
 export interface GameSkin {
@@ -15,10 +15,11 @@ export interface GameSkin {
   price?: number;
   data: {
     colors: string[];
-    pattern?: string;
-    segmentSpacing?: number;
+    // Ces champs sont retirés car pas utilisés dans la BDD pour le moment
+    // pattern?: string;
+    // segmentSpacing?: number;
   };
-  stripe_product_id?: string; // Added this field to match database structure
+  stripe_product_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +28,7 @@ export interface UserSkin {
   id: number;
   user_id: string;
   skin_id: number;
-  purchase_date: string;
+  purchased_at: string; // Changé de purchase_date à purchased_at
   transaction_id?: string;
   created_at: string;
   updated_at: string;
