@@ -152,7 +152,7 @@ const SkinSelector = ({
             <div
               key={skin.id}
               className={`relative rounded-lg overflow-hidden transition-all duration-200 p-3 ${
-                isSelectable ? 'cursor-pointer' : 'cursor-default opacity-80'
+                isSelectable ? 'cursor-pointer' : 'cursor-default'
               } ${
                 isSelected 
                   ? 'bg-indigo-500/20 ring-2 ring-indigo-500' 
@@ -176,7 +176,7 @@ const SkinSelector = ({
             >
               <div className="flex flex-col items-center">
                 {showPreview && (
-                  <div className="mb-3 flex justify-center items-center py-2">
+                  <div className="mb-3 flex justify-center items-center py-2 relative">
                     <div className="flex justify-center items-center">
                       <SkinPreview 
                         skin={skin} 
@@ -193,10 +193,10 @@ const SkinSelector = ({
                       </div>
                     )}
                     
-                    {/* Only show lock for skins that cannot be selected */}
+                    {/* Show lock icon for paid, unowned skins but without blurring the preview */}
                     {!isSelectable && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
-                        <Lock className="h-6 w-6 text-gray-300" />
+                      <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5">
+                        <Lock className="h-5 w-5 text-white" />
                       </div>
                     )}
                   </div>
