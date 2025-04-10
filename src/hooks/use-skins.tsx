@@ -19,13 +19,14 @@ const getSupabase = () => {
 
 export const useSkins = () => {
   const supabase = getSupabase();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [userSkins, setUserSkins] = useState<UserSkin[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
 
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
@@ -52,6 +53,7 @@ export const useSkins = () => {
   const fetchAllSkins = useCallback(async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       const { data, error } = await supabase
         .from('game_skins')
         .select('*')
@@ -61,18 +63,28 @@ export const useSkins = () => {
       if (error) throw error;
       setAllSkins(data as GameSkin[]);
       console.log("Fetched all skins:", data.length);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching skins:', error);
+      setFetchError(error);
       toast.error('Failed to load skins');
+      
+      // If the error is severe and we're authenticated, sign out
+      if (user) {
+        signOut();
+      }
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, user, signOut]);
 
   const fetchUserSkins = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setUserSkins([]);
+      return;
+    }
     
     try {
+      setFetchError(null);
       const { data, error } = await supabase
         .from('user_skins')
         .select('*')
@@ -81,16 +93,21 @@ export const useSkins = () => {
       if (error) throw error;
       setUserSkins(data as UserSkin[]);
       console.log("Fetched user skins:", data.length);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user skins:', error);
+      setFetchError(error);
       toast.error('Failed to load your skins');
+      
+      // If there's an error loading user skins, sign out
+      signOut();
     }
-  }, [user, supabase]);
+  }, [user, supabase, signOut]);
 
   const fetchUserDefaultSkin = useCallback(async () => {
     if (!user) return;
     
     try {
+      setFetchError(null);
       const { data, error } = await supabase
         .from('profiles')
         .select('default_skin_id')
@@ -106,31 +123,34 @@ export const useSkins = () => {
       } else {
         console.log("No default skin in profile");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching default skin:', error);
+      setFetchError(error);
+      
+      // Don't sign out here, just use local storage instead
     }
   }, [user, supabase]);
 
-  // Initial load of skins
+  // Initial load of skins - once only
   useEffect(() => {
     if (!initialLoadDone) {
-      const loadInitialData = async () => {
-        await fetchAllSkins();
-        
-        // After skins are loaded, check localStorage
-        const savedSkinId = localStorage.getItem('selected_skin_id');
-        if (savedSkinId) {
-          const parsedId = parseInt(savedSkinId, 10);
-          setSelectedSkinId(parsedId);
-          console.log("Loaded selected skin ID from localStorage:", parsedId);
-        }
-        
+      fetchAllSkins().then(() => {
         setInitialLoadDone(true);
-      };
-      
-      loadInitialData();
+      });
     }
   }, [fetchAllSkins, initialLoadDone]);
+
+  // Load saved skin from localStorage
+  useEffect(() => {
+    if (initialLoadDone && allSkins.length > 0 && !selectedSkinId) {
+      const savedSkinId = localStorage.getItem('selected_skin_id');
+      if (savedSkinId) {
+        const parsedId = parseInt(savedSkinId, 10);
+        setSelectedSkinId(parsedId);
+        console.log("Loaded selected skin ID from localStorage:", parsedId);
+      }
+    }
+  }, [initialLoadDone, allSkins, selectedSkinId]);
 
   // Load user-specific skins when user state changes
   useEffect(() => {
@@ -140,21 +160,20 @@ export const useSkins = () => {
         await fetchUserDefaultSkin();
       };
       loadUserData();
-    } else if (!user) {
-      setUserSkins([]);
     }
   }, [user, fetchUserSkins, fetchUserDefaultSkin, initialLoadDone]);
 
   // Select the first available skin if none is selected and skins are loaded
   useEffect(() => {
-    if ((!selectedSkinId || !allSkins.find(skin => skin.id === selectedSkinId)) && 
-        availableSkins.length > 0 && 
-        !loading) {
-      console.log("No skin selected, selecting first available:", availableSkins[0].id);
-      setSelectedSkinId(availableSkins[0].id);
-      localStorage.setItem('selected_skin_id', availableSkins[0].id.toString());
+    if (initialLoadDone && allSkins.length > 0 && !loading && !selectedSkinId) {
+      const defaultSkin = availableSkins.length > 0 ? availableSkins[0].id : null;
+      if (defaultSkin) {
+        console.log("No skin selected, selecting first available:", defaultSkin);
+        setSelectedSkinId(defaultSkin);
+        localStorage.setItem('selected_skin_id', defaultSkin.toString());
+      }
     }
-  }, [availableSkins, selectedSkinId, loading, allSkins]);
+  }, [availableSkins, selectedSkinId, loading, allSkins, initialLoadDone]);
 
   const setSelectedSkin = async (skinId: number) => {
     // Check if the skin is available for the user
@@ -214,6 +233,7 @@ export const useSkins = () => {
     setSelectedSkin,
     loading,
     getSkinById,
-    refresh
+    refresh,
+    fetchError
   };
 };

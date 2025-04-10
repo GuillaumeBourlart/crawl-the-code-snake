@@ -28,25 +28,32 @@ const SkinSelector = ({
     availableSkins, 
     purchasableSkins, 
     selectedSkinId, 
-    setSelectedSkin 
+    setSelectedSkin,
+    loading: skinsLoading 
   } = useSkins();
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
+  // Determine which skins to display
   useEffect(() => {
-    console.log("SkinSelector: selectedSkinId =", selectedSkinId);
-    console.log("SkinSelector: availableSkins =", availableSkins?.length || 0);
-    console.log("SkinSelector: purchasableSkins =", purchasableSkins?.length || 0);
-    console.log("SkinSelector: showPurchasable =", showPurchasable);
-    
-    // Determine which skins to display
     if (showPurchasable) {
       setDisplaySkins([...(availableSkins || []), ...(purchasableSkins || [])]);
     } else {
       setDisplaySkins([...(availableSkins || [])]);
     }
-  }, [availableSkins, purchasableSkins, showPurchasable, selectedSkinId]);
+  }, [availableSkins, purchasableSkins, showPurchasable]);
+
+  // Log some debug info when the component mounts
+  useEffect(() => {
+    console.log("SkinSelector: Mount", { 
+      availableSkins: availableSkins?.length || 0,
+      purchasableSkins: purchasableSkins?.length || 0,
+      displaySkins: displaySkins.length,
+      selectedSkinId,
+      showPurchasable 
+    });
+  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -65,6 +72,14 @@ const SkinSelector = ({
       onPurchase(skin);
     }
   };
+
+  if (skinsLoading) {
+    return (
+      <div className="w-full flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   if (simpleMode) {
     return (
@@ -99,6 +114,14 @@ const SkinSelector = ({
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  if (displaySkins.length === 0) {
+    return (
+      <div className="w-full text-center py-6 text-gray-400">
+        Aucun skin disponible pour le moment
       </div>
     );
   }

@@ -101,11 +101,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Problème de connexion au profil');
       
       // Critical failure, sign out the user
-      await supabase.auth.signOut();
-      setUser(null);
-      setProfile(null);
+      await signOut();
     } finally {
       setProfileFetchAttempted(true);
+      setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear user data
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+      
+      toast.success('Déconnexion réussie');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Échec de déconnexion');
+      
+      // Force reset the state even if sign out failed
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+    } finally {
       setLoading(false);
     }
   };
@@ -133,6 +156,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Session retrieval error:", error);
         if (isMounted) {
           setLoading(false);
+          // If there's an error getting the session, force sign out
+          signOut();
         }
       }
     };
@@ -185,26 +210,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
-      setLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Clear user data
-      setUser(null);
-      setProfile(null);
-      setProfileFetchAttempted(false);
-      
-      toast.success('Déconnexion réussie');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Échec de déconnexion');
-    } finally {
       setLoading(false);
     }
   };

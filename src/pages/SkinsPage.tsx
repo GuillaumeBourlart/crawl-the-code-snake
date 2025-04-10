@@ -14,16 +14,37 @@ import { toast } from "sonner";
 const stripePromise = loadStripe("pk_test_your_stripe_key");
 
 const SkinsPage = () => {
-  const { selectedSkin, availableSkins, purchasableSkins, setSelectedSkin, loading: skinsLoading, refresh: refreshSkins } = useSkins();
-  const { user, profile, supabase, loading: authLoading } = useAuth();
+  const { 
+    selectedSkin, 
+    availableSkins, 
+    purchasableSkins, 
+    setSelectedSkin, 
+    loading: skinsLoading, 
+    refresh: refreshSkins,
+    fetchError
+  } = useSkins();
+  const { user, profile, supabase, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
-  // Force refresh skins when the page loads
+  // Force refresh skins when the page loads once
   useEffect(() => {
-    console.log("SkinsPage mounted, refreshing skins");
-    refreshSkins();
-  }, [refreshSkins]);
+    if (!hasAttemptedRefresh) {
+      console.log("SkinsPage mounted, refreshing skins");
+      refreshSkins();
+      setHasAttemptedRefresh(true);
+    }
+  }, [refreshSkins, hasAttemptedRefresh]);
+
+  // Handle fetch errors by signing out
+  useEffect(() => {
+    if (fetchError && user) {
+      console.error("Critical fetch error, signing out:", fetchError);
+      toast.error("Erreur de chargement des données. Déconnexion en cours...");
+      signOut();
+    }
+  }, [fetchError, user, signOut]);
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -131,17 +152,11 @@ const SkinsPage = () => {
               </p>
               
               <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
-                {availableSkins && availableSkins.length > 0 ? (
-                  <SkinSelector 
-                    onSelectSkin={handleSkinSelectAndSave}
-                    showPreview={true}
-                    previewPattern="snake"
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    Aucun skin disponible pour le moment
-                  </div>
-                )}
+                <SkinSelector 
+                  onSelectSkin={handleSkinSelectAndSave}
+                  showPreview={true}
+                  previewPattern="snake"
+                />
               </div>
             </div>
 
@@ -166,19 +181,13 @@ const SkinsPage = () => {
               )}
               
               <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
-                {purchasableSkins && purchasableSkins.length > 0 ? (
-                  <SkinSelector 
-                    showPurchasable={true} 
-                    onPurchase={handlePurchase}
-                    onSelectSkin={handleSkinSelectAndSave}
-                    showPreview={true}
-                    previewPattern="snake"
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    Aucun skin disponible à l'achat
-                  </div>
-                )}
+                <SkinSelector 
+                  showPurchasable={true} 
+                  onPurchase={handlePurchase}
+                  onSelectSkin={handleSkinSelectAndSave}
+                  showPreview={true}
+                  previewPattern="snake"
+                />
               </div>
             </div>
           </>
