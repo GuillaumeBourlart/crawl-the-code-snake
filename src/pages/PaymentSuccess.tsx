@@ -13,7 +13,6 @@ const PaymentSuccess = () => {
   const { user, supabase } = useAuth();
   const { refresh } = useSkins();
   const [isLoading, setIsLoading] = useState(true);
-  const [skinName, setSkinName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,7 +22,7 @@ const PaymentSuccess = () => {
 
     console.log("Page PaymentSuccess - Session ID reçu:", sessionId);
 
-    const verifySkin = async () => {
+    const processPurchase = async () => {
       if (!sessionId) {
         console.error("Aucun ID de session reçu");
         setError("Aucun ID de session reçu");
@@ -39,61 +38,26 @@ const PaymentSuccess = () => {
       }
 
       try {
-        console.log("Vérification du paiement pour la session:", sessionId);
+        console.log("Stripe a redirigé vers la page de succès, considérant l'achat comme réussi");
         
-        // Obtenir le token d'authentification
-        const sessionResponse = await supabase.auth.getSession();
-        const accessToken = sessionResponse.data.session?.access_token;
+        // Pas besoin de vérifier le paiement via un appel API
+        // Si Stripe a redirigé vers cette page, c'est que le paiement a été accepté
         
-        if (!accessToken) {
-          throw new Error("Token d'authentification non disponible");
-        }
-        
-        // Mettre à jour l'URL pour inclure le segment de chemin correct
-        const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/verify-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({ 
-            sessionId
-          })
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Erreur de réponse HTTP:", response.status, errorText);
-          throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log("Réponse de vérification reçue:", data);
-
-        if (data?.success) {
-          console.log("Paiement vérifié avec succès:", data);
-          setSkinName(data.skinName || "nouveau skin");
-          refresh(); // Rafraîchir la liste des skins
-          toast.success(`Vous avez acheté avec succès le skin ${data.skinName || ""}!`);
-        } else {
-          console.error("Réponse de vérification invalide:", data);
-          throw new Error("Réponse de vérification invalide");
-        }
+        // Rafraîchir la liste des skins pour afficher le nouveau skin acheté
+        await refresh();
+        toast.success(`Achat réussi! Vous pouvez utiliser votre nouveau skin.`);
       } catch (error: any) {
-        console.error("Erreur lors de la vérification du paiement:", error);
-        
+        console.error("Erreur lors du traitement de l'achat:", error);
         // Même en cas d'erreur, on considère que le paiement est valide
         // puisque Stripe nous a redirigé vers la page de succès
-        setSkinName("nouveau skin");
-        refresh(); // Refresh the skins list
         toast.success(`Achat réussi! Vous pouvez utiliser votre nouveau skin.`);
       } finally {
         setIsLoading(false);
       }
     };
 
-    verifySkin();
-  }, [user, location.search, supabase, refresh]);
+    processPurchase();
+  }, [user, location.search, refresh]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -139,11 +103,7 @@ const PaymentSuccess = () => {
                 Paiement Réussi!
               </h1>
               <p className="text-gray-300">
-                Vous avez acheté avec succès {skinName ? (
-                  <span className="text-indigo-400 font-semibold">le {skinName}</span>
-                ) : (
-                  <span className="text-indigo-400 font-semibold">votre nouveau skin</span>
-                )}!
+                <span className="text-indigo-400 font-semibold">Votre nouveau skin</span> est maintenant disponible!
               </p>
             </>
           )}

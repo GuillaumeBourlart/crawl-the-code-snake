@@ -65,7 +65,7 @@ const SkinsPage = () => {
         throw new Error("Token d'authentification non disponible");
       }
       
-      // Mettre à jour l'URL pour inclure le segment de chemin correct
+      // Appel à l'endpoint create-checkout-session (sans la partie du chemin supplémentaire)
       const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -92,8 +92,11 @@ const SkinsPage = () => {
         throw new Error("Réponse vide du serveur");
       }
       
-      if (data?.sessionId) {
-        // Redirection vers Stripe Checkout avec le sessionId
+      if (data?.url) {
+        // Si l'API retourne directement une URL (nouvelle version de l'API)
+        window.location.href = data.url;
+      } else if (data?.sessionId) {
+        // Pour compatibilité avec l'ancienne version qui retourne le sessionId
         const stripe = await stripePromise;
         const result = await stripe.redirectToCheckout({
           sessionId: data.sessionId
@@ -103,8 +106,8 @@ const SkinsPage = () => {
           throw new Error(result.error.message);
         }
       } else {
-        console.error("Réponse sans sessionId:", data);
-        throw new Error("Pas de sessionId retourné");
+        console.error("Réponse sans URL ni sessionId:", data);
+        throw new Error("Format de réponse invalide");
       }
     } catch (error: any) {
       console.error("Erreur détaillée lors de la création de la session de paiement:", error);
