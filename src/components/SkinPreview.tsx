@@ -12,7 +12,7 @@ interface SkinPreviewProps {
 const SkinPreview = ({ 
   skin, 
   size = 'medium', 
-  animate = true, 
+  animate = true, // Toujours animé par défaut maintenant
   pattern = 'circular' 
 }: SkinPreviewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -58,9 +58,7 @@ const SkinPreview = ({
         
         // Add the 19 snake segments (body) in a circular pattern
         for (let i = 0; i < 19; i++) {
-          const segmentAngle = animate 
-            ? angle + (i * 0.2)
-            : (Math.PI / 4) + (i * 0.2);
+          const segmentAngle = angle + (i * 0.2);
             
           // Calculate appropriate distance to ensure snake stays within canvas
           const maxDistance = width * 0.38; // Reduced to prevent overflow
@@ -95,7 +93,7 @@ const SkinPreview = ({
         }
         
         // Calculate head position to lead the snake
-        const headAngle = animate ? angle : Math.PI / 4;
+        const headAngle = angle;
         const headX = centerX + Math.cos(headAngle) * segmentSpacing * 0.5;
         const headY = centerY + Math.sin(headAngle) * segmentSpacing * 0.5;
         const headRadius = segmentSize * 0.6;
@@ -222,7 +220,7 @@ const SkinPreview = ({
           const progress = i / 20;
           // Position snake within canvas bounds
           const x = width * 0.25 + progress * pathLength * 0.8;
-          const wavePhase = animate ? angle * 2 : 0;
+          const wavePhase = angle * 2;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
           
           // Use the server-side color assignment logic:
@@ -265,7 +263,7 @@ const SkinPreview = ({
         // Draw head with the first color
         const headSize = segmentSize * 1.2;
         const headX = width * 0.25;
-        const wavePhase = animate ? angle * 2 : 0;
+        const wavePhase = angle * 2;
         const headY = centerY + Math.sin(wavePhase) * amplitude;
         const headRadius = headSize / 2;
         
@@ -367,10 +365,9 @@ const SkinPreview = ({
         ctx.fill();
       }
 
-      if (animate) {
-        angle += 0.01;
-        animationFrame = requestAnimationFrame(renderSnake);
-      }
+      // Animation est toujours active
+      angle += 0.01;
+      animationFrame = requestAnimationFrame(renderSnake);
     };
 
     renderSnake();
@@ -380,7 +377,7 @@ const SkinPreview = ({
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [skin, size, animate, pattern]);
+  }, [skin, size, pattern]); // Supprimé 'animate' car l'animation est toujours active
 
   const { width, height } = dimensions[size];
 
@@ -410,7 +407,7 @@ const SkinPreview = ({
       ref={canvasRef} 
       width={width} 
       height={height} 
-      className="rounded-lg bg-gray-900/30 max-w-full"
+      className="rounded-lg max-w-full"
     />
   );
 };

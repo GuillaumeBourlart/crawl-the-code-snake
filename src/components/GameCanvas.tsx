@@ -470,10 +470,10 @@ const GameCanvas = ({
       const perpDirX = -directionY;
       const perpDirY = directionX;
       
-      const eyeSize = headRadius * 0.40;
-      const pupilSize = eyeSize * 0.55;
-      const eyeDistance = headRadius * 0.32;
-      const eyeForwardOffset = headRadius * 0.30;
+      const eyeRadius = headRadius * 0.5;
+      const pupilSize = eyeRadius * 0.6;
+      const eyeDistance = eyeRadius * 1.1;
+      const eyeOffsetX = -headRadius * 0.3;
       
       ctx.save();
       
@@ -556,75 +556,31 @@ const GameCanvas = ({
       ctx.arc(player.x, player.y, innerRadius, 0, Math.PI * 2);
       ctx.fill();
       
-      const leftEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance;
-      const leftEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance;
-      const rightEyeX = player.x + directionX * eyeForwardOffset + perpDirX * eyeDistance;
-      const rightEyeY = player.y + directionY * eyeForwardOffset + perpDirY * eyeDistance;
+      const leftEyeX = player.x + eyeOffsetX;
+      const leftEyeY = player.y + eyeDistance;
+      const rightEyeX = player.x + eyeOffsetX;
+      const rightEyeY = player.y - eyeDistance;
       
-      if (isCurrentPlayer) {
-        if (isMobile) {
-          const joystickDir = rendererStateRef.current.joystickDirection;
-          if (joystickDir && (joystickDir.x !== 0 || joystickDir.y !== 0)) {
-            const maxPupilOffset = eyeSize * 0.3;
-            pupilOffsetX = joystickDir.x * maxPupilOffset;
-            pupilOffsetY = joystickDir.y * maxPupilOffset;
-          }
-        } else {
-          const mousePos = rendererStateRef.current.mousePosition;
-          if (mousePos) {
-            const canvasWidth = canvasRef.current?.width || 0;
-            const canvasHeight = canvasRef.current?.height || 0;
-            
-            const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
-            const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
-            
-            const dx = worldMouseX - player.x;
-            const dy = worldMouseY - player.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance > 0) {
-              const maxPupilOffset = eyeSize * 0.3;
-              pupilOffsetX = (dx / distance) * maxPupilOffset;
-              pupilOffsetY = (dy / distance) * maxPupilOffset;
-            }
-          }
-        }
-      }
-      
-      const eyeGradient = ctx.createRadialGradient(
-        leftEyeX, leftEyeY, eyeSize * 0.2,
-        leftEyeX, leftEyeY, eyeSize
-      );
-      eyeGradient.addColorStop(0, "#FFFFFF");
-      eyeGradient.addColorStop(1, "#F0F0F0");
-      
-      ctx.fillStyle = eyeGradient;
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
-      ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
       ctx.fill();
       
       ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
       ctx.stroke();
       
-      const rightEyeGradient = ctx.createRadialGradient(
-        rightEyeX, rightEyeY, eyeSize * 0.2,
-        rightEyeX, rightEyeY, eyeSize
-      );
-      rightEyeGradient.addColorStop(0, "#FFFFFF");
-      rightEyeGradient.addColorStop(1, "#F0F0F0");
-      
-      ctx.fillStyle = rightEyeGradient;
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
-      ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
       ctx.fill();
       
       ctx.strokeStyle = "#666666";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+      ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
       ctx.stroke();
       
       if (player.boosting) {
@@ -670,13 +626,16 @@ const GameCanvas = ({
         ctx.fill();
       }
       
-      const highlightSize = eyeSize * 0.4;
+      const highlightSize = eyeRadius * 0.3;
+      const highlightOffsetX = -pupilSize * 0.5;
+      const highlightOffsetY = -pupilSize * 0.5;
+      
       ctx.fillStyle = "#FFFFFF";
       
       ctx.beginPath();
       ctx.arc(
-        leftEyeX + pupilOffsetX - eyeSize * 0.25, 
-        leftEyeY + pupilOffsetY - eyeSize * 0.25, 
+        leftEyeX + pupilOffsetX + highlightOffsetX, 
+        leftEyeY + pupilOffsetY + highlightOffsetY, 
         highlightSize, 
         0, Math.PI * 2
       );
@@ -684,8 +643,8 @@ const GameCanvas = ({
       
       ctx.beginPath();
       ctx.arc(
-        rightEyeX + pupilOffsetX - eyeSize * 0.25, 
-        rightEyeY + pupilOffsetY - eyeSize * 0.25, 
+        rightEyeX + pupilOffsetX + highlightOffsetX, 
+        rightEyeY + pupilOffsetY + highlightOffsetY, 
         highlightSize, 
         0, Math.PI * 2
       );
