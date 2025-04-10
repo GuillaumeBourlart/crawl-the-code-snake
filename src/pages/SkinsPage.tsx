@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -12,8 +11,8 @@ import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ZigzagTitle from "@/components/ZigzagTitle";
 
-// Utilisation de la Publishable key fournie
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
 const SkinsPage = () => {
@@ -30,7 +29,6 @@ const SkinsPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
-  // Log important state at render time
   console.log("SkinsPage - Render state:", {
     user: !!user,
     profile: !!profile,
@@ -72,8 +70,6 @@ const SkinsPage = () => {
       console.log("⭐ Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
       console.log("Skin details:", JSON.stringify(skin));
       
-      // Obtenir le token d'accès
-      console.log("Récupération du token d'authentification");
       const sessionResponse = await supabase.auth.getSession();
       const accessToken = sessionResponse.data.session?.access_token;
       
@@ -83,7 +79,6 @@ const SkinsPage = () => {
       }
       
       console.log("✅ Token récupéré, appel de l'endpoint create-checkout-session-ts");
-      // Utilisation du nouvel endpoint dédié à la création de sessions de paiement
       const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/create-checkout-session-ts', {
         method: 'POST',
         headers: {
@@ -113,11 +108,9 @@ const SkinsPage = () => {
       }
       
       if (data?.url) {
-        // Si l'API retourne directement une URL (nouvelle version de l'API)
         console.log("✅ URL de redirection reçue:", data.url);
         window.location.href = data.url;
       } else if (data?.sessionId) {
-        // Pour compatibilité avec l'ancienne version qui retourne le sessionId
         console.log("✅ Session ID reçu, redirection via Stripe SDK:", data.sessionId);
         const stripe = await stripePromise;
         const result = await stripe.redirectToCheckout({
@@ -141,10 +134,8 @@ const SkinsPage = () => {
     }
   };
 
-  // Cette fonction garantit qu'un seul skin est sélectionné à la fois
   const handleSkinSelectAndSave = (skinId: number) => {
     console.log("Selecting skin in SkinsPage:", skinId);
-    // Cette fonction setSelectedSkin du hook use-skins va désélectionner tout autre skin
     setSelectedSkin(skinId);
     toast.success("Skin sélectionné !");
   };
@@ -163,7 +154,6 @@ const SkinsPage = () => {
 
   const isLoading = authLoading || skinsLoading;
 
-  // Unified view for all skins, regardless of login status
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">
@@ -178,7 +168,7 @@ const SkinsPage = () => {
             Retour
           </Button>
           <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-500">
-            Code Crawl Skins
+            zigzag.io Skins
           </h1>
         </div>
         
@@ -230,7 +220,7 @@ const SkinsPage = () => {
       </main>
 
       <footer className="py-4 px-6 text-center bg-gray-900/80 text-gray-400 text-sm">
-        © 2025 Code Crawl - Tous les skins achetés sont liés à votre compte
+        © 2025 zigzag.io - Tous les skins achetés sont liés à votre compte
       </footer>
     </div>
   );

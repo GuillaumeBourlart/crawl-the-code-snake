@@ -16,6 +16,7 @@ import { useSkins } from "@/hooks/use-skins";
 import SkinPreview from "@/components/SkinPreview";
 import { Link } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
+import ZigzagTitle from "@/components/ZigzagTitle";
 
 const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
 
@@ -490,9 +491,7 @@ const Index = () => {
       {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
           <div className="flex items-center mb-6">
-            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-500">
-              Code Crawl
-            </h1>
+            <ZigzagTitle className="w-full" />
           </div>
           
           <div className="w-full max-w-sm mb-6">
