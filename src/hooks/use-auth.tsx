@@ -49,7 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const newProfile = {
           id: userId,
           pseudo: `Player_${Math.floor(Math.random() * 10000)}`,
-          email: user?.email,
+          skins: [], // Initialize with empty skins array
+          created_at: new Date().toISOString()
         };
         
         const { error: insertError } = await supabase

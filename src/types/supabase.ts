@@ -1,11 +1,9 @@
-
 export interface Profile {
   id: string;
   pseudo: string;
-  email?: string;
-  created_at: string;
-  updated_at: string;
-  default_skin_id?: number;
+  skins?: any[]; // For the jsonb skins field
+  created_at?: string;
+  default_skin_id?: number; // Keep this to maintain compatibility
 }
 
 export interface GameSkin {
