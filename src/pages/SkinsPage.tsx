@@ -57,28 +57,24 @@ const SkinsPage = () => {
       setIsProcessing(true);
       console.log("Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
       
-      // Direct post request to the Swift endpoint
-      const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
-        },
-        body: JSON.stringify({
+      // Appel à la fonction create-checkout-session avec les paramètres requis
+      const { data, error } = await supabase.functions.invoke("swift-endpoint", {
+        body: { 
+          path: "/create-checkout-session",
           skin_id: skin.id,
           user_id: user.id
-        })
+        }
       });
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
+
+      if (error) {
+        console.error("Erreur d'invocation de la fonction swift-endpoint:", error);
+        throw new Error(`Erreur d'invocation: ${error.message || JSON.stringify(error)}`);
       }
       
-      const data = await response.json();
-      console.log("Réponse reçue de create-checkout-session:", data);
+      console.log("Réponse reçue de swift-endpoint/create-checkout-session:", data);
       
       if (!data) {
-        console.error("Réponse vide du serveur");
+        console.error("Réponse vide de swift-endpoint");
         throw new Error("Réponse vide du serveur");
       }
       
