@@ -23,19 +23,24 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Gérer les requêtes OPTIONS (CORS preflight)
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    console.log("Traitement d'une requête OPTIONS CORS preflight");
+    return new Response(null, { 
+      status: 204, // No Content
+      headers: corsHeaders 
+    });
   }
   
   // Récupérer le chemin de l'URL pour router
   const url = new URL(req.url);
   const pathname = url.pathname;
 
-  console.log(`Requête reçue sur: ${pathname}`);
+  console.log(`Requête reçue sur: ${pathname}, méthode: ${req.method}`);
 
   // Webhook Stripe - chemin complet
   if (pathname.includes("/webhook-stripe")) {
@@ -103,7 +108,10 @@ serve(async (req) => {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
         console.error("Authentification manquante");
-        throw new Error("Authentification requise");
+        return new Response(JSON.stringify({ error: "Authentification requise" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
       }
       
       const token = authHeader.replace("Bearer ", "");
@@ -112,7 +120,10 @@ serve(async (req) => {
       
       if (authError || !userData.user) {
         console.error("Erreur d'authentification:", authError);
-        throw new Error("Authentification requise");
+        return new Response(JSON.stringify({ error: "Authentification requise" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
       }
       
       const user = userData.user;
@@ -200,8 +211,72 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200
         });
+      } else if (requestData.path === "/verify-payment") {
+        console.log("Endpoint verify-payment");
+        const { sessionId } = requestData;
+        
+        if (!sessionId) {
+          console.error("sessionId manquant");
+          return new Response(JSON.stringify({
+            error: "sessionId est requis."
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        
+        try {
+          // Vérifier la session Stripe
+          console.log("Vérification de la session Stripe:", sessionId);
+          const session = await stripe.checkout.sessions.retrieve(sessionId);
+          
+          if (session.payment_status !== "paid") {
+            console.error("Le paiement n'a pas été effectué:", session.payment_status);
+            return new Response(JSON.stringify({
+              error: "Le paiement n'a pas été effectué",
+              success: false
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 400
+            });
+          }
+          
+          // Récupérer les métadonnées de la session
+          const { skin_id } = session.metadata;
+          
+          // Récupérer les informations du skin
+          console.log("Récupération des informations du skin:", skin_id);
+          const { data: skinData, error: skinError } = await supabase
+            .from("game_skins")
+            .select("name")
+            .eq("id", skin_id)
+            .single();
+            
+          if (skinError) {
+            console.error("Erreur lors de la récupération des informations du skin:", skinError);
+          }
+          
+          return new Response(JSON.stringify({
+            success: true,
+            skinName: skinData?.name || "skin",
+            skinId: skin_id
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
+          });
+          
+        } catch (error) {
+          console.error("Erreur lors de la vérification du paiement:", error);
+          return new Response(JSON.stringify({
+            error: "Erreur lors de la vérification du paiement",
+            success: false
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500
+          });
+        }
       } else {
-        console.error("Endpoint non reconnu");
+        console.error("Endpoint non reconnu:", requestData.path);
         return new Response(JSON.stringify({
           error: "Endpoint non reconnu"
         }), {
