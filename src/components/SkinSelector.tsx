@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
@@ -34,10 +35,12 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
-  // Always use the unified view display logic for all users
+  // Always use a single unified view for all skins
   useEffect(() => {
+    if (!allSkins?.length) return;
+    
     // Create a sorted list with free skins first, then owned paid skins, then unpurchased paid skins
-    const freeSkinsArray = [...(freeSkins || [])];
+    const freeSkinsArray = allSkins.filter(skin => !skin.is_paid);
     const paidOwnedSkins = allSkins.filter(skin => 
       skin.is_paid && ownedSkinIds?.includes(skin.id)
     );
@@ -52,7 +55,7 @@ const SkinSelector = ({
       ...paidUnownedSkins
     ];
     
-    console.log("SkinSelector: Setting unified view skins", {
+    console.log("SkinSelector: Setting unified skin list", {
       free: freeSkinsArray.length,
       paidOwned: paidOwnedSkins.length,
       paidUnowned: paidUnownedSkins.length,
@@ -60,7 +63,7 @@ const SkinSelector = ({
     });
     
     setDisplaySkins(orderedSkins);
-  }, [allSkins, freeSkins, ownedSkinIds]);
+  }, [allSkins, ownedSkinIds]);
 
   // Log debug info when specific dependencies change
   useEffect(() => {

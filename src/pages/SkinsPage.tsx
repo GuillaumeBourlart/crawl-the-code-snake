@@ -169,7 +169,7 @@ const SkinsPage = () => {
 
   const isLoading = authLoading || skinsLoading;
 
-  // Unified view for all skins
+  // Single unified view for all skins, regardless of login status
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">

@@ -65,7 +65,7 @@ export const useSkins = () => {
   
   // Paid skins that the user can purchase
   const purchasableSkins = allSkins.filter(skin => 
-    skin.is_paid
+    skin.is_paid && !ownedSkinIds.includes(skin.id)
   );
 
   const fetchAllSkins = useCallback(async () => {
