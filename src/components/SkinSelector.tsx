@@ -30,7 +30,8 @@ const SkinSelector = ({
     selectedSkinId, 
     setSelectedSkin,
     loading: skinsLoading,
-    allSkins
+    allSkins,
+    ownedSkinIds
   } = useSkins();
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
@@ -39,13 +40,13 @@ const SkinSelector = ({
   // Determine which skins to display
   useEffect(() => {
     if (showPurchasable) {
-      // For the boutique/store section
-      setDisplaySkins(purchasableSkins || []);
+      // For the boutique/store section - show all paid skins
+      setDisplaySkins(allSkins?.filter(skin => skin.is_paid) || []);
     } else {
       // For the "your skins" section
       setDisplaySkins(availableSkins || []);
     }
-  }, [availableSkins, purchasableSkins, showPurchasable]);
+  }, [availableSkins, allSkins, showPurchasable]);
 
   // Log some debug info when component mounts or dependencies change
   useEffect(() => {
@@ -91,7 +92,7 @@ const SkinSelector = ({
         <div className="flex flex-col space-y-2">
           {displaySkins.map(skin => {
             const isSelected = skin.id === selectedSkinId;
-            const isOwned = availableSkins?.some(s => s.id === skin.id);
+            const isOwned = ownedSkinIds?.includes(skin.id);
             // Un skin est achetable uniquement s'il est payant ET que l'utilisateur ne le possède pas
             const isPurchasable = !isOwned && skin.is_paid;
             
@@ -136,21 +137,23 @@ const SkinSelector = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
-          const isOwned = availableSkins?.some(s => s.id === skin.id);
-          // Un skin n'est achetable que s'il est dans la section des skins achetables, qu'il est payant, et que l'utilisateur ne le possède pas
+          const isOwned = ownedSkinIds?.includes(skin.id);
+          // Un skin est sélectionnable s'il est gratuit ou si l'utilisateur le possède
+          const isSelectable = !skin.is_paid || isOwned;
+          // Un skin est achetable s'il est dans la section boutique, qu'il est payant, et que l'utilisateur ne le possède pas
           const isPurchasable = showPurchasable && skin.is_paid && !isOwned;
           
           return (
             <div
               key={skin.id}
               className={`relative rounded-lg overflow-hidden transition-all duration-200 ${
-                isPurchasable ? 'cursor-default opacity-80' : 'cursor-pointer'
+                isSelectable ? 'cursor-pointer' : 'cursor-default opacity-80'
               } ${
                 isSelected 
                   ? 'bg-indigo-500/20 ring-2 ring-indigo-500' 
                   : 'hover:bg-gray-800/30'
               }`}
-              onClick={() => !isPurchasable && handleSkinSelect(skin.id)}
+              onClick={() => isSelectable && handleSkinSelect(skin.id)}
               onMouseEnter={() => setHoveredSkin(skin)}
               onMouseLeave={() => setHoveredSkin(null)}
             >
@@ -172,7 +175,7 @@ const SkinSelector = ({
                       </div>
                     )}
                     
-                    {isPurchasable && (
+                    {!isSelectable && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                         <Lock className="h-6 w-6 text-gray-300" />
                       </div>
@@ -215,4 +218,3 @@ const SkinSelector = ({
 };
 
 export default SkinSelector;
-
