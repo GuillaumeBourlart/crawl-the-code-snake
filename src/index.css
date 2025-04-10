@@ -104,6 +104,11 @@
     -webkit-user-select: none;
     user-select: none;
   }
+  
+  /* Glass effect for components over hexagon background */
+  .glass-panel {
+    @apply bg-black/30 backdrop-blur-md border border-white/10 shadow-lg;
+  }
 }
 
 @keyframes float {

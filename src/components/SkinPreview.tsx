@@ -102,7 +102,7 @@ const SkinPreview = ({
         
         // Calculate eye positions based on the direction of movement
         // Place eyes based on the direction the snake is moving
-        const eyeDistance = segmentSize * 0.3;
+        const eyeDistance = segmentSize * 0.5; // Increased from 0.3 to 0.5 to move eyes more to the edge
         const eyeSize = segmentSize * 0.15;
         const pupilSize = eyeSize * 0.6;
         
@@ -229,8 +229,8 @@ const SkinPreview = ({
         const perpDirX = -dirY;
         const perpDirY = dirX;
         
-        // Eye parameters
-        const eyeDistance = headSize * 0.25;
+        // Eye parameters - moved further to the edge
+        const eyeDistance = headSize * 0.45; // Increased from 0.25 to 0.45 to move eyes more to the edge
         const eyeSize = headSize * 0.3;
         const pupilSize = eyeSize * 0.5;
         
