@@ -119,8 +119,8 @@ const SkinPreview = ({
         const perpDirY = normalizedDirX;
         
         // Move eyes more toward front of head but keep them within the circle
-        const eyeDistance = segmentSize * 0.45; // Increased from 0.3 to 0.45
-        const eyeForwardOffset = segmentSize * 0.3; // Forward offset
+        const eyeDistance = segmentSize * 0.35; // Decreased from 0.45 to 0.35
+        const eyeForwardOffset = segmentSize * 0.4; // Increased from 0.3 to 0.4 to move forward
         
         // Eye positions - more forward facing
         const leftEyeX = headX + normalizedDirX * eyeForwardOffset + perpDirX * eyeDistance;
@@ -128,7 +128,7 @@ const SkinPreview = ({
         const rightEyeX = headX + normalizedDirX * eyeForwardOffset - perpDirX * eyeDistance;
         const rightEyeY = headY + normalizedDirY * eyeForwardOffset - perpDirY * eyeDistance;
         
-        const eyeSize = segmentSize * 0.15;
+        const eyeSize = segmentSize * 0.18; // Increased from 0.15 to 0.18
         const pupilSize = eyeSize * 0.6;
         
         // Eyes
@@ -231,9 +231,9 @@ const SkinPreview = ({
         const perpDirY = dirX;
         
         // Eye parameters - moved more forward
-        const eyeDistance = headSize * 0.4; // Horizontal distance between eyes
-        const eyeForwardOffset = headSize * 0.35; // Forward offset 
-        const eyeSize = headSize * 0.2;
+        const eyeDistance = headSize * 0.32; // Reduced from 0.4 to 0.32
+        const eyeForwardOffset = headSize * 0.4; // Increased from 0.35 to 0.4
+        const eyeSize = headSize * 0.22; // Increased from 0.2 to 0.22
         const pupilSize = eyeSize * 0.5;
         
         // Eye positions - more forward facing

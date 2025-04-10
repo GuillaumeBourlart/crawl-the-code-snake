@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut, Trophy, User, Gamepad2, ArrowRight, Brush, Settings } from "lucide-react";
+import { LogOut, Trophy, User, Gamepad2, ArrowRight, Settings } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
@@ -103,7 +102,6 @@ const Index = () => {
     refresh: refreshSkins
   } = useSkins();
   
-  // Only refresh skins once when the component mounts
   useEffect(() => {
     if (!skinLoadAttempted) {
       console.log("Initial skins refresh");
@@ -112,7 +110,6 @@ const Index = () => {
     }
   }, [refreshSkins, skinLoadAttempted]);
   
-  // Set available skins when userSkins changes
   useEffect(() => {
     if (userSkins && userSkins.length > 0) {
       console.log("Setting available skins from userSkins:", userSkins.length);
@@ -120,7 +117,6 @@ const Index = () => {
     }
   }, [userSkins]);
   
-  // Set username from profile
   useEffect(() => {
     if (profile && profile.pseudo) {
       setUsername(profile.pseudo);
@@ -490,19 +486,15 @@ const Index = () => {
   const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white overflow-hidden">
+    <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 bg-gray-900/70 backdrop-blur-lg rounded-2xl border border-indigo-500/20 shadow-2xl animate-fade-in w-full max-w-md">
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
           <div className="flex items-center mb-6">
             <Gamepad2 className="h-8 w-8 mr-3 text-indigo-400" />
             <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-500">
               Code Crawl
             </h1>
           </div>
-          
-          <p className="text-gray-300 mb-8 text-center text-sm md:text-base">
-            Naviguez avec votre processeur, collectez des fragments de code et évitez les collisions avec les traces des autres joueurs.
-          </p>
           
           <div className="w-full max-w-sm mb-6">
             <div className="relative">
@@ -524,10 +516,6 @@ const Index = () => {
           <div className="w-full mb-6">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-sm font-medium text-gray-300">Votre skin</h2>
-              <Link to="/skins" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center">
-                <Brush className="h-3 w-3 mr-1" />
-                Changer de skin
-              </Link>
             </div>
             
             <Link to="/skins" className="block bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
@@ -553,23 +541,21 @@ const Index = () => {
           
           <div className="flex flex-col w-full gap-3">
             <Button
-              className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
+              className="flex items-center justify-center rounded-full aspect-square mx-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.05] p-0 w-auto h-auto"
               onClick={handlePlay}
               disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
             >
               {connecting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="p-5">
+                  <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Connexion...
-                </>
+                </div>
               ) : (
-                <>
-                  JOUER
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
+                <div className="p-5">
+                  <span className="text-lg font-medium">JOUER</span>
+                </div>
               )}
             </Button>
             
@@ -587,23 +573,6 @@ const Index = () => {
               Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
             </p>
           )}
-          
-          <div className="absolute top-0 left-0 w-full h-full -z-10">
-            {Array.from({ length: 50 }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute rounded-full bg-indigo-500/10"
-                style={{
-                  width: `${Math.random() * 12 + 4}px`,
-                  height: `${Math.random() * 12 + 4}px`,
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`,
-                  animation: `float ${Math.random() * 10 + 5}s infinite linear`,
-                  animationDelay: `${Math.random() * 5}s`
-                }}
-              />
-            ))}
-          </div>
         </div>
       )}
       

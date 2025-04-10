@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -29,7 +28,6 @@ const SkinsPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
-  // Force refresh skins when the page loads once
   useEffect(() => {
     if (!hasAttemptedRefresh) {
       console.log("SkinsPage mounted, refreshing skins");
@@ -38,7 +36,6 @@ const SkinsPage = () => {
     }
   }, [refreshSkins, hasAttemptedRefresh]);
 
-  // Handle fetch errors by signing out
   useEffect(() => {
     if (fetchError && user) {
       console.error("Critical fetch error, signing out:", fetchError);
@@ -92,7 +89,6 @@ const SkinsPage = () => {
     }
     
     console.log("Confirming skin selection:", selectedSkin.id);
-    // Make sure the skin is saved one last time before navigating
     setSelectedSkin(selectedSkin.id);
     navigate('/');
     toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
@@ -101,7 +97,7 @@ const SkinsPage = () => {
   const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white">
+    <div className="min-h-screen flex flex-col text-white">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">
         <div className="flex items-center">
           <Button 
@@ -147,12 +143,9 @@ const SkinsPage = () => {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-xl font-bold mb-1">Vos skins</h2>
-              <p className="text-sm text-gray-300 mb-4">
-                Sélectionnez parmi vos skins disponibles
-              </p>
+              <h2 className="text-xl font-bold mb-4">Skins gratuits</h2>
               
-              <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
+              <div>
                 {availableSkins && availableSkins.length > 0 ? (
                   <SkinSelector 
                     onSelectSkin={handleSkinSelectAndSave}
@@ -162,7 +155,6 @@ const SkinsPage = () => {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-400">Vous n'avez pas encore de skins disponibles</p>
-                    <p className="text-sm text-indigo-300 mt-2">Consultez la boutique ci-dessous</p>
                   </div>
                 )}
               </div>
@@ -170,15 +162,8 @@ const SkinsPage = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold">Boutique</h2>
-                <div className="flex items-center text-sm text-gray-300">
-                  <ShoppingCart className="h-4 w-4 mr-1 text-indigo-400" />
-                  Obtenir plus de skins
-                </div>
+                <h2 className="text-xl font-bold mb-3">Skins payants</h2>
               </div>
-              <p className="text-sm text-gray-300 mb-4">
-                Achetez des skins premium pour vous démarquer dans le jeu
-              </p>
               
               {!user && (
                 <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
@@ -188,7 +173,7 @@ const SkinsPage = () => {
                 </div>
               )}
               
-              <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
+              <div>
                 {purchasableSkins && purchasableSkins.length > 0 ? (
                   <SkinSelector 
                     showPurchasable={true} 
@@ -200,7 +185,6 @@ const SkinsPage = () => {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-400">Aucun skin premium disponible pour le moment</p>
-                    <p className="text-sm text-indigo-300 mt-2">Revenez plus tard pour de nouveaux skins</p>
                   </div>
                 )}
               </div>
