@@ -7,7 +7,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { LogOut, Trophy, User, Gamepad2, ArrowRight, Settings, Palette } from "lucide-react";
+import { Trophy, User, ArrowRight, Settings, Palette, LogOut } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
@@ -490,7 +490,6 @@ const Index = () => {
       {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
           <div className="flex items-center mb-6">
-            <Gamepad2 className="h-8 w-8 mr-3 text-indigo-400" />
             <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-500">
               Code Crawl
             </h1>
