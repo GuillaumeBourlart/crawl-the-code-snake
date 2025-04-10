@@ -57,20 +57,27 @@ const SkinsPage = () => {
       setIsProcessing(true);
       console.log("Démarrage du processus d'achat pour le skin:", skin.id, skin.name);
       
-      // Appel à la fonction create-checkout-session avec les paramètres requis
-      const { data, error } = await supabase.functions.invoke("swift-endpoint", {
-        body: { 
+      // Utiliser directement l'URL du endpoint au lieu de la fonction invoke
+      const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
+        body: JSON.stringify({ 
           path: "/create-checkout-session",
           skin_id: skin.id,
           user_id: user.id
-        }
+        })
       });
-
-      if (error) {
-        console.error("Erreur d'invocation de la fonction swift-endpoint:", error);
-        throw new Error(`Erreur d'invocation: ${error.message || JSON.stringify(error)}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erreur de réponse HTTP:", response.status, errorText);
+        throw new Error(`Erreur HTTP: ${response.status}`);
       }
       
+      const data = await response.json();
       console.log("Réponse reçue de swift-endpoint/create-checkout-session:", data);
       
       if (!data) {
