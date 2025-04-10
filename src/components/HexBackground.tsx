@@ -28,8 +28,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       ctx.clearRect(0, 0, width, height);
       
       // Draw background
-      ctx.fillStyle = "#303030";
-
+      ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
       
       // Draw stars
@@ -48,6 +47,17 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
       }
+      
+      // Draw center glow
+      const centerGlow = ctx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, height * 0.4
+      );
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
+      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.fillStyle = centerGlow;
+      ctx.fillRect(0, 0, width, height);
       
       // Draw hexagons
       const hexSize = 40;
@@ -70,30 +80,30 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           const time = Date.now() * 0.001;
           const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
           
-         // Dessin de l'hexagone
-ctx.beginPath();
-for (let i = 0; i < 6; i++) {
-  const angle = (i * Math.PI) / 3;
-  const x = centerX + hexSize * Math.cos(angle);
-  const y = centerY + hexSize * Math.sin(angle);
-  
-  if (i === 0) {
-    ctx.moveTo(x, y);
-  } else {
-    ctx.lineTo(x, y);
-  }
-}
-ctx.closePath();
-
-// Couleur fixe
-const fillColor = `rgb(60, 60, 60)`;
-ctx.fillStyle = fillColor;
-ctx.fill();
-
-ctx.strokeStyle = '#000000';
-ctx.stroke();
-
-
+          // Matching the game's hexagon style
+          const baseHue = 210 + (random * 40 - 20);
+          
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = centerX + hexSize * Math.cos(angle);
+            const y = centerY + hexSize * Math.sin(angle);
+            
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.closePath();
+          
+          // Using the same fill style as in GameCanvas
+          const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+          
+          ctx.strokeStyle = '#000000';
+          ctx.stroke();
         }
       }
     };
