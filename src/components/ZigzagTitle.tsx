@@ -37,7 +37,8 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   };
 
   // Points pour chaque lettre (coordonnées [x, y] pour positionner les cercles)
-  const letterCoordinates = [
+  // Explicitly type this as [number, number][][] to match the expected type
+  const letterCoordinates: [number, number][][] = [
     // 'z'
     [[10, 10], [25, 10], [40, 10], [40, 25], [25, 40], [10, 40], [40, 40]],
     // 'i'
