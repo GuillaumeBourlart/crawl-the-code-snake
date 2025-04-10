@@ -56,6 +56,9 @@ const SkinPreview = ({
         const tailSpacing = segmentSize * 0.2;
         const segmentSpacing = (segmentSize * 1.5) + tailSpacing;
         
+        // Reduce the max distance to ensure snake is fully visible within canvas
+        const maxDistance = width * 0.32; // Reduced from 0.38 to prevent clipping
+        
         // Add the 19 snake segments (body) in a circular pattern
         for (let i = 0; i < 19; i++) {
           // Always animate regardless of hover state
@@ -63,8 +66,8 @@ const SkinPreview = ({
           const segmentAngle = angle + (i * 0.2);
             
           // Calculate appropriate distance to ensure snake stays within canvas
-          const maxDistance = width * 0.38; // Reduced to prevent overflow
-          const distance = Math.min((i + 1) * segmentSpacing, maxDistance);
+          // Use a percentage of maxDistance to scale snake body properly
+          const distance = Math.min((i + 1) * (maxDistance / 20), maxDistance);
           
           // Use negative cosine to reverse the direction (moving left instead of right)
           const x = centerX - Math.cos(segmentAngle) * distance;
@@ -126,8 +129,8 @@ const SkinPreview = ({
         ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Direction vector for eye placement (always pointing left in preview)
-        const dirX = -1; // Left direction
+        // Direction vector for eye placement (now pointing right in preview)
+        const dirX = 1; // Right direction (changed from -1 which was left)
         const dirY = 0;
         
         // Get perpendicular direction for eye placement
@@ -137,7 +140,7 @@ const SkinPreview = ({
         // Eye parameters per requirements
         const eyeRadius = headRadius * 0.5; // Half of head radius
         const eyeDistance = eyeRadius * 1.1; // Placed side by side without overlap
-        const eyeOffsetX = -headRadius * 0.3; // Offset to the left side of head
+        const eyeOffsetX = headRadius * 0.3; // Offset to the right side of head (changed from negative to positive)
         
         // Eye positions
         const leftEyeX = headX + eyeOffsetX - perpDirX * eyeDistance;
@@ -168,9 +171,9 @@ const SkinPreview = ({
         ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Draw pupils (looking left)
+        // Draw pupils (looking right)
         const pupilSize = eyeRadius * 0.6;
-        const pupilOffsetX = -eyeRadius * 0.35; // Pupils looking left
+        const pupilOffsetX = eyeRadius * 0.35; // Pupils looking right (changed from negative to positive)
         
         ctx.fillStyle = "#000000";
         ctx.beginPath();
@@ -184,7 +187,7 @@ const SkinPreview = ({
         
         // Add highlights to eyes
         const highlightSize = eyeRadius * 0.3;
-        const highlightOffsetX = -pupilSize * 0.5;
+        const highlightOffsetX = pupilSize * 0.5; // Changed from negative to positive for right-looking eyes
         const highlightOffsetY = -pupilSize * 0.5;
         
         ctx.fillStyle = "#FFFFFF";
@@ -223,9 +226,9 @@ const SkinPreview = ({
         // Calculate body segments - using colors 1-19
         for (let i = 1; i < 20; i++) {
           const progress = i / 20;
-          // Position snake within canvas bounds
-          // Reversed x calculation to make snake move from right to left
-          const x = width * (0.75 - progress * 0.8); // Changed from width * 0.25 + progress * pathLength * 0.8
+          // Position snake within canvas bounds - ensuring it's centered
+          // Adjust scale to ensure snake is fully visible
+          const x = width * (0.7 - progress * 0.6); // Adjusted to center better
           // Always animate regardless of hover state
           const wavePhase = angle * 2;
           const y = centerY + Math.sin(progress * frequency * Math.PI + wavePhase) * amplitude;
@@ -270,7 +273,7 @@ const SkinPreview = ({
         // Draw head with the first color
         const headSize = segmentSize * 1.2;
         // Move head to the right side to be consistent with reversed direction
-        const headX = width * 0.75; // Changed from width * 0.25
+        const headX = width * 0.7; // Adjusted to center better
         // Always animate regardless of hover state
         const wavePhase = angle * 2;
         const headY = centerY + Math.sin(wavePhase) * amplitude;
@@ -296,16 +299,16 @@ const SkinPreview = ({
         ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Direction is always left in the snake preview
-        const dirX = -1;
+        // Direction is right in the snake preview (changed)
+        const dirX = 1; // Changed to 1 for right direction
         const dirY = 0;
         
         // Eye parameters per requirements
         const eyeRadius = headRadius * 0.5; // Half of head radius
         const eyeDistance = eyeRadius * 1.1; // Side by side without overlap
-        const eyeOffsetX = -headRadius * 0.3; // Offset to the left side of head
+        const eyeOffsetX = headRadius * 0.3; // Offset to the right side of head (changed from negative to positive)
         
-        // Eye positions (perpendicular to the left direction)
+        // Eye positions (perpendicular to the right direction)
         const leftEyeX = headX + eyeOffsetX;
         const leftEyeY = headY + eyeDistance;
         const rightEyeX = headX + eyeOffsetX;
@@ -334,9 +337,9 @@ const SkinPreview = ({
         ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Draw pupils (looking left)
+        // Draw pupils (looking right)
         const pupilSize = eyeRadius * 0.6;
-        const pupilOffsetX = -eyeRadius * 0.35; // Pupils looking left
+        const pupilOffsetX = eyeRadius * 0.35; // Pupils looking right (changed from negative to positive)
         
         ctx.fillStyle = "#000000";
         ctx.beginPath();
@@ -350,7 +353,7 @@ const SkinPreview = ({
         
         // Add highlights to eyes
         const highlightSize = eyeRadius * 0.3;
-        const highlightOffsetX = -pupilSize * 0.5;
+        const highlightOffsetX = pupilSize * 0.5; // Changed from negative to positive for right-looking eyes
         const highlightOffsetY = -pupilSize * 0.5;
         
         ctx.fillStyle = "#FFFFFF";
