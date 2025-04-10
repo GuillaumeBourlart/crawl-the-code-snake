@@ -36,51 +36,44 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
-  // Determine which skins to display in the new unified view
+  // Always use the unified view display logic for all users
   useEffect(() => {
-    if (unifiedView) {
-      // Create a sorted list with free skins first, then owned paid skins, then unpurchased paid skins
-      const freeSkinsArray = [...(freeSkins || [])];
-      const paidOwnedSkins = allSkins.filter(skin => 
-        skin.is_paid && ownedSkinIds?.includes(skin.id)
-      );
-      const paidUnownedSkins = allSkins.filter(skin => 
-        skin.is_paid && !ownedSkinIds?.includes(skin.id)
-      );
-      
-      // Combine the arrays in the desired order
-      const orderedSkins = [
-        ...freeSkinsArray,
-        ...paidOwnedSkins,
-        ...paidUnownedSkins
-      ];
-      
-      console.log("SkinSelector: Setting unified view skins", {
-        free: freeSkinsArray.length,
-        paidOwned: paidOwnedSkins.length,
-        paidUnowned: paidUnownedSkins.length,
-        total: orderedSkins.length
-      });
-      
-      setDisplaySkins(orderedSkins);
-    } else {
-      // Keep backwards compatibility with the existing code
-      const defaultSkins = allSkins || [];
-      setDisplaySkins(defaultSkins);
-    }
-  }, [unifiedView, allSkins, freeSkins, ownedSkinIds]);
+    // Create a sorted list with free skins first, then owned paid skins, then unpurchased paid skins
+    const freeSkinsArray = [...(freeSkins || [])];
+    const paidOwnedSkins = allSkins.filter(skin => 
+      skin.is_paid && ownedSkinIds?.includes(skin.id)
+    );
+    const paidUnownedSkins = allSkins.filter(skin => 
+      skin.is_paid && !ownedSkinIds?.includes(skin.id)
+    );
+    
+    // Combine the arrays in the desired order
+    const orderedSkins = [
+      ...freeSkinsArray,
+      ...paidOwnedSkins,
+      ...paidUnownedSkins
+    ];
+    
+    console.log("SkinSelector: Setting unified view skins", {
+      free: freeSkinsArray.length,
+      paidOwned: paidOwnedSkins.length,
+      paidUnowned: paidUnownedSkins.length,
+      total: orderedSkins.length
+    });
+    
+    setDisplaySkins(orderedSkins);
+  }, [allSkins, freeSkins, ownedSkinIds]);
 
   // Log debug info when specific dependencies change
   useEffect(() => {
     console.log("SkinSelector: Update", { 
       displaySkins: displaySkins.length,
       selectedSkinId,
-      unifiedView,
       allSkins: allSkins?.length || 0,
       ownedSkinIds: ownedSkinIds,
       freeSkins: freeSkins?.length || 0
     });
-  }, [displaySkins.length, selectedSkinId, unifiedView, allSkins?.length, ownedSkinIds?.length, freeSkins?.length]);
+  }, [displaySkins.length, selectedSkinId, allSkins?.length, ownedSkinIds?.length, freeSkins?.length]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
