@@ -108,4 +108,7 @@ const PaymentSuccess = () => {
         </div>
       </div>
     </div>
-  
+  );
+};
+
+export default PaymentSuccess;
