@@ -19,9 +19,9 @@ const SkinPreview = ({
 
   // Larger dimensions for better visibility
   const dimensions = {
-    small: { width: 140, height: 140 },   // Increased from 120x120
-    medium: { width: 240, height: 240 },  // Increased from 220x220
-    large: { width: 340, height: 340 },   // Increased from 320x320
+    small: { width: 140, height: 140 },
+    medium: { width: 240, height: 240 },
+    large: { width: 340, height: 340 },
   };
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const SkinPreview = ({
     const centerY = height / 2;
     
     // Increase segment size for better visibility
-    const segmentSize = width / 4.5; // Increased for larger segments
+    const segmentSize = width / 4.25; // Adjusted for better fit
     
     // Animation properties
     let animationFrame: number;
@@ -63,7 +63,7 @@ const SkinPreview = ({
             : (Math.PI / 4) + (i * 0.2);
             
           // Calculate appropriate distance to ensure snake stays within canvas
-          const maxDistance = width * 0.4;
+          const maxDistance = width * 0.38; // Reduced to prevent overflow
           const distance = Math.min((i + 1) * segmentSpacing, maxDistance);
           
           const x = centerX + Math.cos(segmentAngle) * distance;
@@ -123,104 +123,72 @@ const SkinPreview = ({
         ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Calculate direction vector for eye placement
-        const nextAngle = animate ? angle + 0.2 : Math.PI / 4 + 0.2;
-        const nextX = centerX + Math.cos(nextAngle) * segmentSpacing * 1.5;
-        const nextY = centerY + Math.sin(nextAngle) * segmentSpacing * 1.5;
-        
-        const dirX = nextX - headX;
-        const dirY = nextY - headY;
-        
-        const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
-        const normalizedDirX = dirX / dirLength;
-        const normalizedDirY = dirY / dirLength;
+        // Direction vector for eye placement (always pointing left in preview)
+        const dirX = -1; // Left direction
+        const dirY = 0;
         
         // Get perpendicular direction for eye placement
-        const perpDirX = -normalizedDirY;
-        const perpDirY = normalizedDirX;
+        const perpDirX = -dirY;
+        const perpDirY = dirX;
         
-        // Eye parameters - match game style
-        const eyeDistance = headRadius * 0.32;
-        const eyeForwardOffset = headRadius * 0.3;
-        const eyeSize = headRadius * 0.4;
-        const pupilSize = eyeSize * 0.55;
+        // Eye parameters per requirements
+        const eyeRadius = headRadius * 0.5; // Half of head radius
+        const eyeDistance = eyeRadius * 1.1; // Placed side by side without overlap
+        const eyeOffsetX = -headRadius * 0.3; // Offset to the left side of head
         
         // Eye positions
-        const leftEyeX = headX + normalizedDirX * eyeForwardOffset - perpDirX * eyeDistance;
-        const leftEyeY = headY + normalizedDirY * eyeForwardOffset - perpDirY * eyeDistance;
-        const rightEyeX = headX + normalizedDirX * eyeForwardOffset + perpDirX * eyeDistance;
-        const rightEyeY = headY + normalizedDirY * eyeForwardOffset + perpDirY * eyeDistance;
+        const leftEyeX = headX + eyeOffsetX - perpDirX * eyeDistance;
+        const leftEyeY = headY + perpDirY * eyeDistance;
+        const rightEyeX = headX + eyeOffsetX + perpDirX * eyeDistance;
+        const rightEyeY = headY - perpDirY * eyeDistance;
         
-        // Draw eyes with gradients like in the game
-        const leftEyeGradient = ctx.createRadialGradient(
-          leftEyeX, leftEyeY, eyeSize * 0.2,
-          leftEyeX, leftEyeY, eyeSize
-        );
-        leftEyeGradient.addColorStop(0, "#FFFFFF");
-        leftEyeGradient.addColorStop(1, "#F0F0F0");
-        
-        ctx.fillStyle = leftEyeGradient;
+        // Draw eyes with white background
+        ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
-        ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = "#666666";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        const rightEyeGradient = ctx.createRadialGradient(
-          rightEyeX, rightEyeY, eyeSize * 0.2,
-          rightEyeX, rightEyeY, eyeSize
-        );
-        rightEyeGradient.addColorStop(0, "#FFFFFF");
-        rightEyeGradient.addColorStop(1, "#F0F0F0");
-        
-        ctx.fillStyle = rightEyeGradient;
+        ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
-        ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = "#666666";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Pupils that look in the direction of movement
-        const pupilGradient = ctx.createRadialGradient(
-          leftEyeX, leftEyeY, 0,
-          leftEyeX, leftEyeY, pupilSize
-        );
-        pupilGradient.addColorStop(0, "#000000");
-        pupilGradient.addColorStop(1, "#111111");
+        // Draw pupils (looking left)
+        const pupilSize = eyeRadius * 0.6;
+        const pupilOffsetX = -eyeRadius * 0.35; // Pupils looking left
         
-        ctx.fillStyle = pupilGradient;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(leftEyeX + normalizedDirX * eyeSize * 0.3, leftEyeY + normalizedDirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX + pupilOffsetX, leftEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
-        const rightPupilGradient = ctx.createRadialGradient(
-          rightEyeX, rightEyeY, 0,
-          rightEyeX, rightEyeY, pupilSize
-        );
-        rightPupilGradient.addColorStop(0, "#000000");
-        rightPupilGradient.addColorStop(1, "#111111");
-        
-        ctx.fillStyle = rightPupilGradient;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(rightEyeX + normalizedDirX * eyeSize * 0.3, rightEyeY + normalizedDirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX + pupilOffsetX, rightEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Add highlights to eyes
-        const highlightSize = eyeSize * 0.4;
-        ctx.fillStyle = "#FFFFFF";
+        const highlightSize = eyeRadius * 0.3;
+        const highlightOffsetX = -pupilSize * 0.5;
+        const highlightOffsetY = -pupilSize * 0.5;
         
+        ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
         ctx.arc(
-          leftEyeX + normalizedDirX * eyeSize * 0.3 - eyeSize * 0.25, 
-          leftEyeY + normalizedDirY * eyeSize * 0.3 - eyeSize * 0.25, 
+          leftEyeX + pupilOffsetX + highlightOffsetX, 
+          leftEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
         );
@@ -228,8 +196,8 @@ const SkinPreview = ({
         
         ctx.beginPath();
         ctx.arc(
-          rightEyeX + normalizedDirX * eyeSize * 0.3 - eyeSize * 0.25, 
-          rightEyeY + normalizedDirY * eyeSize * 0.3 - eyeSize * 0.25, 
+          rightEyeX + pupilOffsetX + highlightOffsetX, 
+          rightEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
         );
@@ -244,7 +212,7 @@ const SkinPreview = ({
         
         // Calculate spacing
         const tailSpacing = segmentSize * 0.2;
-        const segmentSpacing = (segmentSize * 1.8) + tailSpacing;
+        const segmentSpacing = (segmentSize * 1.4) + tailSpacing; // Adjusted for better fit
         
         // Create an array to store body segments
         let segments = [];
@@ -299,113 +267,91 @@ const SkinPreview = ({
         const headX = width * 0.25;
         const wavePhase = animate ? angle * 2 : 0;
         const headY = centerY + Math.sin(wavePhase) * amplitude;
+        const headRadius = headSize / 2;
         
         // Create gradient for head
         const headGradient = ctx.createRadialGradient(
           headX, headY, 0,
-          headX, headY, headSize / 2
+          headX, headY, headRadius
         );
         headGradient.addColorStop(0, skinColors[0]);
         headGradient.addColorStop(1, shadeColor(skinColors[0], -15));
         
         ctx.fillStyle = headGradient;
         ctx.beginPath();
-        ctx.arc(headX, headY, headSize / 2, 0, Math.PI * 2);
+        ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.fill();
         
         // Add outline to head
         ctx.strokeStyle = shadeColor(skinColors[0], -30);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(headX, headY, headSize / 2, 0, Math.PI * 2);
+        ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Head is always facing right in snake pattern
-        const dirX = 1;
+        // Direction is always left in the snake preview
+        const dirX = -1;
         const dirY = 0;
         
-        // Eye parameters - match game style
-        const eyeDistance = headSize * 0.25;
-        const eyeForwardOffset = headSize * 0.3;
-        const eyeSize = headSize * 0.35;
-        const pupilSize = eyeSize * 0.55;
+        // Eye parameters per requirements
+        const eyeRadius = headRadius * 0.5; // Half of head radius
+        const eyeDistance = eyeRadius * 1.1; // Side by side without overlap
+        const eyeOffsetX = -headRadius * 0.3; // Offset to the left side of head
         
-        // Eye positions
-        const leftEyeX = headX + dirX * eyeForwardOffset - dirY * eyeDistance;
-        const leftEyeY = headY + dirY * eyeForwardOffset + dirX * eyeDistance;
-        const rightEyeX = headX + dirX * eyeForwardOffset + dirY * eyeDistance;
-        const rightEyeY = headY + dirY * eyeForwardOffset - dirX * eyeDistance;
+        // Eye positions (perpendicular to the left direction)
+        const leftEyeX = headX + eyeOffsetX;
+        const leftEyeY = headY + eyeDistance;
+        const rightEyeX = headX + eyeOffsetX;
+        const rightEyeY = headY - eyeDistance;
         
-        // Draw eyes with gradients like in the game
-        const leftEyeGradient = ctx.createRadialGradient(
-          leftEyeX, leftEyeY, eyeSize * 0.2,
-          leftEyeX, leftEyeY, eyeSize
-        );
-        leftEyeGradient.addColorStop(0, "#FFFFFF");
-        leftEyeGradient.addColorStop(1, "#F0F0F0");
-        
-        ctx.fillStyle = leftEyeGradient;
+        // Draw eyes with white background
+        ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
-        ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = "#666666";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        const rightEyeGradient = ctx.createRadialGradient(
-          rightEyeX, rightEyeY, eyeSize * 0.2,
-          rightEyeX, rightEyeY, eyeSize
-        );
-        rightEyeGradient.addColorStop(0, "#FFFFFF");
-        rightEyeGradient.addColorStop(1, "#F0F0F0");
-        
-        ctx.fillStyle = rightEyeGradient;
+        ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
-        ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = "#666666";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Draw pupils that look in the direction of movement
-        const pupilGradient = ctx.createRadialGradient(
-          leftEyeX, leftEyeY, 0,
-          leftEyeX, leftEyeY, pupilSize
-        );
-        pupilGradient.addColorStop(0, "#000000");
-        pupilGradient.addColorStop(1, "#111111");
+        // Draw pupils (looking left)
+        const pupilSize = eyeRadius * 0.6;
+        const pupilOffsetX = -eyeRadius * 0.35; // Pupils looking left
         
-        ctx.fillStyle = pupilGradient;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(leftEyeX + dirX * eyeSize * 0.3, leftEyeY + dirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
+        ctx.arc(leftEyeX + pupilOffsetX, leftEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
-        const rightPupilGradient = ctx.createRadialGradient(
-          rightEyeX, rightEyeY, 0,
-          rightEyeX, rightEyeY, pupilSize
-        );
-        rightPupilGradient.addColorStop(0, "#000000");
-        rightPupilGradient.addColorStop(1, "#111111");
-        
-        ctx.fillStyle = rightPupilGradient;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
-        ctx.arc(rightEyeX + dirX * eyeSize * 0.3, rightEyeY + dirY * eyeSize * 0.3, pupilSize, 0, Math.PI * 2);
+        ctx.arc(rightEyeX + pupilOffsetX, rightEyeY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Add highlights to eyes
-        const highlightSize = eyeSize * 0.4;
+        const highlightSize = eyeRadius * 0.3;
+        const highlightOffsetX = -pupilSize * 0.5;
+        const highlightOffsetY = -pupilSize * 0.5;
+        
         ctx.fillStyle = "#FFFFFF";
         
         ctx.beginPath();
         ctx.arc(
-          leftEyeX + dirX * eyeSize * 0.3 - eyeSize * 0.25, 
-          leftEyeY + dirY * eyeSize * 0.3 - eyeSize * 0.25, 
+          leftEyeX + pupilOffsetX + highlightOffsetX, 
+          leftEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
         );
@@ -413,8 +359,8 @@ const SkinPreview = ({
         
         ctx.beginPath();
         ctx.arc(
-          rightEyeX + dirX * eyeSize * 0.3 - eyeSize * 0.25, 
-          rightEyeY + dirY * eyeSize * 0.3 - eyeSize * 0.25, 
+          rightEyeX + pupilOffsetX + highlightOffsetX, 
+          rightEyeY + highlightOffsetY, 
           highlightSize, 
           0, Math.PI * 2
         );
@@ -464,7 +410,7 @@ const SkinPreview = ({
       ref={canvasRef} 
       width={width} 
       height={height} 
-      className="rounded-lg bg-gray-900/30"
+      className="rounded-lg bg-gray-900/30 max-w-full"
     />
   );
 };
