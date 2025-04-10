@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+  const [initialSessionCheckDone, setInitialSessionCheckDone] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     if (!userId) {
@@ -151,6 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const getSession = async () => {
       try {
+        console.log("Checking for existing session...");
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -165,11 +168,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
           setLoading(false);
         }
+        
+        setInitialSessionCheckDone(true);
       } catch (error) {
         console.error("Session retrieval error:", error);
         if (isMounted) {
           setLoading(false);
-          signOut();
+          setInitialSessionCheckDone(true);
+          // Don't sign out automatically, just set loading to false
         }
       }
     };

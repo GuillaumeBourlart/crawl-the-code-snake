@@ -52,12 +52,10 @@ export const useSkins = () => {
   );
 
   const fetchAllSkins = useCallback(async () => {
-    if (skinsLoaded) return;
-    
     try {
+      console.log("Fetching all skins...");
       setLoading(true);
       setFetchError(null);
-      console.log("Fetching all skins...");
       
       const { data, error } = await supabase
         .from('game_skins')
@@ -74,18 +72,17 @@ export const useSkins = () => {
       console.error('Error fetching skins:', error);
       setFetchError(error);
       toast.error('Failed to load skins');
-      
-      // If the error is severe and we're authenticated, sign out
-      if (user) {
-        signOut();
-      }
     } finally {
       setLoading(false);
     }
-  }, [supabase, user, signOut, skinsLoaded]);
+  }, [supabase]);
 
   const fetchUserSkins = useCallback(async () => {
-    if (!user || userSkinsLoaded) return;
+    if (!user) {
+      console.log("No user, skipping user skins fetch");
+      setUserSkinsLoaded(true);
+      return;
+    }
     
     try {
       console.log("Fetching user skins for user:", user.id);
@@ -105,14 +102,14 @@ export const useSkins = () => {
       console.error('Error fetching user skins:', error);
       setFetchError(error);
       toast.error('Failed to load your skins');
-      
-      // If there's an error loading user skins, sign out
-      signOut();
     }
-  }, [user, supabase, signOut, userSkinsLoaded]);
+  }, [user, supabase]);
 
   const fetchUserDefaultSkin = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("No user, skipping default skin fetch");
+      return;
+    }
     
     try {
       setFetchError(null);
@@ -171,7 +168,7 @@ export const useSkins = () => {
     } else {
       console.log("No user, resetting user skins data");
       setUserSkins([]);
-      setUserSkinsLoaded(false);
+      setUserSkinsLoaded(true); // Mark as loaded even if we have no user
     }
   }, [user, fetchUserSkins, fetchUserDefaultSkin]);
 
@@ -225,13 +222,13 @@ export const useSkins = () => {
 
   const refresh = useCallback(() => {
     console.log("Refreshing skins data");
-    // Reset loading states to trigger refetching
-    setSkinsLoaded(false);
-    setUserSkinsLoaded(false);
+    setLoading(true);
     fetchAllSkins();
     if (user) {
       fetchUserSkins();
       fetchUserDefaultSkin();
+    } else {
+      setUserSkinsLoaded(true);
     }
   }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user]);
 

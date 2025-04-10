@@ -82,8 +82,6 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
-  const [availableSkins, setAvailableSkins] = useState<any[]>([]);
-  const [skinLoadAttempted, setSkinLoadAttempted] = useState(false);
 
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
@@ -92,7 +90,7 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  const { user, profile, loading: authLoading, updateProfile, forceSignOut } = useAuth();
+  const { user, profile, loading: authLoading, updateProfile } = useAuth();
   const { 
     selectedSkin, 
     selectedSkinId, 
@@ -103,27 +101,16 @@ const Index = () => {
   } = useSkins();
   
   useEffect(() => {
-    console.log("Index mounted, forcing sign out");
-    const performInitialSignOut = async () => {
-      await forceSignOut();
-      console.log("Initial sign out completed");
-      if (!skinLoadAttempted) {
-        console.log("Refreshing skins after sign out");
-        refreshSkins();
-        setSkinLoadAttempted(true);
-      }
-    };
-    
-    performInitialSignOut();
-  }, [forceSignOut]);
+    if (profile?.pseudo && !username) {
+      console.log("Setting username from profile:", profile.pseudo);
+      setUsername(profile.pseudo);
+    }
+  }, [profile, username]);
   
   useEffect(() => {
-    if (!skinLoadAttempted) {
-      console.log("Initial skins refresh");
-      refreshSkins();
-      setSkinLoadAttempted(true);
-    }
-  }, [refreshSkins, skinLoadAttempted]);
+    console.log("Initial skins refresh");
+    refreshSkins();
+  }, [refreshSkins]);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -511,7 +498,7 @@ const Index = () => {
                 type="text"
                 placeholder="Entrez votre pseudo"
                 value={username}
-                onChange={handleUsernameChange}
+                onChange={(e) => setUsername(e.target.value)}
                 className="text-white bg-gray-800/80 border-gray-700 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 rounded-lg py-6"
                 maxLength={16}
                 required
