@@ -750,52 +750,15 @@ const GameCanvas = ({
         ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
         ctx.fill();
         
+        // Increased glow radius from 2x to 3.5x the item radius
         const glowGradient = ctx.createRadialGradient(
           itemX, itemY, (item.radius || 5) * 0.5,
-          itemX, itemY, (item.radius || 5) * 2
+          itemX, itemY, (item.radius || 5) * 3.5
         );
         glowGradient.addColorStop(0, `${item.color}40`);
-        glowGradient.addColorStop(0.7, `${item.color}10`);
+        glowGradient.addColorStop(0.6, `${item.color}20`);
         glowGradient.addColorStop(1, `${item.color}00`);
         
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, (item.radius || 5) * 2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.strokeStyle = shadeColor(item.color, 20);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        drawPlayerHead(player, id === playerId);
-      });
-      
-      ctx.restore();
-      
-      previousTimeRef.current = timestamp;
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [gameState, camera, playerId, isMobile]);
-  
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute inset-0 w-full h-full touch-none"
-    />
-  );
-};
-
-export default GameCanvas;
+        ctx.arc(itemX, itemY, (item.radius || 5) * 3.5, 0, Math.PI * 2);
