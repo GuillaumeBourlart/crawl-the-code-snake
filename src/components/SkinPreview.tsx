@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GameSkin } from '@/types/supabase';
 
 interface SkinPreviewProps {
@@ -7,13 +7,15 @@ interface SkinPreviewProps {
   size?: 'small' | 'medium' | 'large';
   animate?: boolean;
   pattern?: 'circular' | 'snake'; // Add pattern prop for different rendering modes
+  boosting?: boolean; // Add boosting prop
 }
 
 const SkinPreview = ({ 
   skin, 
   size = 'medium', 
   animate = true, 
-  pattern = 'circular' 
+  pattern = 'circular',
+  boosting = false
 }: SkinPreviewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -165,14 +167,36 @@ const SkinPreview = ({
         ctx.arc(headX - headSize * 0.2, headY + headSize * 0.2, eyeSize, 0, Math.PI * 2);
         ctx.fill();
         
-        // Pupils
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(headX - headSize * 0.25, headY - headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(headX - headSize * 0.25, headY + headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
-        ctx.fill();
+        // Pupils - make them look angry when boosting
+        if (boosting) {
+          // Angry eyes (angled, red pupils)
+          ctx.fillStyle = '#ea384c'; // Red color for angry eyes
+          
+          // Left eye pupil (angled)
+          ctx.beginPath();
+          ctx.moveTo(headX - headSize * 0.35, headY - headSize * 0.15);
+          ctx.lineTo(headX - headSize * 0.15, headY - headSize * 0.25);
+          ctx.lineTo(headX - headSize * 0.15, headY - headSize * 0.15);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Right eye pupil (angled)
+          ctx.beginPath();
+          ctx.moveTo(headX - headSize * 0.35, headY + headSize * 0.15);
+          ctx.lineTo(headX - headSize * 0.15, headY + headSize * 0.25);
+          ctx.lineTo(headX - headSize * 0.15, headY + headSize * 0.15);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Normal round pupils
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(headX - headSize * 0.25, headY - headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(headX - headSize * 0.25, headY + headSize * 0.2, eyeSize * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       if (animate) {
@@ -188,7 +212,7 @@ const SkinPreview = ({
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [skin, size, animate, pattern]);
+  }, [skin, size, animate, pattern, boosting]);
 
   const { width, height } = dimensions[size];
 
