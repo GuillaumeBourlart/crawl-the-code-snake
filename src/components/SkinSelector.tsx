@@ -1,36 +1,34 @@
-
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
 import SkinPreview from './SkinPreview';
 import { useAuth } from '@/hooks/use-auth';
-import { Lock, CheckCircle2 } from 'lucide-react';
+import { Lock, CheckCircle2, ShoppingCart } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SkinSelectorProps {
   onSelectSkin?: (skinId: number) => void;
-  showPurchasable?: boolean;
   onPurchase?: (skin: GameSkin) => void;
   showPreview?: boolean;
   previewPattern?: 'circular' | 'snake';
   simpleMode?: boolean; // Add simple mode for just showing names in a list
+  unifiedView?: boolean; // New prop to enable unified view
 }
 
 const SkinSelector = ({ 
   onSelectSkin, 
-  showPurchasable = false,
   onPurchase,
   showPreview = true,
   previewPattern = 'circular',
-  simpleMode = false
+  simpleMode = false,
+  unifiedView = false
 }: SkinSelectorProps) => {
   const { 
-    availableSkins, 
-    purchasableSkins, 
+    allSkins, 
     selectedSkinId, 
     setSelectedSkin,
     loading: skinsLoading,
-    allSkins,
     ownedSkinIds,
     freeSkins
   } = useSkins();
@@ -38,33 +36,51 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
-  // Determine which skins to display - FIXED to prevent infinite loop
+  // Determine which skins to display in the new unified view
   useEffect(() => {
-    if (showPurchasable) {
-      // Pour la boutique/store section - show all paid skins
-      const paidSkins = allSkins?.filter(skin => skin.is_paid) || [];
-      console.log("SkinSelector: Setting paid skins for display", paidSkins.length);
-      setDisplaySkins(paidSkins);
+    if (unifiedView) {
+      // Create a sorted list with free skins first, then owned paid skins, then unpurchased paid skins
+      const freeSkinsArray = [...(freeSkins || [])];
+      const paidOwnedSkins = allSkins.filter(skin => 
+        skin.is_paid && ownedSkinIds?.includes(skin.id)
+      );
+      const paidUnownedSkins = allSkins.filter(skin => 
+        skin.is_paid && !ownedSkinIds?.includes(skin.id)
+      );
+      
+      // Combine the arrays in the desired order
+      const orderedSkins = [
+        ...freeSkinsArray,
+        ...paidOwnedSkins,
+        ...paidUnownedSkins
+      ];
+      
+      console.log("SkinSelector: Setting unified view skins", {
+        free: freeSkinsArray.length,
+        paidOwned: paidOwnedSkins.length,
+        paidUnowned: paidUnownedSkins.length,
+        total: orderedSkins.length
+      });
+      
+      setDisplaySkins(orderedSkins);
     } else {
-      // Pour la free skins section - show only free skins
-      console.log("SkinSelector: Setting free skins for display", freeSkins?.length || 0);
-      setDisplaySkins(freeSkins || []);
+      // Keep backwards compatibility with the existing code
+      const defaultSkins = allSkins || [];
+      setDisplaySkins(defaultSkins);
     }
-  }, [showPurchasable, allSkins, freeSkins]); // Only depend on these props, not on displaySkins
+  }, [unifiedView, allSkins, freeSkins, ownedSkinIds]);
 
-  // Log debug info when specific dependencies change (not on every render)
+  // Log debug info when specific dependencies change
   useEffect(() => {
     console.log("SkinSelector: Update", { 
-      availableSkins: availableSkins?.length || 0,
-      purchasableSkins: purchasableSkins?.length || 0,
       displaySkins: displaySkins.length,
       selectedSkinId,
-      showPurchasable,
+      unifiedView,
       allSkins: allSkins?.length || 0,
       ownedSkinIds: ownedSkinIds,
       freeSkins: freeSkins?.length || 0
     });
-  }, [availableSkins?.length, purchasableSkins?.length, displaySkins.length, selectedSkinId, showPurchasable, allSkins?.length, ownedSkinIds?.length, freeSkins?.length]);
+  }, [displaySkins.length, selectedSkinId, unifiedView, allSkins?.length, ownedSkinIds?.length, freeSkins?.length]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -78,11 +94,13 @@ const SkinSelector = ({
     }
   };
 
-  const handlePurchase = (skin: GameSkin) => {
+  const handlePurchase = (skin: GameSkin, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent selecting the skin when clicking the buy button
     console.log("SkinSelector: Buy button clicked for skin", skin.id, skin.name);
     
     if (!user) {
-      console.log("SkinSelector: User not logged in, cannot purchase");
+      console.log("SkinSelector: User not logged in, showing toast");
+      toast.error("Veuillez vous connecter pour acheter des skins");
       return;
     }
     
@@ -108,7 +126,7 @@ const SkinSelector = ({
         <div className="flex flex-col space-y-2">
           {displaySkins.map(skin => {
             const isSelected = skin.id === selectedSkinId;
-            const isOwned = ownedSkinIds?.includes(skin.id);
+            const isOwned = !skin.is_paid || ownedSkinIds?.includes(skin.id);
             // Un skin est achetable uniquement s'il est payant ET que l'utilisateur ne le possède pas
             const isPurchasable = !isOwned && skin.is_paid;
             
@@ -121,8 +139,8 @@ const SkinSelector = ({
                     ? 'bg-indigo-600 hover:bg-indigo-700' 
                     : 'bg-gray-800/70 hover:bg-gray-700/70'
                 }`}
-                onClick={() => handleSkinSelect(skin.id)}
-                disabled={isPurchasable}
+                onClick={() => isOwned ? handleSkinSelect(skin.id) : null}
+                disabled={!isOwned}
               >
                 {isSelected && <CheckCircle2 className="h-4 w-4 mr-2 text-white" />}
                 {isPurchasable && <Lock className="h-4 w-4 mr-2 text-gray-400" />}
@@ -153,14 +171,14 @@ const SkinSelector = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6">
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
-          const isOwned = ownedSkinIds?.includes(skin.id);
+          const isOwned = !skin.is_paid || ownedSkinIds?.includes(skin.id);
           
           // For free skins, they're always selectable
           // For paid skins, they're only selectable if owned
-          const isSelectable = !skin.is_paid || isOwned;
+          const isSelectable = isOwned;
           
-          // A skin is purchasable if it's in the store section, paid, and not owned
-          const isPurchasable = showPurchasable && skin.is_paid && !isOwned;
+          // A skin is purchasable if it's paid and not owned
+          const isPurchasable = skin.is_paid && !isOwned;
           
           return (
             <div
@@ -208,8 +226,8 @@ const SkinSelector = ({
                       </div>
                     )}
                     
-                    {/* Show lock icon for paid, unowned skins but without blurring the preview */}
-                    {!isSelectable && (
+                    {/* Show lock icon for paid, unowned skins - no blurring */}
+                    {isPurchasable && (
                       <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5">
                         <Lock className="h-5 w-5 text-white" />
                       </div>
@@ -227,19 +245,17 @@ const SkinSelector = ({
                   </div>
                 )}
                 
-                {isPurchasable && user && (
+                {/* Show shop icon for purchasable skins */}
+                {isPurchasable && (
                   <div className="mt-2 w-full">
                     <Button
                       size="sm"
                       variant="outline"
                       className="w-full text-xs bg-indigo-950/50 hover:bg-indigo-900/50 border-indigo-800"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log(`SkinSelector: Buy button clicked for ${skin.name} (ID: ${skin.id})`);
-                        handlePurchase(skin);
-                      }}
+                      onClick={(e) => handlePurchase(skin, e)}
                     >
-                      Buy
+                      <ShoppingCart className="h-4 w-4 mr-1" />
+                      Acheter
                     </Button>
                   </div>
                 )}
