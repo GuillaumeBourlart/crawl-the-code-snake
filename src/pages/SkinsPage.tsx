@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -65,7 +64,7 @@ const SkinsPage = () => {
         throw new Error("Token d'authentification non disponible");
       }
       
-      // Appel à l'endpoint create-checkout-session (sans la partie du chemin supplémentaire)
+      // CORRECTION: Utilisation de l'URL complète avec le bon point d'accès
       const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/create-checkout-session', {
         method: 'POST',
         headers: {
