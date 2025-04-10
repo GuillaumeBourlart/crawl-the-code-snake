@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     if (!userId) {
+      console.log("No user ID provided to fetchProfile");
       setLoading(false);
       return;
     }
@@ -58,14 +59,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           created_at: new Date().toISOString()
         };
         
-        const { error: insertError } = await supabase
+        console.log("Attempting to insert profile:", newProfile);
+        const { error: insertError, data: insertData } = await supabase
           .from('profiles')
-          .insert([newProfile]);
+          .insert([newProfile])
+          .select();
           
         if (insertError) {
           console.error('Error creating profile:', insertError);
           throw insertError;
         }
+        
+        console.log("Profile insertion response:", insertData);
         
         // Fetch the newly created profile to ensure we have the server-generated values
         const { data: newData, error: refetchError } = await supabase
@@ -107,9 +112,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          console.log("Session found with user:", session.user.id);
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
+          console.log("No session found");
           setUser(null);
           setLoading(false);
         }
@@ -126,10 +133,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Auth state changed:", event, session?.user?.id);
         
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log("User signed in:", session.user.id);
           setUser(session.user);
           setProfileFetchAttempted(false); // Reset to allow fetch on new sign in
           await fetchProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out");
           setUser(null);
           setProfile(null);
           setProfileFetchAttempted(false);
