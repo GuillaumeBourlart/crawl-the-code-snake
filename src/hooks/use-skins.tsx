@@ -4,8 +4,13 @@ import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
 import { useAuth } from './use-auth';
 
+// Local storage keys
+const SKINS_RETRY_COUNT_KEY = 'skins_retry_count';
+const SKINS_ERROR_TIMESTAMP_KEY = 'skins_error_timestamp';
+const SKINS_LOAD_TIMESTAMP_KEY = 'skins_load_timestamp';
+
 export const useSkins = () => {
-  const { user, supabase } = useAuth();
+  const { user, supabase, authInitialized } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [userSkins, setUserSkins] = useState<UserSkin[]>([]);
@@ -15,6 +20,72 @@ export const useSkins = () => {
   const [userSkinsLoaded, setUserSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Record loading start time
+  useEffect(() => {
+    if (loading && !skinsLoaded) {
+      localStorage.setItem(SKINS_LOAD_TIMESTAMP_KEY, Date.now().toString());
+    } else if (skinsLoaded) {
+      localStorage.removeItem(SKINS_LOAD_TIMESTAMP_KEY);
+    }
+  }, [loading, skinsLoaded]);
+
+  // Helper function to check for stuck state
+  const checkForStuckSkinsState = useCallback((): boolean => {
+    const errorTimestamp = localStorage.getItem(SKINS_ERROR_TIMESTAMP_KEY);
+    const loadTimestamp = localStorage.getItem(SKINS_LOAD_TIMESTAMP_KEY);
+    
+    if (errorTimestamp) {
+      const errorTime = parseInt(errorTimestamp, 10);
+      const now = Date.now();
+      
+      // If there was an error in the last 5 minutes
+      if (now - errorTime < 5 * 60 * 1000) {
+        console.log("Detected recent skins error, state might be stuck");
+        return true;
+      } else {
+        // Clear old error timestamps
+        localStorage.removeItem(SKINS_ERROR_TIMESTAMP_KEY);
+      }
+    }
+    
+    if (loadTimestamp) {
+      const loadTime = parseInt(loadTimestamp, 10);
+      const now = Date.now();
+      
+      // If loading started more than 20 seconds ago and never completed
+      if (now - loadTime > 20 * 1000) {
+        console.log("Detected stale skins loading state, might be stuck");
+        return true;
+      }
+    }
+    
+    return false;
+  }, []);
+
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    let safetyTimeout: number;
+    
+    if (loading && !skinsLoaded) {
+      safetyTimeout = window.setTimeout(() => {
+        if (loading && !skinsLoaded) {
+          console.log("Safety timeout triggered for skins loading");
+          setLoading(false);
+          setFetchError(new Error("Le chargement des skins a pris trop de temps"));
+          localStorage.setItem(SKINS_ERROR_TIMESTAMP_KEY, Date.now().toString());
+          
+          // Try automatic refresh
+          refresh();
+        }
+      }, 15000); // 15-second safety timeout
+    }
+    
+    return () => {
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+    };
+  }, [loading, skinsLoaded]);
 
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
@@ -58,10 +129,22 @@ export const useSkins = () => {
       console.log("Fetched all skins:", data.length);
       setAllSkins(data as GameSkin[]);
       setSkinsLoaded(true);
+      
+      // Reset error status and retry count on success
+      localStorage.removeItem(SKINS_ERROR_TIMESTAMP_KEY);
+      localStorage.removeItem(SKINS_RETRY_COUNT_KEY);
+      setRetryCount(0);
     } catch (error: any) {
       console.error('Error fetching skins:', error);
       setFetchError(error);
-      toast.error('Failed to load skins');
+      localStorage.setItem(SKINS_ERROR_TIMESTAMP_KEY, Date.now().toString());
+      
+      // Increment retry count
+      const currentRetryCount = parseInt(localStorage.getItem(SKINS_RETRY_COUNT_KEY) || '0', 10) + 1;
+      localStorage.setItem(SKINS_RETRY_COUNT_KEY, currentRetryCount.toString());
+      setRetryCount(currentRetryCount);
+      
+      toast.error('Erreur de chargement des skins');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -93,7 +176,8 @@ export const useSkins = () => {
     } catch (error: any) {
       console.error('Error fetching user skins:', error);
       setFetchError(error);
-      toast.error('Failed to load your skins');
+      localStorage.setItem(SKINS_ERROR_TIMESTAMP_KEY, Date.now().toString());
+      toast.error('Erreur de chargement de vos skins');
     } finally {
       setIsRefreshing(false);
     }
@@ -128,16 +212,32 @@ export const useSkins = () => {
     } catch (error: any) {
       console.error('Error fetching default skin:', error);
       setFetchError(error);
+      localStorage.setItem(SKINS_ERROR_TIMESTAMP_KEY, Date.now().toString());
       // Don't sign out here, just use local storage instead
     } finally {
       setIsRefreshing(false);
     }
   }, [user, supabase, isRefreshing]);
 
-  // Initial load of all skins - executed once on component mount
+  // Initial load of all skins - executed once when auth is initialized
   useEffect(() => {
-    fetchAllSkins();
-  }, [fetchAllSkins]);
+    // Only start fetching when we know auth state is initialized
+    if (authInitialized) {
+      console.log("Auth initialized, checking for potentially stuck skins state");
+      
+      // Check if we might be in a stuck state
+      if (checkForStuckSkinsState()) {
+        // Clear any potential error or stuck state
+        localStorage.removeItem(SKINS_LOAD_TIMESTAMP_KEY);
+        setLoading(false);
+        
+        // Still need to fetch skins
+        fetchAllSkins();
+      } else {
+        fetchAllSkins();
+      }
+    }
+  }, [fetchAllSkins, authInitialized, checkForStuckSkinsState]);
 
   // Load saved skin from localStorage if no skin is selected
   useEffect(() => {
@@ -173,12 +273,12 @@ export const useSkins = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("Tab became visible in skins hook, refreshing data if needed");
+        console.log("Tab became visible in skins hook, checking state");
         
-        // If we have a stuck loading state or error, refresh data
-        if (loading || fetchError) {
-          console.log("Resetting loading state and refreshing skins data");
-          setLoading(false);
+        // If we have a stuck loading state or error, or it's been a while since a refresh, refresh data
+        if (loading || fetchError || checkForStuckSkinsState()) {
+          console.log("Skins state needs refresh in visibility handler");
+          setLoading(false); // Reset loading first
           refresh();
         }
       }
@@ -189,7 +289,7 @@ export const useSkins = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loading, fetchError]);
+  }, [loading, fetchError, checkForStuckSkinsState]);
 
   const setSelectedSkin = async (skinId: number) => {
     // Check if the skin exists
@@ -229,6 +329,7 @@ export const useSkins = () => {
         toast.success("Skin enregistré dans votre profil");
       } catch (error) {
         console.error('Error updating default skin:', error);
+        localStorage.setItem(SKINS_ERROR_TIMESTAMP_KEY, Date.now().toString());
         toast.error('Échec de sauvegarde du skin');
       }
     }
@@ -239,10 +340,55 @@ export const useSkins = () => {
     return allSkins.find(skin => skin.id === id) || null;
   };
 
+  const resetSkinsState = useCallback(() => {
+    console.log("Resetting skins state completely");
+    
+    // Clear any localStorage state for skins
+    localStorage.removeItem(SKINS_ERROR_TIMESTAMP_KEY);
+    localStorage.removeItem(SKINS_LOAD_TIMESTAMP_KEY);
+    localStorage.removeItem(SKINS_RETRY_COUNT_KEY);
+    
+    // Reset state
+    setLoading(false);
+    setSkinsLoaded(false);
+    setUserSkinsLoaded(false);
+    setFetchError(null);
+    setIsRefreshing(false);
+    setRetryCount(0);
+    
+    // Return to initial state
+    setAllSkins([]);
+    
+    // Don't reset selectedSkinId or userSkins to avoid UI flicker
+    // These will be updated when fetch completes
+    
+    // Execute a fresh fetch
+    fetchAllSkins();
+    if (user) {
+      fetchUserSkins();
+      fetchUserDefaultSkin();
+    } else {
+      setUserSkinsLoaded(true);
+    }
+    
+    toast.success("Données des skins réinitialisées");
+  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user]);
+
   const refresh = useCallback(() => {
     if (isRefreshing) return;
     
     console.log("Refreshing skins data");
+    
+    // Check if we've been retrying too many times
+    const currentRetryCount = parseInt(localStorage.getItem(SKINS_RETRY_COUNT_KEY) || '0', 10);
+    
+    if (currentRetryCount > 5) {
+      console.log("Too many retries, doing a complete reset");
+      resetSkinsState();
+      return;
+    }
+    
+    // Standard refresh
     setLoading(true);
     setSkinsLoaded(false);
     setUserSkinsLoaded(false);
@@ -255,7 +401,7 @@ export const useSkins = () => {
     } else {
       setUserSkinsLoaded(true);
     }
-  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user, isRefreshing]);
+  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user, isRefreshing, resetSkinsState]);
 
   return {
     allSkins,
@@ -269,6 +415,8 @@ export const useSkins = () => {
     loading,
     getSkinById,
     refresh,
-    fetchError
+    fetchError,
+    resetSkinsState,
+    retryCount
   };
 };
