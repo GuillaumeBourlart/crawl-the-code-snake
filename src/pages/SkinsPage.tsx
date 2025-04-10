@@ -12,6 +12,7 @@ import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 // Utilisation de la Publishable key fournie
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
@@ -31,6 +32,8 @@ const SkinsPage = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
+  // Add a view state to separate free and paid skins visually
+  const [currentView, setCurrentView] = useState<'free' | 'store'>('free');
 
   // Log important state at render time
   console.log("SkinsPage - Render state:", {
@@ -42,7 +45,8 @@ const SkinsPage = () => {
     freeSkins: freeSkins?.length || 0,
     availableSkins: availableSkins?.length || 0,
     purchasableSkins: purchasableSkins?.length || 0,
-    selectedSkin: selectedSkin?.id
+    selectedSkin: selectedSkin?.id,
+    currentView
   });
 
   useEffect(() => {
@@ -215,53 +219,69 @@ const SkinsPage = () => {
               </Button>
             </div>
 
-            <div className="mb-8">
-              <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Skins Gratuits</h2>
-              
-              <div>
-                {freeSkins && freeSkins.length > 0 ? (
-                  <SkinSelector 
-                    onSelectSkin={handleSkinSelectAndSave}
-                    showPreview={true}
-                    previewPattern="snake"
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">Aucun skin gratuit disponible pour le moment</p>
-                  </div>
-                )}
-              </div>
+            {/* Tabs for switching between free and paid skins */}
+            <div className="flex justify-center mb-6">
+              <ToggleGroup type="single" value={currentView} onValueChange={(value) => value && setCurrentView(value as 'free' | 'store')}>
+                <ToggleGroupItem value="free" className={`px-6 ${currentView === 'free' ? 'bg-indigo-600' : ''}`}>
+                  Skins Gratuits
+                </ToggleGroupItem>
+                <ToggleGroupItem value="store" className={`px-6 ${currentView === 'store' ? 'bg-indigo-600' : ''}`}>
+                  Boutique
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold mb-3 border-b border-gray-700 pb-2">Boutique</h2>
-              </div>
-              
-              {!user && (
-                <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
-                  <p className="text-center">
-                    Connectez-vous avec Google pour acheter et sauvegarder vos skins
-                  </p>
+            {currentView === 'free' && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Skins Gratuits</h2>
+                
+                <div>
+                  {freeSkins && freeSkins.length > 0 ? (
+                    <SkinSelector 
+                      onSelectSkin={handleSkinSelectAndSave}
+                      showPreview={true}
+                      previewPattern="snake"
+                    />
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-400">Aucun skin gratuit disponible pour le moment</p>
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              <div>
-                {purchasableSkins && purchasableSkins.length > 0 ? (
-                  <SkinSelector 
-                    showPurchasable={true} 
-                    onPurchase={handlePurchase}
-                    onSelectSkin={handleSkinSelectAndSave}
-                    showPreview={true}
-                    previewPattern="snake"
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">Aucun skin premium disponible pour le moment</p>
+              </div>
+            )}
+
+            {currentView === 'store' && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-xl font-bold mb-3 border-b border-gray-700 pb-2">Boutique</h2>
+                </div>
+                
+                {!user && (
+                  <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
+                    <p className="text-center">
+                      Connectez-vous avec Google pour acheter et sauvegarder vos skins
+                    </p>
                   </div>
                 )}
+                
+                <div>
+                  {purchasableSkins && purchasableSkins.length > 0 ? (
+                    <SkinSelector 
+                      showPurchasable={true} 
+                      onPurchase={handlePurchase}
+                      onSelectSkin={handleSkinSelectAndSave}
+                      showPreview={true}
+                      previewPattern="snake"
+                    />
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-400">Aucun skin premium disponible pour le moment</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </ScrollArea>
         )}
       </main>
