@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { GameCanvas } from "@/components/GameCanvas";
+import GameCanvas from "@/components/GameCanvas";
 import { GameState } from "@/types/game";
 import { api } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
