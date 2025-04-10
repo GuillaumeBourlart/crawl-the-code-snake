@@ -18,6 +18,8 @@ serve(async (req) => {
   try {
     const { skinId, priceAmount, skinName } = await req.json();
     
+    console.log("Payment request received:", { skinId, priceAmount, skinName });
+    
     if (!skinId || !priceAmount) {
       throw new Error("Missing required parameters");
     }
@@ -33,13 +35,21 @@ serve(async (req) => {
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError || !data.user) {
+      console.error("Authentication error:", authError);
       throw new Error("Authentication required");
     }
     
     const user = data.user;
+    console.log("Authenticated user:", user.id, user.email);
 
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      console.error("Stripe secret key is missing");
+      throw new Error("Stripe configuration error");
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
 
@@ -49,6 +59,7 @@ serve(async (req) => {
     
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      console.log("Using existing Stripe customer:", customerId);
     } else {
       // Create a new customer if one doesn't exist
       const customer = await stripe.customers.create({
@@ -58,9 +69,11 @@ serve(async (req) => {
         },
       });
       customerId = customer.id;
+      console.log("Created new Stripe customer:", customerId);
     }
 
     // Create a one-time payment session
+    console.log("Creating checkout session with price:", priceAmount);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card', 'google_pay'],
@@ -86,12 +99,13 @@ serve(async (req) => {
       },
     });
 
+    console.log("Checkout session created:", session.id, session.url);
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error creating checkout session:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

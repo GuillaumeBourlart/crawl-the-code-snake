@@ -18,12 +18,20 @@ serve(async (req) => {
   try {
     const { sessionId } = await req.json();
     
+    console.log("Verifying payment for session:", sessionId);
+    
     if (!sessionId) {
       throw new Error("Missing session ID");
     }
 
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      console.error("Stripe secret key is missing");
+      throw new Error("Stripe configuration error");
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
 
@@ -38,13 +46,17 @@ serve(async (req) => {
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError || !data.user) {
+      console.error("Authentication error:", authError);
       throw new Error("Authentication required");
     }
     
     const user = data.user;
+    console.log("Authenticated user:", user.id);
 
     // Retrieve the Checkout session to verify payment
+    console.log("Retrieving Stripe session:", sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log("Session payment status:", session.payment_status);
 
     if (session.payment_status !== "paid") {
       throw new Error("Payment not completed");
@@ -52,9 +64,11 @@ serve(async (req) => {
 
     const userId = session.metadata?.userId;
     const skinId = parseInt(session.metadata?.skinId || "0");
+    console.log("Session metadata:", { userId, skinId });
 
     // Verify that the user ID in the session matches the authenticated user
     if (userId !== user.id) {
+      console.error("User mismatch:", { sessionUserId: userId, authenticatedUserId: user.id });
       throw new Error("User mismatch");
     }
 
@@ -66,8 +80,11 @@ serve(async (req) => {
       .single();
 
     if (skinError || !skinData) {
+      console.error("Skin lookup error:", skinError);
       throw new Error("Skin not found");
     }
+
+    console.log("Found skin:", skinData.name);
 
     // 1. Get the user's profile to update the skins array
     const { data: profileData, error: profileError } = await supabaseClient
@@ -77,6 +94,7 @@ serve(async (req) => {
       .single();
 
     if (profileError) {
+      console.error("Profile lookup error:", profileError);
       throw new Error("Failed to get user profile");
     }
 
@@ -86,18 +104,22 @@ serve(async (req) => {
       userSkins = Array.isArray(profileData.skins) ? [...profileData.skins] : [];
     }
 
+    console.log("Current user skins:", userSkins);
+
     // Check if the user already owns this skin in the profile
     if (!userSkins.includes(skinId)) {
       // Add the new skin to the array
       userSkins.push(skinId);
 
       // Update the profile with the new skins array
+      console.log("Updating profile with new skin:", skinId);
       const { error: updateError } = await supabaseClient
         .from("profiles")
         .update({ skins: userSkins })
         .eq("id", userId);
 
       if (updateError) {
+        console.error("Profile update error:", updateError);
         throw new Error("Failed to update profile with new skin");
       }
     }
@@ -112,11 +134,13 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingSkinError) {
+      console.error("Existing skin check error:", existingSkinError);
       throw new Error("Failed to check if user already owns skin");
     }
 
     // Only insert if the user doesn't already have this skin in user_skins
     if (!existingSkin) {
+      console.log("Recording purchase in user_skins table");
       const { error: insertError } = await supabaseClient
         .from("user_skins")
         .insert({
@@ -127,6 +151,7 @@ serve(async (req) => {
         });
 
       if (insertError) {
+        console.error("Insert error:", insertError);
         throw new Error("Failed to record skin purchase in user_skins");
       }
     }
@@ -143,7 +168,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error verifying payment:", error.message, error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
