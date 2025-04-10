@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   const [initialSessionCheckDone, setInitialSessionCheckDone] = useState(false);
+  const [sessionCheckError, setSessionCheckError] = useState<Error | null>(null);
 
   const fetchProfile = async (userId: string) => {
     if (!userId) {
@@ -98,7 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Critical error handling profile:', error);
       toast.error('Problème de connexion au profil');
       
-      await signOut();
+      // Ne pas se déconnecter automatiquement, laisser l'utilisateur choisir
+      setSessionCheckError(error as Error);
     } finally {
       setProfileFetchAttempted(true);
       setLoading(false);
@@ -120,6 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error signing out:', error);
       toast.error('Échec de déconnexion');
       
+      // Nettoyage des états même en cas d'erreur
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
@@ -155,9 +158,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log("Checking for existing session...");
         setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Utiliser une version sans délai pour éviter les problèmes de race
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (!isMounted) return;
+        
+        if (sessionError) {
+          throw sessionError;
+        }
         
         if (session?.user) {
           console.log("Session found with user:", session.user.id);
@@ -173,9 +182,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Session retrieval error:", error);
         if (isMounted) {
+          setSessionCheckError(error as Error);
           setLoading(false);
           setInitialSessionCheckDone(true);
-          // Don't sign out automatically, just set loading to false
         }
       }
     };

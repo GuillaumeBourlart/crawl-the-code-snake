@@ -1,25 +1,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
 import { useAuth } from './use-auth';
 
-// Create a single Supabase client instance to avoid warnings
-const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
-let supabaseInstance: any = null;
-
-const getSupabase = () => {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseKey);
-  }
-  return supabaseInstance;
-};
-
 export const useSkins = () => {
-  const supabase = getSupabase();
-  const { user, signOut } = useAuth();
+  const { user, signOut, supabase } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [userSkins, setUserSkins] = useState<UserSkin[]>([]);

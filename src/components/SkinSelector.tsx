@@ -53,11 +53,11 @@ const SkinSelector = ({
       console.log("Setting display skins to purchasable skins:", purchasableSkins?.length || 0);
       setDisplaySkins(purchasableSkins || []);
     } else {
-      // For the "your skins" section
-      console.log("Setting display skins to available skins:", availableSkins?.length || 0);
-      setDisplaySkins(availableSkins || []);
+      // Toujours montrer les skins gratuits
+      console.log("Setting display skins to available skins:", availableSkins?.length || 0, "or free skins");
+      setDisplaySkins(availableSkins?.length ? availableSkins : allSkins?.filter(s => !s.is_paid) || []);
     }
-  }, [availableSkins, purchasableSkins, showPurchasable]);
+  }, [availableSkins, purchasableSkins, showPurchasable, allSkins]);
 
   // Log some debug info when component mounts or dependencies change
   useEffect(() => {
@@ -94,6 +94,15 @@ const SkinSelector = ({
       <div className="w-full flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
         <span className="ml-2 text-gray-400">Chargement des skins...</span>
+      </div>
+    );
+  }
+
+  // S'il n'y a pas de skins disponibles, afficher quand même les skins gratuits
+  if (displaySkins.length === 0 && allSkins.length === 0) {
+    return (
+      <div className="w-full text-center py-6 text-gray-400">
+        Aucun skin disponible pour le moment
       </div>
     );
   }
@@ -135,20 +144,17 @@ const SkinSelector = ({
     );
   }
 
-  if (displaySkins.length === 0) {
-    return (
-      <div className="w-full text-center py-6 text-gray-400">
-        Aucun skin disponible pour le moment
-      </div>
-    );
-  }
+  // Utiliser les skins gratuits si aucun skin disponible et qu'on n'est pas dans la section achat
+  const actualSkins = (displaySkins.length === 0 && !showPurchasable) 
+    ? allSkins.filter(s => !s.is_paid) 
+    : displaySkins;
 
   return (
     <div className="w-full">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
-        {displaySkins.map(skin => {
+        {actualSkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
-          const isOwned = availableSkins?.some(s => s.id === skin.id);
+          const isOwned = availableSkins?.some(s => s.id === skin.id) || !skin.is_paid;
           const isPurchasable = showPurchasable && skin.is_paid && !isOwned;
           
           return (
