@@ -41,20 +41,22 @@ const PaymentSuccess = () => {
       try {
         console.log("Vérification du paiement pour la session:", sessionId);
         
-        // Utiliser une requête directe au lieu de supabase.functions.invoke
-        const accessToken = (await supabase.auth.getSession()).data.session?.access_token;
+        // Obtenir le token d'authentification
+        const sessionResponse = await supabase.auth.getSession();
+        const accessToken = sessionResponse.data.session?.access_token;
+        
         if (!accessToken) {
           throw new Error("Token d'authentification non disponible");
         }
         
-        const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint', {
+        // Appel à l'endpoint verify-payment
+        const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/verify-payment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`
           },
           body: JSON.stringify({ 
-            path: "/verify-payment",
             sessionId
           })
         });
