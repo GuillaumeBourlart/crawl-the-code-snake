@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
@@ -35,29 +36,16 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
-  // Debug log for checking skin selector status
-  useEffect(() => {
-    console.log("SkinSelector mounted with:", {
-      user: user ? "logged in" : "not logged in",
-      availableSkins: availableSkins?.length || 0,
-      purchasableSkins: purchasableSkins?.length || 0,
-      selectedSkinId,
-      isLoading: skinsLoading
-    });
-  }, [user, availableSkins, purchasableSkins, selectedSkinId, skinsLoading]);
-
   // Determine which skins to display
   useEffect(() => {
     if (showPurchasable) {
       // For the boutique/store section
-      console.log("Setting display skins to purchasable skins:", purchasableSkins?.length || 0);
       setDisplaySkins(purchasableSkins || []);
     } else {
-      // Toujours montrer les skins gratuits
-      console.log("Setting display skins to available skins:", availableSkins?.length || 0, "or free skins");
-      setDisplaySkins(availableSkins?.length ? availableSkins : allSkins?.filter(s => !s.is_paid) || []);
+      // For the "your skins" section
+      setDisplaySkins(availableSkins || []);
     }
-  }, [availableSkins, purchasableSkins, showPurchasable, allSkins]);
+  }, [availableSkins, purchasableSkins, showPurchasable]);
 
   // Log some debug info when component mounts or dependencies change
   useEffect(() => {
@@ -93,16 +81,6 @@ const SkinSelector = ({
     return (
       <div className="w-full flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
-        <span className="ml-2 text-gray-400">Chargement des skins...</span>
-      </div>
-    );
-  }
-
-  // S'il n'y a pas de skins disponibles, afficher quand même les skins gratuits
-  if (displaySkins.length === 0 && allSkins.length === 0) {
-    return (
-      <div className="w-full text-center py-6 text-gray-400">
-        Aucun skin disponible pour le moment
       </div>
     );
   }
@@ -144,17 +122,20 @@ const SkinSelector = ({
     );
   }
 
-  // Utiliser les skins gratuits si aucun skin disponible et qu'on n'est pas dans la section achat
-  const actualSkins = (displaySkins.length === 0 && !showPurchasable) 
-    ? allSkins.filter(s => !s.is_paid) 
-    : displaySkins;
+  if (displaySkins.length === 0) {
+    return (
+      <div className="w-full text-center py-6 text-gray-400">
+        Aucun skin disponible pour le moment
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
-        {actualSkins.map(skin => {
+        {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
-          const isOwned = availableSkins?.some(s => s.id === skin.id) || !skin.is_paid;
+          const isOwned = availableSkins?.some(s => s.id === skin.id);
           const isPurchasable = showPurchasable && skin.is_paid && !isOwned;
           
           return (

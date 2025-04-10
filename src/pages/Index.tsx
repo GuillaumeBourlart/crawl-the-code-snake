@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,8 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
+  const [availableSkins, setAvailableSkins] = useState<any[]>([]);
+  const [skinLoadAttempted, setSkinLoadAttempted] = useState(false);
 
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
   
@@ -100,17 +103,29 @@ const Index = () => {
     refresh: refreshSkins
   } = useSkins();
   
+  // Only refresh skins once when the component mounts
   useEffect(() => {
-    if (profile?.pseudo && !username) {
-      console.log("Setting username from profile:", profile.pseudo);
+    if (!skinLoadAttempted) {
+      console.log("Initial skins refresh");
+      refreshSkins();
+      setSkinLoadAttempted(true);
+    }
+  }, [refreshSkins, skinLoadAttempted]);
+  
+  // Set available skins when userSkins changes
+  useEffect(() => {
+    if (userSkins && userSkins.length > 0) {
+      console.log("Setting available skins from userSkins:", userSkins.length);
+      setAvailableSkins(userSkins);
+    }
+  }, [userSkins]);
+  
+  // Set username from profile
+  useEffect(() => {
+    if (profile && profile.pseudo) {
       setUsername(profile.pseudo);
     }
-  }, [profile, username]);
-  
-  useEffect(() => {
-    console.log("Initial skins refresh");
-    refreshSkins();
-  }, [refreshSkins]);
+  }, [profile]);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -472,8 +487,7 @@ const Index = () => {
     setUsername(e.target.value);
   };
 
-  const isInitialLoading = authLoading || skinsLoading;
-  const isReady = !isInitialLoading && selectedSkinId && (userSkins?.length > 0);
+  const isLoading = authLoading || skinsLoading;
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white overflow-hidden">
@@ -499,7 +513,7 @@ const Index = () => {
                 type="text"
                 placeholder="Entrez votre pseudo"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={handleUsernameChange}
                 className="text-white bg-gray-800/80 border-gray-700 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 rounded-lg py-6"
                 maxLength={16}
                 required
@@ -517,7 +531,7 @@ const Index = () => {
             </div>
             
             <Link to="/skins" className="block bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
-              {isInitialLoading ? (
+              {isLoading ? (
                 <div className="flex justify-center py-2">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
                 </div>
@@ -541,7 +555,7 @@ const Index = () => {
             <Button
               className="w-full flex items-center justify-center px-8 py-6 text-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.02]"
               onClick={handlePlay}
-              disabled={connecting || !username.trim() || !selectedSkinId || isInitialLoading}
+              disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
             >
               {connecting ? (
                 <>
@@ -550,14 +564,6 @@ const Index = () => {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Connexion...
-                </>
-              ) : isInitialLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Chargement...
                 </>
               ) : (
                 <>
