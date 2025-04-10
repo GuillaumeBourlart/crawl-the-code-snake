@@ -16,21 +16,42 @@ serve(async (req) => {
   }
 
   try {
-    const { skinId, priceAmount, skinName } = await req.json();
+    console.log("Payment request received");
     
-    console.log("Payment request received:", { skinId, priceAmount, skinName });
+    // Verify request body
+    const body = await req.json().catch(e => {
+      console.error("Error parsing request body:", e);
+      return {};
+    });
+    
+    const { skinId, priceAmount, skinName } = body;
+    
+    console.log("Payment request details:", { skinId, priceAmount, skinName });
     
     if (!skinId || !priceAmount) {
+      console.error("Missing required parameters:", { skinId, priceAmount });
       throw new Error("Missing required parameters");
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase environment variables");
+      throw new Error("Server configuration error: Missing Supabase credentials");
+    }
+    
+    console.log("Initializing Supabase with URL:", supabaseUrl);
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Get user from auth header
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      throw new Error("Authentication required");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     
@@ -54,6 +75,7 @@ serve(async (req) => {
     });
 
     // Check if an existing Stripe customer record exists
+    console.log("Looking up Stripe customer for email:", user.email);
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     
@@ -62,6 +84,7 @@ serve(async (req) => {
       console.log("Using existing Stripe customer:", customerId);
     } else {
       // Create a new customer if one doesn't exist
+      console.log("Creating new Stripe customer for user:", user.id);
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
@@ -73,7 +96,7 @@ serve(async (req) => {
     }
 
     // Create a one-time payment session
-    console.log("Creating checkout session with price:", priceAmount);
+    console.log("Creating checkout session with price:", priceAmount, "for skin:", skinName);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card', 'google_pay'],
@@ -105,7 +128,9 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Error creating checkout session:", error.message, error.stack);
+    console.error("Error creating checkout session:", error.message);
+    console.error("Error stack:", error.stack);
+    
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

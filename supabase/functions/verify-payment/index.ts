@@ -16,11 +16,20 @@ serve(async (req) => {
   }
 
   try {
-    const { sessionId } = await req.json();
+    console.log("Payment verification request received");
+    
+    // Verify request body
+    const body = await req.json().catch(e => {
+      console.error("Error parsing request body:", e);
+      return {};
+    });
+    
+    const { sessionId } = body;
     
     console.log("Verifying payment for session:", sessionId);
     
     if (!sessionId) {
+      console.error("Missing session ID in request");
       throw new Error("Missing session ID");
     }
 
@@ -36,12 +45,24 @@ serve(async (req) => {
     });
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase environment variables");
+      throw new Error("Server configuration error: Missing Supabase credentials");
+    }
+    
+    console.log("Initializing Supabase with URL:", supabaseUrl);
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Get user from auth header
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      throw new Error("Authentication required");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     
@@ -59,6 +80,7 @@ serve(async (req) => {
     console.log("Session payment status:", session.payment_status);
 
     if (session.payment_status !== "paid") {
+      console.error("Payment not completed. Status:", session.payment_status);
       throw new Error("Payment not completed");
     }
 
@@ -79,14 +101,15 @@ serve(async (req) => {
       .eq("id", skinId)
       .single();
 
-    if (skinError || !skinData) {
+    if (skinError) {
       console.error("Skin lookup error:", skinError);
       throw new Error("Skin not found");
     }
 
-    console.log("Found skin:", skinData.name);
+    console.log("Found skin:", skinData?.name);
 
     // 1. Get the user's profile to update the skins array
+    console.log("Fetching user profile for ID:", userId);
     const { data: profileData, error: profileError } = await supabaseClient
       .from("profiles")
       .select("skins")
@@ -126,6 +149,7 @@ serve(async (req) => {
 
     // 2. Also record the purchase in the user_skins table
     // First check if we already have a record
+    console.log("Checking if user already owns skin in user_skins table");
     const { data: existingSkin, error: existingSkinError } = await supabaseClient
       .from("user_skins")
       .select("*")
@@ -156,10 +180,11 @@ serve(async (req) => {
       }
     }
 
+    console.log("Payment verification successful");
     return new Response(
       JSON.stringify({
         success: true,
-        skinName: skinData.name,
+        skinName: skinData?.name,
         skinId: skinId,
       }),
       {
@@ -168,7 +193,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error verifying payment:", error.message, error.stack);
+    console.error("Error verifying payment:", error.message);
+    console.error("Error stack:", error.stack);
+    
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
