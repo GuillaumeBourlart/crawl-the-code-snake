@@ -5,7 +5,7 @@ import { GameSkin, UserSkin } from '@/types/supabase';
 import { useAuth } from './use-auth';
 
 export const useSkins = () => {
-  const { user, signOut, supabase } = useAuth();
+  const { user, supabase } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [userSkins, setUserSkins] = useState<UserSkin[]>([]);
