@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -39,16 +40,23 @@ const PaymentSuccess = () => {
 
       try {
         console.log("Vérification du paiement pour la session:", sessionId);
-        // Nous contactons Stripe directement pour vérifier le statut de la session
-        const { data, error } = await supabase.functions.invoke("verify-payment", {
-          body: { sessionId }
+        // Utilisation d'un fetch direct pour le point de terminaison verify-payment
+        const token = await supabase.auth.getSession().then(res => res.data.session?.access_token || '');
+        
+        const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/verify-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ sessionId })
         });
 
-        if (error) {
-          console.error("Erreur lors de la vérification du paiement:", error);
-          throw new Error(`Échec de la vérification: ${error.message || JSON.stringify(error)}`);
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
         }
 
+        const data = await response.json();
         console.log("Réponse de vérification reçue:", data);
 
         if (data?.success) {
