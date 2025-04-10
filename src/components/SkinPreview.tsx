@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { GameSkin } from '@/types/supabase';
 
@@ -101,11 +100,6 @@ const SkinPreview = ({
         ctx.fill();
         
         // Calculate eye positions based on the direction of movement
-        // Place eyes based on the direction the snake is moving
-        const eyeDistance = segmentSize * 0.3;
-        const eyeSize = segmentSize * 0.15;
-        const pupilSize = eyeSize * 0.6;
-        
         // Determine the direction vector (from head to first segment)
         const nextAngle = animate ? angle + 0.2 : Math.PI / 4 + 0.2;
         const nextX = centerX + Math.cos(nextAngle) * segmentSpacing * 1.5;
@@ -124,11 +118,18 @@ const SkinPreview = ({
         const perpDirX = -normalizedDirY;
         const perpDirY = normalizedDirX;
         
-        // Eye positions
-        const leftEyeX = headX + perpDirX * eyeDistance;
-        const leftEyeY = headY + perpDirY * eyeDistance;
-        const rightEyeX = headX - perpDirX * eyeDistance;
-        const rightEyeY = headY - perpDirY * eyeDistance;
+        // Move eyes more toward front of head but keep them within the circle
+        const eyeDistance = segmentSize * 0.45; // Increased from 0.3 to 0.45
+        const eyeForwardOffset = segmentSize * 0.3; // Forward offset
+        
+        // Eye positions - more forward facing
+        const leftEyeX = headX + normalizedDirX * eyeForwardOffset + perpDirX * eyeDistance;
+        const leftEyeY = headY + normalizedDirY * eyeForwardOffset + perpDirY * eyeDistance;
+        const rightEyeX = headX + normalizedDirX * eyeForwardOffset - perpDirX * eyeDistance;
+        const rightEyeY = headY + normalizedDirY * eyeForwardOffset - perpDirY * eyeDistance;
+        
+        const eyeSize = segmentSize * 0.15;
+        const pupilSize = eyeSize * 0.6;
         
         // Eyes
         ctx.fillStyle = "#FFFFFF";
@@ -229,16 +230,17 @@ const SkinPreview = ({
         const perpDirX = -dirY;
         const perpDirY = dirX;
         
-        // Eye parameters
-        const eyeDistance = headSize * 0.25;
-        const eyeSize = headSize * 0.3;
+        // Eye parameters - moved more forward
+        const eyeDistance = headSize * 0.4; // Horizontal distance between eyes
+        const eyeForwardOffset = headSize * 0.35; // Forward offset 
+        const eyeSize = headSize * 0.2;
         const pupilSize = eyeSize * 0.5;
         
-        // Eye positions
-        const leftEyeX = headX + perpDirX * eyeDistance;
-        const leftEyeY = headY + perpDirY * eyeDistance;
-        const rightEyeX = headX - perpDirX * eyeDistance;
-        const rightEyeY = headY - perpDirY * eyeDistance;
+        // Eye positions - more forward facing
+        const leftEyeX = headX + dirX * eyeForwardOffset + perpDirX * eyeDistance/2;
+        const leftEyeY = headY + dirY * eyeForwardOffset + perpDirY * eyeDistance/2;
+        const rightEyeX = headX + dirX * eyeForwardOffset - perpDirX * eyeDistance/2;
+        const rightEyeY = headY + dirY * eyeForwardOffset - perpDirY * eyeDistance/2;
         
         // Eyes
         ctx.fillStyle = "#FFF";
