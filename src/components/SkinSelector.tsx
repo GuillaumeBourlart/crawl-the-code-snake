@@ -1,12 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
 import SkinPreview from './SkinPreview';
 import { useAuth } from '@/hooks/use-auth';
-import { Lock, CheckCircle2, RefreshCw, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Lock, CheckCircle2 } from 'lucide-react';
 
 interface SkinSelectorProps {
   onSelectSkin?: (skinId: number) => void;
@@ -31,17 +29,11 @@ const SkinSelector = ({
     selectedSkinId, 
     setSelectedSkin,
     loading: skinsLoading,
-    allSkins,
-    refresh,
-    fetchError,
-    resetSkinsState,
-    retryCount
+    allSkins
   } = useSkins();
-  const { user, authInitialized } = useAuth();
+  const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [showEmergencyReset, setShowEmergencyReset] = useState(false);
   
   // Debug log for checking skin selector status
   useEffect(() => {
@@ -50,16 +42,9 @@ const SkinSelector = ({
       availableSkins: availableSkins?.length || 0,
       purchasableSkins: purchasableSkins?.length || 0,
       selectedSkinId,
-      isLoading: skinsLoading,
-      hasError: !!fetchError,
-      retryCount
+      isLoading: skinsLoading
     });
-    
-    // Show emergency reset button if we've retried too many times
-    if (retryCount > 3) {
-      setShowEmergencyReset(true);
-    }
-  }, [user, availableSkins, purchasableSkins, selectedSkinId, skinsLoading, fetchError, retryCount]);
+  }, [user, availableSkins, purchasableSkins, selectedSkinId, skinsLoading]);
 
   // Determine which skins to display
   useEffect(() => {
@@ -74,21 +59,17 @@ const SkinSelector = ({
     }
   }, [availableSkins, purchasableSkins, showPurchasable, allSkins]);
 
-  // Add handler for tab visibility changes
+  // Log some debug info when component mounts or dependencies change
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && (skinsLoading || fetchError)) {
-        console.log("Tab became visible in SkinSelector, refreshing if needed");
-        handleRetry();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [skinsLoading, fetchError]);
+    console.log("SkinSelector: Update", { 
+      availableSkins: availableSkins?.length || 0,
+      purchasableSkins: purchasableSkins?.length || 0,
+      displaySkins: displaySkins.length,
+      selectedSkinId,
+      showPurchasable,
+      allSkins: allSkins?.length || 0
+    });
+  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable, allSkins]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -108,66 +89,6 @@ const SkinSelector = ({
     }
   };
 
-  const handleRetry = () => {
-    setIsRetrying(true);
-    refresh();
-    setTimeout(() => setIsRetrying(false), 1000);
-  };
-
-  const handleEmergencyReset = () => {
-    setIsRetrying(true);
-    resetSkinsState();
-    setTimeout(() => {
-      setIsRetrying(false);
-      setShowEmergencyReset(false);
-    }, 1500);
-  };
-
-  // Wait for auth to initialize before rendering
-  if (!authInitialized) {
-    return (
-      <div className="w-full flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
-        <span className="ml-2 text-gray-400">Initialisation...</span>
-      </div>
-    );
-  }
-
-  if (fetchError) {
-    return (
-      <div className="w-full flex flex-col items-center py-8 gap-4">
-        <div className="text-red-400 flex items-center">
-          <AlertTriangle className="h-5 w-5 mr-2" />
-          Erreur de chargement des skins
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleRetry} 
-            variant="outline" 
-            size="sm"
-            disabled={isRetrying}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
-            Réessayer
-          </Button>
-          
-          {showEmergencyReset && (
-            <Button 
-              onClick={handleEmergencyReset}
-              variant="destructive"
-              size="sm"
-              disabled={isRetrying}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
-              Réinitialiser
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   if (skinsLoading) {
     return (
       <div className="w-full flex justify-center py-8">
@@ -182,16 +103,6 @@ const SkinSelector = ({
     return (
       <div className="w-full text-center py-6 text-gray-400">
         Aucun skin disponible pour le moment
-        <Button 
-          onClick={handleRetry} 
-          variant="outline" 
-          size="sm"
-          className="mt-4 mx-auto block"
-          disabled={isRetrying}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
-          Actualiser
-        </Button>
       </div>
     );
   }
@@ -292,7 +203,7 @@ const SkinSelector = ({
                 
                 {skin.is_paid && (
                   <div className="text-xs text-indigo-300 font-semibold mt-1">
-                    {isOwned ? 'Acheté' : `${skin.price} €`}
+                    {isOwned ? 'Purchased' : `${skin.price} €`}
                   </div>
                 )}
                 
@@ -307,7 +218,7 @@ const SkinSelector = ({
                         handlePurchase(skin);
                       }}
                     >
-                      Acheter
+                      Buy
                     </Button>
                   </div>
                 )}
