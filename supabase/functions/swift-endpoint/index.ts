@@ -4,17 +4,27 @@ import Stripe from "https://esm.sh/stripe?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js?target=deno";
 
 // Récupération des variables d'environnement
-const supabaseUrl = Deno.env.get("SB_URL");
-const supabaseAnonKey = Deno.env.get("SB_ANON_KEY");
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL");
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_ANON_KEY");
 const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
+// Log détaillé pour voir quelles variables d'environnement sont définies
 console.log("Initialisation de swift-endpoint avec les variables d'environnement:", {
   supabaseUrl: supabaseUrl ? "défini" : "non défini",
   supabaseAnonKey: supabaseAnonKey ? "défini" : "non défini",
   stripeSecretKey: stripeSecretKey ? "défini" : "non défini",
   stripeWebhookSecret: stripeWebhookSecret ? "défini" : "non défini"
 });
+
+// Vérification des variables essentielles
+if (!supabaseUrl || !supabaseAnonKey || !stripeSecretKey) {
+  console.error("Variables d'environnement manquantes. Assurez-vous que les suivantes sont définies:");
+  console.error("- SUPABASE_URL ou SB_URL");
+  console.error("- SUPABASE_ANON_KEY ou SB_ANON_KEY");
+  console.error("- STRIPE_SECRET_KEY");
+  console.error("Le webhook nécessite également STRIPE_WEBHOOK_SECRET pour la vérification de signature");
+}
 
 const stripe = new Stripe(stripeSecretKey, { apiVersion: "2022-11-15" });
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -39,32 +49,57 @@ serve(async (req) => {
   // --- Endpoint Webhook Stripe ---
   // Doit être appelé via https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/webhook-stripe
   if (pathname.includes("/webhook-stripe")) {
+    console.log("Traitement d'un webhook Stripe");
+    
     const sig = req.headers.get("stripe-signature");
+    if (!sig) {
+      console.error("Signature Stripe manquante dans l'en-tête");
+      return new Response("Signature manquante", { status: 400, headers: corsHeaders });
+    }
+    
     const body = await req.text();
     let event;
+    
     try {
+      console.log("Vérification de la signature du webhook avec le secret...");
       event = stripe.webhooks.constructEvent(body, sig, stripeWebhookSecret);
+      console.log("Événement Stripe validé:", event.type);
     } catch (err) {
-      console.error("Webhook signature verification failed:", err.message);
-      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+      console.error("Échec de la vérification de la signature du webhook:", err.message);
+      return new Response(`Erreur de webhook: ${err.message}`, { status: 400, headers: corsHeaders });
     }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      console.log("Session de paiement complétée:", session.id);
+      console.log("Métadonnées de la session:", session.metadata);
+      
       const { user_id, skin_id } = session.metadata;
+      if (!user_id || !skin_id) {
+        console.error("Métadonnées user_id ou skin_id manquantes dans la session");
+        return new Response("Métadonnées incomplètes", { status: 400, headers: corsHeaders });
+      }
+      
       // Met à jour la table user_skins sur Supabase
+      console.log(`Enregistrement de l'achat: skin ${skin_id} pour l'utilisateur ${user_id}`);
       const { error } = await supabase.from("user_skins").insert({
         user_id,
         skin_id,
         purchase_date: new Date().toISOString(),
         transaction_id: session.id
       });
+      
       if (error) {
         console.error("Erreur insertion user_skins:", error);
+        return new Response(`Erreur de base de données: ${error.message}`, { 
+          status: 500, 
+          headers: corsHeaders 
+        });
       } else {
-        console.log(`Skin ${skin_id} acheté par ${user_id} enregistré.`);
+        console.log(`Skin ${skin_id} acheté par ${user_id} enregistré avec succès.`);
       }
     }
+    
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -83,6 +118,7 @@ serve(async (req) => {
       }
       
       const token = authHeader.replace("Bearer ", "");
+      console.log("Vérification du token d'authentification...");
       const { data: userData, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !userData.user) {
@@ -105,6 +141,11 @@ serve(async (req) => {
       if (!skinId) {
         console.error("ID du skin manquant");
         throw new Error("ID du skin requis");
+      }
+
+      if (!priceAmount || isNaN(priceAmount)) {
+        console.error("Prix invalide:", priceAmount);
+        throw new Error("Prix valide requis");
       }
 
       // Vérifier si l'utilisateur a déjà un customer Stripe

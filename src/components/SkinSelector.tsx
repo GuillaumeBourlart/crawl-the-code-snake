@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
@@ -37,7 +38,7 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
-  // Determine which skins to display
+  // Determine which skins to display - FIXED to prevent infinite loop
   useEffect(() => {
     if (showPurchasable) {
       // For the boutique/store section - show all paid skins
@@ -46,9 +47,9 @@ const SkinSelector = ({
       // For the free skins section - show only free skins
       setDisplaySkins(freeSkins || []);
     }
-  }, [freeSkins, allSkins, showPurchasable]);
+  }, [showPurchasable, allSkins, freeSkins]); // Only depend on these props, not on displaySkins
 
-  // Log some debug info when component mounts or dependencies change
+  // Log debug info when specific dependencies change (not on every render)
   useEffect(() => {
     console.log("SkinSelector: Update", { 
       availableSkins: availableSkins?.length || 0,
@@ -60,7 +61,7 @@ const SkinSelector = ({
       ownedSkinIds: ownedSkinIds,
       freeSkins: freeSkins?.length || 0
     });
-  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable, allSkins, ownedSkinIds, freeSkins]);
+  }, [availableSkins?.length, purchasableSkins?.length, displaySkins.length, selectedSkinId, showPurchasable, allSkins?.length, ownedSkinIds?.length, freeSkins?.length]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
