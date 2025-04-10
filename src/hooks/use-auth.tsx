@@ -72,20 +72,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         console.log("Profile insertion response:", insertData);
         
-        // Fetch the newly created profile to ensure we have the server-generated values
-        const { data: newData, error: refetchError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
+        if (insertData && insertData.length > 0) {
+          console.log("Using inserted profile data:", insertData[0]);
+          setProfile(insertData[0] as Profile);
+        } else {
+          // Fetch the newly created profile to ensure we have the server-generated values
+          const { data: newData, error: refetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+            
+          if (refetchError) {
+            console.error('Error fetching created profile:', refetchError);
+            throw refetchError;
+          }
           
-        if (refetchError) {
-          console.error('Error fetching created profile:', refetchError);
-          throw refetchError;
+          console.log("New profile created and fetched:", newData);
+          setProfile(newData as Profile);
         }
-        
-        console.log("New profile created and fetched:", newData);
-        setProfile(newData as Profile);
       } else {
         // Profile successfully fetched
         console.log("Profile retrieved:", data);
@@ -106,10 +111,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     const getSession = async () => {
       try {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
         
         if (session?.user) {
           console.log("Session found with user:", session.user.id);
@@ -122,7 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Session retrieval error:", error);
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -131,6 +142,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
+        
+        if (!isMounted) return;
         
         if (event === 'SIGNED_IN' && session?.user) {
           console.log("User signed in:", session.user.id);
@@ -148,12 +161,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signInWithGoogle = async () => {
     try {
+      setLoading(true);
       console.log("Attempting to sign in with Google...");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -170,6 +185,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
+      setLoading(false);
     }
   };
 

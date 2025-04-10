@@ -32,15 +32,21 @@ const SkinSelector = ({
   } = useSkins();
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
+  const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
   useEffect(() => {
     console.log("SkinSelector: selectedSkinId =", selectedSkinId);
-  }, [selectedSkinId]);
-
-  // Determine which skins to display
-  const displaySkins = showPurchasable 
-    ? [...availableSkins, ...purchasableSkins]
-    : availableSkins;
+    console.log("SkinSelector: availableSkins =", availableSkins?.length || 0);
+    console.log("SkinSelector: purchasableSkins =", purchasableSkins?.length || 0);
+    console.log("SkinSelector: showPurchasable =", showPurchasable);
+    
+    // Determine which skins to display
+    if (showPurchasable) {
+      setDisplaySkins([...(availableSkins || []), ...(purchasableSkins || [])]);
+    } else {
+      setDisplaySkins([...(availableSkins || [])]);
+    }
+  }, [availableSkins, purchasableSkins, showPurchasable, selectedSkinId]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -66,7 +72,7 @@ const SkinSelector = ({
         <div className="flex flex-col space-y-2">
           {displaySkins.map(skin => {
             const isSelected = skin.id === selectedSkinId;
-            const isOwned = availableSkins.some(s => s.id === skin.id);
+            const isOwned = availableSkins?.some(s => s.id === skin.id);
             const isPurchasable = !isOwned && skin.is_paid;
             
             return (
@@ -102,7 +108,7 @@ const SkinSelector = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;
-          const isOwned = availableSkins.some(s => s.id === skin.id);
+          const isOwned = availableSkins?.some(s => s.id === skin.id);
           const isPurchasable = !isOwned && skin.is_paid;
           
           return (

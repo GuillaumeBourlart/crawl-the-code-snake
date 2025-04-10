@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
@@ -24,6 +25,7 @@ export const useSkins = () => {
   const [userSkins, setUserSkins] = useState<UserSkin[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
@@ -47,48 +49,7 @@ export const useSkins = () => {
     skin.is_paid && !ownedSkinIds.has(skin.id)
   );
 
-  // Load all skins and then fetch saved skin from localStorage
-  useEffect(() => {
-    const loadInitialData = async () => {
-      await fetchAllSkins();
-      
-      // After skins are loaded, check localStorage
-      const savedSkinId = localStorage.getItem('selected_skin_id');
-      if (savedSkinId) {
-        const parsedId = parseInt(savedSkinId, 10);
-        setSelectedSkinId(parsedId);
-        console.log("Loaded selected skin ID from localStorage:", parsedId);
-      }
-    };
-    
-    loadInitialData();
-  }, []);
-
-  // Load user-specific skins and default skin when user state changes
-  useEffect(() => {
-    if (user) {
-      const loadUserData = async () => {
-        await fetchUserSkins();
-        await fetchUserDefaultSkin();
-      };
-      loadUserData();
-    } else {
-      setUserSkins([]);
-    }
-  }, [user]);
-
-  // Select the first available skin if none is selected and skins are loaded
-  useEffect(() => {
-    if ((!selectedSkinId || !allSkins.find(skin => skin.id === selectedSkinId)) && 
-        availableSkins.length > 0 && 
-        !loading) {
-      console.log("No skin selected, selecting first available:", availableSkins[0].id);
-      setSelectedSkinId(availableSkins[0].id);
-      localStorage.setItem('selected_skin_id', availableSkins[0].id.toString());
-    }
-  }, [availableSkins, selectedSkinId, loading]);
-
-  const fetchAllSkins = async () => {
+  const fetchAllSkins = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -106,9 +67,9 @@ export const useSkins = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
-  const fetchUserSkins = async () => {
+  const fetchUserSkins = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -124,9 +85,9 @@ export const useSkins = () => {
       console.error('Error fetching user skins:', error);
       toast.error('Failed to load your skins');
     }
-  };
+  }, [user, supabase]);
 
-  const fetchUserDefaultSkin = async () => {
+  const fetchUserDefaultSkin = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -148,7 +109,52 @@ export const useSkins = () => {
     } catch (error) {
       console.error('Error fetching default skin:', error);
     }
-  };
+  }, [user, supabase]);
+
+  // Initial load of skins
+  useEffect(() => {
+    if (!initialLoadDone) {
+      const loadInitialData = async () => {
+        await fetchAllSkins();
+        
+        // After skins are loaded, check localStorage
+        const savedSkinId = localStorage.getItem('selected_skin_id');
+        if (savedSkinId) {
+          const parsedId = parseInt(savedSkinId, 10);
+          setSelectedSkinId(parsedId);
+          console.log("Loaded selected skin ID from localStorage:", parsedId);
+        }
+        
+        setInitialLoadDone(true);
+      };
+      
+      loadInitialData();
+    }
+  }, [fetchAllSkins, initialLoadDone]);
+
+  // Load user-specific skins when user state changes
+  useEffect(() => {
+    if (user && initialLoadDone) {
+      const loadUserData = async () => {
+        await fetchUserSkins();
+        await fetchUserDefaultSkin();
+      };
+      loadUserData();
+    } else if (!user) {
+      setUserSkins([]);
+    }
+  }, [user, fetchUserSkins, fetchUserDefaultSkin, initialLoadDone]);
+
+  // Select the first available skin if none is selected and skins are loaded
+  useEffect(() => {
+    if ((!selectedSkinId || !allSkins.find(skin => skin.id === selectedSkinId)) && 
+        availableSkins.length > 0 && 
+        !loading) {
+      console.log("No skin selected, selecting first available:", availableSkins[0].id);
+      setSelectedSkinId(availableSkins[0].id);
+      localStorage.setItem('selected_skin_id', availableSkins[0].id.toString());
+    }
+  }, [availableSkins, selectedSkinId, loading, allSkins]);
 
   const setSelectedSkin = async (skinId: number) => {
     // Check if the skin is available for the user
@@ -188,6 +194,15 @@ export const useSkins = () => {
     return allSkins.find(skin => skin.id === id) || null;
   };
 
+  const refresh = useCallback(() => {
+    console.log("Refreshing skins data");
+    fetchAllSkins();
+    if (user) {
+      fetchUserSkins();
+      fetchUserDefaultSkin();
+    }
+  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user]);
+
   return {
     allSkins,
     freeSkins,
@@ -199,13 +214,6 @@ export const useSkins = () => {
     setSelectedSkin,
     loading,
     getSkinById,
-    refresh: () => {
-      console.log("Refreshing skins data");
-      fetchAllSkins();
-      if (user) {
-        fetchUserSkins();
-        fetchUserDefaultSkin();
-      }
-    }
+    refresh
   };
 };
