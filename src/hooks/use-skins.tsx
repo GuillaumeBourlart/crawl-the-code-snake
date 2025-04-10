@@ -168,6 +168,7 @@ export const useSkins = () => {
     }
   }, [user, fetchUserDefaultSkin]);
 
+  // Cette fonction garantit qu'un seul skin est sélectionné à la fois
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
@@ -186,6 +187,7 @@ export const useSkins = () => {
     }
     
     console.log("Setting selected skin to:", skinId);
+    // Cette ligne est cruciale - elle désélectionne tout skin précédent en définissant le nouveau
     setSelectedSkinId(skinId);
     
     localStorage.setItem('selected_skin_id', skinId.toString());

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -144,8 +143,10 @@ const SkinsPage = () => {
     }
   };
 
+  // Cette fonction garantit qu'un seul skin est sélectionné à la fois
   const handleSkinSelectAndSave = (skinId: number) => {
     console.log("Selecting skin in SkinsPage:", skinId);
+    // Cette fonction setSelectedSkin du hook use-skins va désélectionner tout autre skin
     setSelectedSkin(skinId);
     toast.success("Skin sélectionné !");
   };

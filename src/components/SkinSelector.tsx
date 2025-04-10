@@ -69,7 +69,7 @@ const SkinSelector = ({
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
     
-    // First set the selected skin in the hook
+    // First set the selected skin in the hook - this will deselect any previously selected skin
     setSelectedSkin(skinId);
     
     // Then call the onSelectSkin callback if provided
