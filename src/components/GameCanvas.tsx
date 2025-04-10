@@ -591,14 +591,7 @@ const GameCanvas = ({
         }
       }
       
-      const eyeGradient = ctx.createRadialGradient(
-        leftEyeX, leftEyeY, eyeSize * 0.2,
-        leftEyeX, leftEyeY, eyeSize
-      );
-      eyeGradient.addColorStop(0, "#FFFFFF");
-      eyeGradient.addColorStop(1, "#F0F0F0");
-      
-      ctx.fillStyle = eyeGradient;
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
       ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
@@ -609,14 +602,7 @@ const GameCanvas = ({
       ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
       ctx.stroke();
       
-      const rightEyeGradient = ctx.createRadialGradient(
-        rightEyeX, rightEyeY, eyeSize * 0.2,
-        rightEyeX, rightEyeY, eyeSize
-      );
-      rightEyeGradient.addColorStop(0, "#FFFFFF");
-      rightEyeGradient.addColorStop(1, "#F0F0F0");
-      
-      ctx.fillStyle = rightEyeGradient;
+      ctx.fillStyle = "#FFFFFF";
       ctx.beginPath();
       ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
       ctx.fill();
@@ -645,38 +631,27 @@ const GameCanvas = ({
         ctx.closePath();
         ctx.fill();
       } else {
-        const pupilGradient = ctx.createRadialGradient(
-          leftEyeX + pupilOffsetX, leftEyeY + pupilOffsetY, 0,
-          leftEyeX + pupilOffsetX, leftEyeY + pupilOffsetY, pupilSize
-        );
-        pupilGradient.addColorStop(0, "#000000");
-        pupilGradient.addColorStop(1, "#111111");
-        
-        ctx.fillStyle = pupilGradient;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
         ctx.arc(leftEyeX + pupilOffsetX, leftEyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
         
-        const rightPupilGradient = ctx.createRadialGradient(
-          rightEyeX + pupilOffsetX, rightEyeY + pupilOffsetY, 0,
-          rightEyeX + pupilOffsetX, rightEyeY + pupilOffsetY, pupilSize
-        );
-        rightPupilGradient.addColorStop(0, "#000000");
-        rightPupilGradient.addColorStop(1, "#111111");
-        
-        ctx.fillStyle = rightPupilGradient;
+        ctx.fillStyle = "#000000";
         ctx.beginPath();
         ctx.arc(rightEyeX + pupilOffsetX, rightEyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
         ctx.fill();
       }
       
-      const highlightSize = eyeSize * 0.4;
+      const highlightSize = eyeSize * 0.3;
+      const highlightOffsetX = -pupilSize * 0.5;
+      const highlightOffsetY = -pupilSize * 0.5;
+      
       ctx.fillStyle = "#FFFFFF";
       
       ctx.beginPath();
       ctx.arc(
-        leftEyeX + pupilOffsetX - eyeSize * 0.25, 
-        leftEyeY + pupilOffsetY - eyeSize * 0.25, 
+        leftEyeX + pupilOffsetX + highlightOffsetX, 
+        leftEyeY + pupilOffsetY + highlightOffsetY, 
         highlightSize, 
         0, Math.PI * 2
       );
@@ -684,8 +659,8 @@ const GameCanvas = ({
       
       ctx.beginPath();
       ctx.arc(
-        rightEyeX + pupilOffsetX - eyeSize * 0.25, 
-        rightEyeY + pupilOffsetY - eyeSize * 0.25, 
+        rightEyeX + pupilOffsetX + highlightOffsetX, 
+        rightEyeY + pupilOffsetY + highlightOffsetY, 
         highlightSize, 
         0, Math.PI * 2
       );
