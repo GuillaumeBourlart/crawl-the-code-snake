@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -64,8 +65,8 @@ const SkinsPage = () => {
         throw new Error("Token d'authentification non disponible");
       }
       
-      // CORRECTION: Utilisation de l'URL complète avec le bon point d'accès
-      const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint/create-checkout-session', {
+      // Utilisation du nouvel endpoint dédié à la création de sessions de paiement
+      const response = await fetch('https://ckvbjbclofykscigudjs.supabase.co/functions/v1/create-checkout-session-ts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ const SkinsPage = () => {
       }
       
       const data = await response.json();
-      console.log("Réponse reçue de create-checkout-session:", data);
+      console.log("Réponse reçue de create-checkout-session-ts:", data);
       
       if (!data) {
         console.error("Réponse vide du serveur");

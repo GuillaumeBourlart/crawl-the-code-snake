@@ -38,10 +38,10 @@ const PaymentSuccess = () => {
       }
 
       try {
-        console.log("Stripe a redirigé vers la page de succès, considérant l'achat comme réussi");
+        console.log("Paiement confirmé par Stripe (redirection vers URL de succès)");
         
-        // Pas besoin de vérifier le paiement via un appel API
-        // Si Stripe a redirigé vers cette page, c'est que le paiement a été accepté
+        // La vérification du paiement est maintenant gérée par le webhook Stripe
+        // Nous n'avons plus besoin d'appeler un endpoint de vérification
         
         // Rafraîchir la liste des skins pour afficher le nouveau skin acheté
         await refresh();
