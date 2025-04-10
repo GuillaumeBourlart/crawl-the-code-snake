@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -15,6 +14,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
+  forceSignOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,18 +44,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        // If error is not 'no rows returned', it's a real error
         if (error.code !== 'PGRST116') {
           console.error('Database error fetching profile:', error);
           throw error;
         }
         
-        // No profile found, create a new one
         console.log("No profile found, creating new profile for user:", userId);
         const newProfile: Profile = {
           id: userId,
           pseudo: `Player_${Math.floor(Math.random() * 10000)}`,
-          skins: [], // Initialize with empty skins array
+          skins: [],
           created_at: new Date().toISOString()
         };
         
@@ -76,7 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log("Using inserted profile data:", insertData[0]);
           setProfile(insertData[0] as Profile);
         } else {
-          // Fetch the newly created profile to ensure we have the server-generated values
           const { data: newData, error: refetchError } = await supabase
             .from('profiles')
             .select('*')
@@ -92,7 +89,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(newData as Profile);
         }
       } else {
-        // Profile successfully fetched
         console.log("Profile retrieved:", data);
         setProfile(data as Profile);
       }
@@ -100,7 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Critical error handling profile:', error);
       toast.error('Problème de connexion au profil');
       
-      // Critical failure, sign out the user
       await signOut();
     } finally {
       setProfileFetchAttempted(true);
@@ -114,7 +109,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear user data
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
@@ -124,7 +118,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error signing out:', error);
       toast.error('Échec de déconnexion');
       
-      // Force reset the state even if sign out failed
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forceSignOut = async () => {
+    try {
+      console.log("Force signing out user");
+      setLoading(true);
+      await supabase.auth.signOut();
+      
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+    } catch (error) {
+      console.error('Error force signing out:', error);
+      
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
@@ -156,7 +169,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Session retrieval error:", error);
         if (isMounted) {
           setLoading(false);
-          // If there's an error getting the session, force sign out
           signOut();
         }
       }
@@ -173,7 +185,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (event === 'SIGNED_IN' && session?.user) {
           console.log("User signed in:", session.user.id);
           setUser(session.user);
-          setProfileFetchAttempted(false); // Reset to allow fetch on new sign in
+          setProfileFetchAttempted(false);
           await fetchProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
@@ -206,7 +218,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log("SignInWithGoogle response:", data);
-
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
@@ -243,6 +254,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         loading,
         updateProfile,
+        forceSignOut,
       }}
     >
       {children}

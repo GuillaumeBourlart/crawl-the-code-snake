@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
@@ -36,13 +35,26 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   
+  // Debug log for checking skin selector status
+  useEffect(() => {
+    console.log("SkinSelector mounted with:", {
+      user: user ? "logged in" : "not logged in",
+      availableSkins: availableSkins?.length || 0,
+      purchasableSkins: purchasableSkins?.length || 0,
+      selectedSkinId,
+      isLoading: skinsLoading
+    });
+  }, [user, availableSkins, purchasableSkins, selectedSkinId, skinsLoading]);
+
   // Determine which skins to display
   useEffect(() => {
     if (showPurchasable) {
       // For the boutique/store section
+      console.log("Setting display skins to purchasable skins:", purchasableSkins?.length || 0);
       setDisplaySkins(purchasableSkins || []);
     } else {
       // For the "your skins" section
+      console.log("Setting display skins to available skins:", availableSkins?.length || 0);
       setDisplaySkins(availableSkins || []);
     }
   }, [availableSkins, purchasableSkins, showPurchasable]);
@@ -81,6 +93,7 @@ const SkinSelector = ({
     return (
       <div className="w-full flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
+        <span className="ml-2 text-gray-400">Chargement des skins...</span>
       </div>
     );
   }

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +92,7 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  const { user, profile, loading: authLoading, updateProfile } = useAuth();
+  const { user, profile, loading: authLoading, updateProfile, forceSignOut } = useAuth();
   const { 
     selectedSkin, 
     selectedSkinId, 
@@ -103,7 +102,21 @@ const Index = () => {
     refresh: refreshSkins
   } = useSkins();
   
-  // Only refresh skins once when the component mounts
+  useEffect(() => {
+    console.log("Index mounted, forcing sign out");
+    const performInitialSignOut = async () => {
+      await forceSignOut();
+      console.log("Initial sign out completed");
+      if (!skinLoadAttempted) {
+        console.log("Refreshing skins after sign out");
+        refreshSkins();
+        setSkinLoadAttempted(true);
+      }
+    };
+    
+    performInitialSignOut();
+  }, [forceSignOut]);
+  
   useEffect(() => {
     if (!skinLoadAttempted) {
       console.log("Initial skins refresh");
@@ -111,21 +124,6 @@ const Index = () => {
       setSkinLoadAttempted(true);
     }
   }, [refreshSkins, skinLoadAttempted]);
-  
-  // Set available skins when userSkins changes
-  useEffect(() => {
-    if (userSkins && userSkins.length > 0) {
-      console.log("Setting available skins from userSkins:", userSkins.length);
-      setAvailableSkins(userSkins);
-    }
-  }, [userSkins]);
-  
-  // Set username from profile
-  useEffect(() => {
-    if (profile && profile.pseudo) {
-      setUsername(profile.pseudo);
-    }
-  }, [profile]);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
