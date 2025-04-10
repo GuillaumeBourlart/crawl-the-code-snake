@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -54,6 +55,7 @@ const SkinsPage = () => {
     try {
       setIsProcessing(true);
       
+      // Using the edge function to create a checkout session
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { 
           skinId: skin.id,
