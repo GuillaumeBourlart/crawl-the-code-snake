@@ -13,7 +13,6 @@ interface SkinSelectorProps {
   showPreview?: boolean;
   previewPattern?: 'circular' | 'snake';
   simpleMode?: boolean; // Add simple mode for just showing names in a list
-  unifiedView?: boolean; // New prop to enable unified view
 }
 
 const SkinSelector = ({ 
@@ -21,8 +20,7 @@ const SkinSelector = ({
   onPurchase,
   showPreview = true,
   previewPattern = 'circular',
-  simpleMode = false,
-  unifiedView = false
+  simpleMode = false
 }: SkinSelectorProps) => {
   const { 
     allSkins, 

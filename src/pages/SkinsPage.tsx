@@ -169,7 +169,7 @@ const SkinsPage = () => {
 
   const isLoading = authLoading || skinsLoading;
 
-  // Affichage unifié des skins
+  // Unified view for all skins
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">
@@ -230,7 +230,6 @@ const SkinsPage = () => {
               onPurchase={handlePurchase}
               showPreview={true}
               previewPattern="snake"
-              unifiedView={true}
             />
           </ScrollArea>
         )}
