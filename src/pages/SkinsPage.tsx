@@ -32,6 +32,18 @@ const SkinsPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
+  // Log important state at render time
+  console.log("SkinsPage - Render state:", {
+    user: !!user,
+    profile: !!profile,
+    skinsLoading,
+    authLoading,
+    fetchError: fetchError ? fetchError.message : null,
+    freeSkins: freeSkins?.length || 0,
+    availableSkins: availableSkins?.length || 0,
+    purchasableSkins: purchasableSkins?.length || 0
+  });
+
   useEffect(() => {
     if (!hasAttemptedRefresh) {
       console.log("SkinsPage mounted, refreshing skins");
@@ -42,7 +54,11 @@ const SkinsPage = () => {
 
   useEffect(() => {
     if (fetchError) {
-      console.error("Fetch error:", fetchError);
+      console.error("Fetch error details:", {
+        message: fetchError.message,
+        name: fetchError.name,
+        stack: fetchError.stack
+      });
       toast.error("Erreur de chargement des données. Veuillez réessayer.");
     }
   }, [fetchError]);

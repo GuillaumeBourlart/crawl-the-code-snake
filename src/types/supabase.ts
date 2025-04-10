@@ -1,3 +1,4 @@
+
 export interface Profile {
   id: string;
   pseudo: string;
@@ -17,6 +18,7 @@ export interface GameSkin {
     pattern?: string;
     segmentSpacing?: number;
   };
+  stripe_product_id?: string; // Added this field to match database structure
   created_at: string;
   updated_at: string;
 }

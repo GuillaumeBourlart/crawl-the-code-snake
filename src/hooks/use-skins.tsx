@@ -39,6 +39,7 @@ export const useSkins = () => {
         const skinIds = Array.isArray(profile.skins) 
           ? profile.skins.map(skin => typeof skin === 'number' ? skin : Number(skin))
           : [];
+        console.log("Extracted skin IDs from profile:", skinIds);
         setOwnedSkinIds(skinIds);
         setProfileSkinsProcessed(true);
       } catch (error) {
@@ -46,6 +47,7 @@ export const useSkins = () => {
       }
     } else if (!profile) {
       // Reset when profile is not available
+      console.log("No profile available, resetting profileSkinsProcessed");
       setProfileSkinsProcessed(false);
     }
   }, [profile, profileSkinsProcessed]);
@@ -74,21 +76,33 @@ export const useSkins = () => {
       setFetchError(null);
       console.log("Fetching all skins...");
       
+      // Log the exact query we're about to make
+      console.log("Query: supabase.from('game_skins').select('*')");
+      
       const { data, error } = await supabase
         .from('game_skins')
         .select('*')
         .order('is_paid', { ascending: true })
         .order('id', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error fetching skins:", error);
+        throw error;
+      }
       
-      console.log("Fetched all skins:", data.length);
+      console.log("Fetched all skins, response data:", data);
+      
+      // Check the structure of the first skin to verify field names
+      if (data && data.length > 0) {
+        console.log("First skin data structure:", JSON.stringify(data[0], null, 2));
+      }
+      
       setAllSkins(data as GameSkin[]);
       setSkinsLoaded(true);
     } catch (error: any) {
       console.error('Error fetching skins:', error);
       setFetchError(error);
-      toast.error('Failed to load skins');
+      toast.error('Erreur de chargement des skins');
     } finally {
       setLoading(false);
     }
@@ -113,6 +127,7 @@ export const useSkins = () => {
     }
   }, [allSkins, selectedSkinId]);
 
+  // Fetch user's default skin
   const fetchUserDefaultSkin = useCallback(async () => {
     if (!user) return;
     
@@ -126,7 +141,12 @@ export const useSkins = () => {
         .eq('id', user.id)
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching user default skin:", error);
+        throw error;
+      }
+      
+      console.log("User profile data:", data);
       
       if (data && data.default_skin_id) {
         console.log("Found user default skin in profile:", data.default_skin_id);
@@ -178,7 +198,10 @@ export const useSkins = () => {
           .update({ default_skin_id: skinId })
           .eq('id', user.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating default skin in profile:', error);
+          throw error;
+        }
         toast.success("Skin enregistré dans votre profil");
       } catch (error) {
         console.error('Error updating default skin:', error);
