@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -19,8 +18,12 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create Supabase client instance outside the component to avoid recreating it
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase client instance with persistSession: false
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false // Disable session persistence across tabs/refreshes
+  }
+});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
