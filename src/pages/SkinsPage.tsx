@@ -10,6 +10,7 @@ import { ArrowLeft, ShoppingCart, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const stripePromise = loadStripe("pk_test_your_stripe_key");
 
@@ -48,7 +49,7 @@ const SkinsPage = () => {
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
-      toast.error("Please sign in to purchase skins");
+      toast.error("Veuillez vous connecter pour acheter des skins");
       return;
     }
 
@@ -68,11 +69,11 @@ const SkinsPage = () => {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error("No checkout URL returned");
+        throw new Error("Pas d'URL de paiement retournée");
       }
     } catch (error) {
       console.error("Error creating checkout session:", error);
-      toast.error("Failed to process payment");
+      toast.error("Échec de traitement du paiement");
     } finally {
       setIsProcessing(false);
     }
@@ -152,11 +153,18 @@ const SkinsPage = () => {
               </p>
               
               <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
-                <SkinSelector 
-                  onSelectSkin={handleSkinSelectAndSave}
-                  showPreview={true}
-                  previewPattern="snake"
-                />
+                {availableSkins && availableSkins.length > 0 ? (
+                  <SkinSelector 
+                    onSelectSkin={handleSkinSelectAndSave}
+                    showPreview={true}
+                    previewPattern="snake"
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">Vous n'avez pas encore de skins disponibles</p>
+                    <p className="text-sm text-indigo-300 mt-2">Consultez la boutique ci-dessous</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -181,13 +189,20 @@ const SkinsPage = () => {
               )}
               
               <div className="rounded-xl p-6 border border-gray-800 shadow-xl">
-                <SkinSelector 
-                  showPurchasable={true} 
-                  onPurchase={handlePurchase}
-                  onSelectSkin={handleSkinSelectAndSave}
-                  showPreview={true}
-                  previewPattern="snake"
-                />
+                {purchasableSkins && purchasableSkins.length > 0 ? (
+                  <SkinSelector 
+                    showPurchasable={true} 
+                    onPurchase={handlePurchase}
+                    onSelectSkin={handleSkinSelectAndSave}
+                    showPreview={true}
+                    previewPattern="snake"
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">Aucun skin premium disponible pour le moment</p>
+                    <p className="text-sm text-indigo-300 mt-2">Revenez plus tard pour de nouveaux skins</p>
+                  </div>
+                )}
               </div>
             </div>
           </>

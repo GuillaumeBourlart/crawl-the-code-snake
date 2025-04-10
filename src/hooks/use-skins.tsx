@@ -27,6 +27,7 @@ export const useSkins = () => {
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
+  const [defaultSkinLoaded, setDefaultSkinLoaded] = useState(false);
 
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
@@ -120,13 +121,15 @@ export const useSkins = () => {
         console.log("Found user default skin in profile:", data.default_skin_id);
         setSelectedSkinId(data.default_skin_id);
         localStorage.setItem('selected_skin_id', data.default_skin_id.toString());
+        setDefaultSkinLoaded(true);
       } else {
         console.log("No default skin in profile");
+        setDefaultSkinLoaded(true);
       }
     } catch (error: any) {
       console.error('Error fetching default skin:', error);
       setFetchError(error);
-      
+      setDefaultSkinLoaded(true);
       // Don't sign out here, just use local storage instead
     }
   }, [user, supabase]);
@@ -134,6 +137,7 @@ export const useSkins = () => {
   // Initial load of skins - once only
   useEffect(() => {
     if (!initialLoadDone) {
+      console.log("Initial load of skins triggered");
       fetchAllSkins().then(() => {
         setInitialLoadDone(true);
       });
@@ -142,19 +146,20 @@ export const useSkins = () => {
 
   // Load saved skin from localStorage
   useEffect(() => {
-    if (initialLoadDone && allSkins.length > 0 && !selectedSkinId) {
+    if (initialLoadDone && allSkins.length > 0 && !selectedSkinId && !defaultSkinLoaded) {
       const savedSkinId = localStorage.getItem('selected_skin_id');
       if (savedSkinId) {
         const parsedId = parseInt(savedSkinId, 10);
-        setSelectedSkinId(parsedId);
         console.log("Loaded selected skin ID from localStorage:", parsedId);
+        setSelectedSkinId(parsedId);
       }
     }
-  }, [initialLoadDone, allSkins, selectedSkinId]);
+  }, [initialLoadDone, allSkins, selectedSkinId, defaultSkinLoaded]);
 
   // Load user-specific skins when user state changes
   useEffect(() => {
     if (user && initialLoadDone) {
+      console.log("Loading user-specific skin data");
       const loadUserData = async () => {
         await fetchUserSkins();
         await fetchUserDefaultSkin();
@@ -166,21 +171,30 @@ export const useSkins = () => {
   // Select the first available skin if none is selected and skins are loaded
   useEffect(() => {
     if (initialLoadDone && allSkins.length > 0 && !loading && !selectedSkinId) {
-      const defaultSkin = availableSkins.length > 0 ? availableSkins[0].id : null;
+      const defaultSkin = allSkins.length > 0 ? allSkins[0].id : null;
       if (defaultSkin) {
         console.log("No skin selected, selecting first available:", defaultSkin);
         setSelectedSkinId(defaultSkin);
         localStorage.setItem('selected_skin_id', defaultSkin.toString());
       }
     }
-  }, [availableSkins, selectedSkinId, loading, allSkins, initialLoadDone]);
+  }, [allSkins, selectedSkinId, loading, initialLoadDone]);
 
   const setSelectedSkin = async (skinId: number) => {
+    // Check if the skin exists at all
+    const skinExists = allSkins.some(skin => skin.id === skinId);
+    
+    if (!skinExists) {
+      toast.error("Ce skin n'existe pas");
+      return;
+    }
+    
     // Check if the skin is available for the user
-    const isAvailable = availableSkins.some(skin => skin.id === skinId);
+    const isAvailable = !allSkins.find(skin => skin.id === skinId)?.is_paid || 
+                        availableSkins.some(skin => skin.id === skinId);
     
     if (!isAvailable) {
-      toast.error("You don't own this skin");
+      toast.error("Vous ne possédez pas ce skin");
       return;
     }
     
@@ -200,10 +214,10 @@ export const useSkins = () => {
           .eq('id', user.id);
           
         if (error) throw error;
-        toast.success("Skin preference saved to your profile");
+        toast.success("Skin enregistré dans votre profil");
       } catch (error) {
         console.error('Error updating default skin:', error);
-        toast.error('Failed to save skin preference');
+        toast.error('Échec de sauvegarde du skin');
       }
     }
   };
