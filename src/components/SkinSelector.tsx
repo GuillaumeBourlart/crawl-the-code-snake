@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
 import SkinPreview from './SkinPreview';
 import { useAuth } from '@/hooks/use-auth';
-import { Lock, CheckCircle2 } from 'lucide-react';
+import { Lock, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface SkinSelectorProps {
   onSelectSkin?: (skinId: number) => void;
@@ -29,11 +30,14 @@ const SkinSelector = ({
     selectedSkinId, 
     setSelectedSkin,
     loading: skinsLoading,
-    allSkins
+    allSkins,
+    refresh,
+    fetchError
   } = useSkins();
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   // Debug log for checking skin selector status
   useEffect(() => {
@@ -42,9 +46,10 @@ const SkinSelector = ({
       availableSkins: availableSkins?.length || 0,
       purchasableSkins: purchasableSkins?.length || 0,
       selectedSkinId,
-      isLoading: skinsLoading
+      isLoading: skinsLoading,
+      hasError: !!fetchError
     });
-  }, [user, availableSkins, purchasableSkins, selectedSkinId, skinsLoading]);
+  }, [user, availableSkins, purchasableSkins, selectedSkinId, skinsLoading, fetchError]);
 
   // Determine which skins to display
   useEffect(() => {
@@ -59,17 +64,21 @@ const SkinSelector = ({
     }
   }, [availableSkins, purchasableSkins, showPurchasable, allSkins]);
 
-  // Log some debug info when component mounts or dependencies change
+  // Add handler for tab visibility changes
   useEffect(() => {
-    console.log("SkinSelector: Update", { 
-      availableSkins: availableSkins?.length || 0,
-      purchasableSkins: purchasableSkins?.length || 0,
-      displaySkins: displaySkins.length,
-      selectedSkinId,
-      showPurchasable,
-      allSkins: allSkins?.length || 0
-    });
-  }, [availableSkins, purchasableSkins, displaySkins.length, selectedSkinId, showPurchasable, allSkins]);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && (skinsLoading || fetchError)) {
+        console.log("Tab became visible in SkinSelector, refreshing if needed");
+        handleRetry();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [skinsLoading, fetchError]);
 
   const handleSkinSelect = (skinId: number) => {
     console.log("SkinSelector: selecting skin", skinId);
@@ -88,6 +97,29 @@ const SkinSelector = ({
       onPurchase(skin);
     }
   };
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    refresh();
+    setTimeout(() => setIsRetrying(false), 1000);
+  };
+
+  if (fetchError) {
+    return (
+      <div className="w-full flex flex-col items-center py-8 gap-4">
+        <div className="text-red-400">Erreur de chargement des skins</div>
+        <Button 
+          onClick={handleRetry} 
+          variant="outline" 
+          size="sm"
+          disabled={isRetrying}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   if (skinsLoading) {
     return (

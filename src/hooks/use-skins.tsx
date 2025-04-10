@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
@@ -13,6 +14,7 @@ export const useSkins = () => {
   const [skinsLoaded, setSkinsLoaded] = useState(false);
   const [userSkinsLoaded, setUserSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Get the current selected skin
   const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
@@ -37,10 +39,13 @@ export const useSkins = () => {
   );
 
   const fetchAllSkins = useCallback(async () => {
+    if (isRefreshing) return;
+    
     try {
       console.log("Fetching all skins...");
       setLoading(true);
       setFetchError(null);
+      setIsRefreshing(true);
       
       const { data, error } = await supabase
         .from('game_skins')
@@ -59,19 +64,21 @@ export const useSkins = () => {
       toast.error('Failed to load skins');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, [supabase]);
+  }, [supabase, isRefreshing]);
 
   const fetchUserSkins = useCallback(async () => {
-    if (!user) {
-      console.log("No user, skipping user skins fetch");
-      setUserSkinsLoaded(true);
+    if (!user || isRefreshing) {
+      console.log("No user or already refreshing, skipping user skins fetch");
+      if (!user) setUserSkinsLoaded(true);
       return;
     }
     
     try {
       console.log("Fetching user skins for user:", user.id);
       setFetchError(null);
+      setIsRefreshing(true);
       
       const { data, error } = await supabase
         .from('user_skins')
@@ -87,18 +94,21 @@ export const useSkins = () => {
       console.error('Error fetching user skins:', error);
       setFetchError(error);
       toast.error('Failed to load your skins');
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, isRefreshing]);
 
   const fetchUserDefaultSkin = useCallback(async () => {
-    if (!user) {
-      console.log("No user, skipping default skin fetch");
+    if (!user || isRefreshing) {
+      console.log("No user or already refreshing, skipping default skin fetch");
       return;
     }
     
     try {
       setFetchError(null);
       console.log("Fetching default skin for user:", user.id);
+      setIsRefreshing(true);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -119,8 +129,10 @@ export const useSkins = () => {
       console.error('Error fetching default skin:', error);
       setFetchError(error);
       // Don't sign out here, just use local storage instead
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, isRefreshing]);
 
   // Initial load of all skins - executed once on component mount
   useEffect(() => {
@@ -156,6 +168,28 @@ export const useSkins = () => {
       setUserSkinsLoaded(true); // Mark as loaded even if we have no user
     }
   }, [user, fetchUserSkins, fetchUserDefaultSkin]);
+
+  // Add handler for tab visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Tab became visible in skins hook, refreshing data if needed");
+        
+        // If we have a stuck loading state or error, refresh data
+        if (loading || fetchError) {
+          console.log("Resetting loading state and refreshing skins data");
+          setLoading(false);
+          refresh();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loading, fetchError]);
 
   const setSelectedSkin = async (skinId: number) => {
     // Check if the skin exists
@@ -206,10 +240,14 @@ export const useSkins = () => {
   };
 
   const refresh = useCallback(() => {
+    if (isRefreshing) return;
+    
     console.log("Refreshing skins data");
     setLoading(true);
     setSkinsLoaded(false);
     setUserSkinsLoaded(false);
+    setFetchError(null);
+    
     fetchAllSkins();
     if (user) {
       fetchUserSkins();
@@ -217,7 +255,7 @@ export const useSkins = () => {
     } else {
       setUserSkinsLoaded(true);
     }
-  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user]);
+  }, [fetchAllSkins, fetchUserSkins, fetchUserDefaultSkin, user, isRefreshing]);
 
   return {
     allSkins,

@@ -5,7 +5,7 @@ import { LogOut, LogIn, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const AuthButtons = () => {
-  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
+  const { user, signInWithGoogle, signOut, loading: authLoading, refreshSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   // Reset loading state if user changes or auth loading state changes
@@ -14,6 +14,23 @@ const AuthButtons = () => {
       setIsLoading(false);
     }
   }, [user, authLoading]);
+
+  // Reset loading state and refresh session on visibility change
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Tab visible in AuthButtons, ensuring fresh state");
+        setIsLoading(false);
+        await refreshSession();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshSession]);
 
   const handleSignIn = async () => {
     setIsLoading(true);

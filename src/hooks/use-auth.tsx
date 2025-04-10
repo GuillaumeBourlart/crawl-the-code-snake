@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ type AuthContextType = {
   loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   forceSignOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +46,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   const [initialSessionCheckDone, setInitialSessionCheckDone] = useState(false);
   const [sessionCheckError, setSessionCheckError] = useState<Error | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Explicitly refresh the session
+  const refreshSession = async () => {
+    if (isRefreshing) return;
+    
+    try {
+      setIsRefreshing(true);
+      console.log("Explicitly refreshing session state");
+      
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Session refresh error:", error);
+        throw error;
+      }
+      
+      if (session?.user) {
+        console.log("Session refreshed with user:", session.user.id);
+        setUser(session.user);
+        
+        if (!profile) {
+          await fetchProfile(session.user.id);
+        }
+      } else {
+        console.log("No session found during refresh");
+        setUser(null);
+        setProfile(null);
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     if (!userId) {
@@ -235,19 +273,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Add visibility change handler to refresh session when tab becomes visible
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        console.log("Tab became visible, checking session state");
-        // Reset loading state if it's been stuck
-        const checkLoadingState = setTimeout(() => {
-          if (loading) {
-            console.log("Loading state was stuck, resetting");
-            setLoading(false);
-          }
-        }, 2000);
-        
-        return () => clearTimeout(checkLoadingState);
+        console.log("Tab became visible, refreshing session");
+        // Only refresh if we've already done initial session check to avoid double requests
+        if (initialSessionCheckDone) {
+          await refreshSession();
+        }
       }
     };
     
@@ -256,7 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loading]);
+  }, [initialSessionCheckDone]);
 
   const signInWithGoogle = async () => {
     try {
@@ -313,6 +347,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         updateProfile,
         forceSignOut,
+        refreshSession,
       }}
     >
       {children}
