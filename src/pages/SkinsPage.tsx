@@ -55,8 +55,8 @@ const SkinsPage = () => {
     try {
       setIsProcessing(true);
       
-      // Using the edge function to create a checkout session
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
+      // Utilisation du nouvel endpoint swift-endpoint avec le chemin /create-checkout-session
+      const { data, error } = await supabase.functions.invoke("swift-endpoint", {
         body: { 
           skinId: skin.id,
           priceAmount: skin.price,
@@ -64,11 +64,15 @@ const SkinsPage = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur d'invocation de la fonction:", error);
+        throw error;
+      }
       
       if (data?.url) {
         window.location.href = data.url;
       } else {
+        console.error("Réponse sans URL:", data);
         throw new Error("Pas d'URL de paiement retournée");
       }
     } catch (error) {
