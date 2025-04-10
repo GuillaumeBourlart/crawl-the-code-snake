@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -39,16 +40,33 @@ const PaymentSuccess = () => {
 
       try {
         console.log("Vérification du paiement pour la session:", sessionId);
-        // Nous contactons Stripe directement pour vérifier le statut de la session
-        const { data, error } = await supabase.functions.invoke("verify-payment", {
-          body: { sessionId }
-        });
-
-        if (error) {
-          console.error("Erreur lors de la vérification du paiement:", error);
-          throw new Error(`Échec de la vérification: ${error.message || JSON.stringify(error)}`);
+        
+        // Appel direct à l'endpoint de vérification du paiement
+        const authSession = await supabase.auth.getSession();
+        const accessToken = authSession.data.session?.access_token;
+        
+        if (!accessToken) {
+          throw new Error("Token d'authentification non disponible");
         }
-
+        
+        const response = await fetch("https://ckvbjbclofykscigudjs.supabase.co/functions/v1/swift-endpoint", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ 
+            path: "/verify-payment",
+            sessionId 
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`Échec de la vérification: ${errorData.error || response.statusText}`);
+        }
+        
+        const data = await response.json();
         console.log("Réponse de vérification reçue:", data);
 
         if (data?.success) {
