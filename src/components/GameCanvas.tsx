@@ -13,7 +13,6 @@ interface Player {
   boosting?: boolean;
   itemEatenCount?: number;
   skin_id?: number | null;
-  headVisible?: boolean;
 }
 
 interface GameItem {
@@ -37,6 +36,7 @@ interface GameCanvasProps {
   onMove: (direction: { x: number; y: number }) => void;
   onBoostStart: () => void;
   onBoostStop: () => void;
+  onPlayerCollision?: (otherPlayerId: string) => void;
   isSpectator?: boolean;
 }
 
@@ -112,6 +112,7 @@ const GameCanvas = ({
   onMove, 
   onBoostStart,
   onBoostStop,
+  onPlayerCollision,
   isSpectator = false
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -246,6 +247,47 @@ const GameCanvas = ({
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera, isSpectator]);
+  
+  useEffect(() => {
+    if (!playerId || !gameState.players[playerId] || !onPlayerCollision || isSpectator) return;
+    
+    const currentPlayer = gameState.players[playerId];
+    const currentHeadRadius = getHeadRadius(currentPlayer);
+    
+    Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
+      if (otherId === playerId) return;
+      
+      const otherHeadRadius = getHeadRadius(otherPlayer);
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < (currentHeadRadius + otherHeadRadius)) {
+        const currentQueueLength = currentPlayer.queue?.length || 0;
+        const otherQueueLength = otherPlayer.queue?.length || 0;
+        
+        if (currentQueueLength <= otherQueueLength) {
+          onPlayerCollision(otherId);
+          return;
+        }
+      }
+      
+      if (otherPlayer.queue && otherPlayer.queue.length > 0) {
+        const segmentRadius = getSegmentRadius(otherPlayer);
+        
+        for (const segment of otherPlayer.queue) {
+          const segDx = currentPlayer.x - segment.x;
+          const segDy = currentPlayer.y - segment.y;
+          const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
+          
+          if (segDistance < (currentHeadRadius + segmentRadius)) {
+            onPlayerCollision(otherId);
+            return;
+          }
+        }
+      }
+    });
+  }, [gameState, playerId, onPlayerCollision, isSpectator]);
   
   useEffect(() => {
     if (!gameState.items) return;
@@ -451,9 +493,6 @@ const GameCanvas = ({
     const drawPlayerHead = (player: Player, isCurrentPlayer: boolean) => {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
-      
-      // Skip if headVisible is false (outside view area)
-      if (player.headVisible === false) return;
       
       const headRadius = getHeadRadius(player);
       const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');

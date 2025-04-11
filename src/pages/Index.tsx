@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +33,7 @@ interface ServerPlayer {
   itemEatenCount?: number;
   pseudo?: string;
   spectator?: boolean;
-  isSpectator?: boolean;
   skin_id?: number | null;
-  headVisible?: boolean;
 }
 
 interface GameItem {
@@ -329,9 +326,9 @@ const Index = () => {
       }
     });
     
-    newSocket.on("player_eliminated", (data: { eliminatedBy: string }) => {
-      console.log("You were eliminated! By:", data.eliminatedBy);
-      toast.error(`Vous avez été éliminé! (${data.eliminatedBy})`);
+    newSocket.on("player_eliminated", () => {
+      console.log("You were eliminated!");
+      toast.error("Vous avez été éliminé!");
       setIsSpectator(true);
       setShowGameOverDialog(true);
     });
@@ -344,6 +341,36 @@ const Index = () => {
     newSocket.on("player_grew", (data: { growth: number }) => {
       console.log("You ate another player! Growing by:", data.growth);
       toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
+      if (playerId) {
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          
+          const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
+          
+          const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
+          const currentQueueLength = currentPlayer.queue?.length || 0;
+          const segmentsToAdd = targetQueueLength - currentQueueLength;
+          
+          let newQueue = [...(currentPlayer.queue || [])];
+          
+          for (let i = 0; i < segmentsToAdd; i++) {
+            newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
+          }
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                queue: newQueue,
+                itemEatenCount: newItemEatenCount
+              }
+            }
+          };
+        });
+      }
     });
     
     newSocket.on("no_room_available", () => {
@@ -373,6 +400,36 @@ const Index = () => {
   const handleBoostStop = () => {
     if (socket && gameStarted && !isSpectator) {
       socket.emit("boostStop");
+    }
+  };
+  
+  const handlePlayerCollision = (otherPlayerId: string) => {
+    if (socket && gameStarted && playerId && !isSpectator) {
+      const currentPlayer = gameState.players[playerId];
+      const otherPlayer = gameState.players[otherPlayerId];
+      if (!currentPlayer || !otherPlayer) return;
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
+      const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
+      if (distance < (currentSize + otherSize) / 2) {
+        const currentQueueLength = currentPlayer.queue?.length || 0;
+        const otherQueueLength = otherPlayer.queue?.length || 0;
+        if (currentQueueLength <= otherQueueLength) {
+          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+          toast.error("Vous avez été éliminé!");
+          setIsSpectator(true);
+          setShowGameOverDialog(true);
+        } else {
+          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+        }
+      } else {
+        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+        toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
+        setIsSpectator(true);
+        setShowGameOverDialog(true);
+      }
     }
   };
 
@@ -541,6 +598,7 @@ const Index = () => {
             onMove={handleMove}
             onBoostStart={handleBoostStart}
             onBoostStop={handleBoostStop}
+            onPlayerCollision={handlePlayerCollision}
             isSpectator={isSpectator}
           />
           
