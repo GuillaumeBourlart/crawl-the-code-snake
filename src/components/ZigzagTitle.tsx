@@ -9,11 +9,11 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   // Configuration des couleurs des cercles avec de meilleures couleurs pour la visibilité
   const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
   
-  // Définir les propriétés de base pour tous les cercles avec une taille plus petite pour permettre plus de détails
+  // Définir les propriétés de base pour tous les cercles
   const baseCircleProps = {
     cx: 0,
     cy: 0,
-    r: 10, // Taille réduite pour permettre plus de cercles rapprochés
+    r: 8, // Taille des cercles
     fill: "currentColor"
   };
   
@@ -21,102 +21,108 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   const generateLetter = (points: [number, number][], color: string, index: number) => {
     return (
       <g key={index} className="letter-group">
-        {points.map((point, i) => (
-          <circle
-            key={`letter-${index}-circle-${i}`}
-            {...baseCircleProps}
-            cx={point[0]}
-            cy={point[1]}
-            fill={color}
-            className="animate-pulse"
-            style={{ 
-              animationDelay: `${i * 0.05}s`,
-              filter: "drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.7))"
-            }}
-          />
-        ))}
+        {points.map((point, i) => {
+          // Déterminer l'animation par ligne horizontale (basée sur la coordonnée Y)
+          const animationDelay = `${point[1] % 100 * 0.02}s`;
+          
+          return (
+            <circle
+              key={`letter-${index}-circle-${i}`}
+              {...baseCircleProps}
+              cx={point[0]}
+              cy={point[1]}
+              fill={color}
+              className="animate-pulse"
+              style={{ 
+                animationDelay: animationDelay,
+                filter: "drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.7))"
+              }}
+            />
+          );
+        })}
       </g>
     );
   };
 
   // Points pour chaque lettre (coordonnées [x, y]) avec beaucoup plus de cercles pour plus de précision
   const letterCoordinates: [number, number][][] = [
-    // 'Z' - Plus de points pour plus de précision
+    // 'Z'
     [
-      [30, 20], [40, 20], [50, 20], [60, 20], [70, 20], [80, 20], // ligne du haut
-      [80, 30], [70, 40], [60, 50], [50, 60], // diagonale
-      [30, 60], [40, 60], [50, 60], [60, 60], [70, 60], [80, 60]  // ligne du bas
+      [30, 20], [40, 20], [50, 20], [60, 20], [70, 20], [80, 20], [90, 20], // ligne du haut
+      [90, 30], [80, 40], [70, 50], [60, 60], [50, 70], [40, 80], // diagonale
+      [30, 80], [40, 80], [50, 80], [60, 80], [70, 80], [80, 80], [90, 80]  // ligne du bas
     ],
     
-    // 'I' - Pilier vertical avec plus de points
+    // 'I'
     [
-      [110, 20], [110, 30], [110, 40], [110, 50], [110, 60],
-      [100, 20], [120, 20], // ligne du haut
-      [100, 60], [120, 60]  // ligne du bas
+      [120, 20], [120, 30], [120, 40], [120, 50], [120, 60], [120, 70], [120, 80], // pilier vertical
+      [110, 20], [130, 20], [140, 20], // ligne du haut
+      [110, 80], [130, 80], [140, 80]  // ligne du bas
     ],
     
-    // 'G' - Forme plus détaillée
+    // 'G'
     [
-      [140, 20], [150, 20], [160, 20], [170, 20], [180, 20], // arc supérieur
-      [140, 30], [140, 40], [140, 50], // côté gauche
-      [140, 60], [150, 60], [160, 60], [170, 60], [180, 60], // bas
-      [180, 50], [180, 40], // côté droit
-      [170, 40], [160, 40] // barre horizontale du milieu
+      [170, 20], [180, 20], [190, 20], [200, 20], [210, 20], // arc supérieur
+      [160, 30], [160, 40], [160, 50], [160, 60], [160, 70], // côté gauche
+      [170, 80], [180, 80], [190, 80], [200, 80], [210, 80], // bas
+      [210, 70], [210, 60], [210, 50], // côté droit
+      [190, 50], [200, 50] // barre horizontale du milieu
     ],
     
-    // 'Z' - Deuxième Z plus précis
+    // 'Z' - Deuxième Z
     [
-      [210, 20], [220, 20], [230, 20], [240, 20], [250, 20], [260, 20], // ligne du haut
-      [260, 30], [250, 40], [240, 50], [230, 60], // diagonale
-      [210, 60], [220, 60], [230, 60], [240, 60], [250, 60], [260, 60]  // ligne du bas
+      [240, 20], [250, 20], [260, 20], [270, 20], [280, 20], [290, 20], [300, 20], // ligne du haut
+      [300, 30], [290, 40], [280, 50], [270, 60], [260, 70], [250, 80], // diagonale
+      [240, 80], [250, 80], [260, 80], [270, 80], [280, 80], [290, 80], [300, 80]  // ligne du bas
     ],
     
-    // 'A' - A plus détaillé
+    // 'A'
     [
-      [280, 60], [280, 50], [280, 40], [280, 30], // jambe gauche
-      [290, 20], [300, 20], // sommet
-      [310, 30], [310, 40], [310, 50], [310, 60], // jambe droite
-      [285, 40], [295, 40], [305, 40] // barre horizontale
+      [330, 80], [330, 70], [330, 60], [330, 50], [330, 40], [330, 30], // jambe gauche
+      [340, 20], [350, 20], [360, 20], // sommet
+      [370, 30], [370, 40], [370, 50], [370, 60], [370, 70], [370, 80], // jambe droite
+      [340, 50], [350, 50], [360, 50] // barre horizontale
     ],
     
-    // 'G' - Deuxième G plus détaillé
+    // 'G' - Deuxième G
     [
-      [340, 20], [350, 20], [360, 20], [370, 20], [380, 20], // arc supérieur
-      [340, 30], [340, 40], [340, 50], // côté gauche
-      [340, 60], [350, 60], [360, 60], [370, 60], [380, 60], // bas
-      [380, 50], [380, 40], // côté droit
-      [370, 40], [360, 40] // barre horizontale du milieu
+      [400, 20], [410, 20], [420, 20], [430, 20], [440, 20], // arc supérieur
+      [390, 30], [390, 40], [390, 50], [390, 60], [390, 70], // côté gauche
+      [400, 80], [410, 80], [420, 80], [430, 80], [440, 80], // bas
+      [440, 70], [440, 60], [440, 50], // côté droit
+      [420, 50], [430, 50] // barre horizontale du milieu
     ],
     
-    // '.' - Point
+    // '.'
     [
-      [405, 60], [410, 60], [415, 60],
-      [405, 55], [410, 55], [415, 55]
+      [465, 80], [470, 80], [475, 80],
+      [465, 75], [470, 75], [475, 75],
+      [465, 70], [470, 70], [475, 70]
     ],
     
-    // 'I' - Deuxième I plus détaillé
+    // 'I'
     [
-      [440, 20], [440, 30], [440, 40], [440, 50], [440, 60],
-      [430, 20], [450, 20], // ligne du haut
-      [430, 60], [450, 60]  // ligne du bas
+      [500, 20], [500, 30], [500, 40], [500, 50], [500, 60], [500, 70], [500, 80], // pilier vertical
+      [490, 20], [510, 20], [520, 20], // ligne du haut
+      [490, 80], [510, 80], [520, 80]  // ligne du bas
     ],
     
-    // 'O' - O plus détaillé et oval
+    // 'O'
     [
-      [470, 20], [480, 20], [490, 20], [500, 20], // haut
-      [470, 30], [470, 40], [470, 50], // gauche
-      [470, 60], [480, 60], [490, 60], [500, 60], // bas
-      [510, 30], [510, 40], [510, 50], // droite
-      [500, 20], [510, 20], // complète le haut à droite
-      [500, 60], [510, 60]  // complète le bas à droite
+      [550, 20], [560, 20], [570, 20], [580, 20], // haut
+      [540, 30], [540, 40], [540, 50], [540, 60], [540, 70], // gauche
+      [550, 80], [560, 80], [570, 80], [580, 80], // bas
+      [590, 30], [590, 40], [590, 50], [590, 60], [590, 70], // droite
+      [590, 20], // complète le haut à droite
+      [590, 80]  // complète le bas à droite
     ]
   ];
 
   return (
     <div className={`flex justify-center ${className}`}>
       <svg 
-        viewBox="0 0 540 80" 
-        className="w-full max-w-2xl mx-auto"
+        viewBox="0 0 630 100" 
+        className="w-full max-w-4xl mx-auto"
         style={{ 
           filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
         }}
