@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -302,9 +303,29 @@ const Index = () => {
       toast.success("Vous avez rejoint la partie");
     });
     
-    newSocket.on("update_room_leaderboard", (leaderboard: PlayerLeaderboardEntry[]) => {
-      console.log("Room leaderboard update:", leaderboard);
-      setRoomLeaderboard(leaderboard);
+    // Nouveau gestionnaire pour le message update_entities
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
+      console.log("Received update_entities with", 
+        Object.keys(data.players).length, "players and", 
+        data.items.length, "items and",
+        data.leaderboard?.length || 0, "leaderboard entries");
+      
+      // Convertir les items en objet pour compatibilité avec le code existant
+      const itemsObject: Record<string, GameItem> = {};
+      data.items.forEach(item => {
+        itemsObject[item.id] = item;
+      });
+      
+      setGameState(prevState => ({
+        ...prevState,
+        players: data.players,
+        items: itemsObject
+      }));
+      
+      // Mise à jour du leaderboard
+      if (data.leaderboard) {
+        setRoomLeaderboard(data.leaderboard);
+      }
     });
     
     newSocket.on("player_eliminated", () => {
@@ -362,42 +383,6 @@ const Index = () => {
     
     newSocket.on("ping_request", () => {
       newSocket.emit("pong_response");
-    });
-    
-    newSocket.on("update_players", (players: Record<string, ServerPlayer>) => {
-      console.log("Players update:", players);
-      
-      const processedPlayers = Object.entries(players).reduce((acc, [id, player]) => {
-        const processedQueue = player.queue?.map(segment => {
-          return typeof segment === 'object' ? 
-            { ...segment, color: segment.color || player.color || '#FFFFFF' } : 
-            { x: 0, y: 0, color: player.color || '#FFFFFF' };
-        }) || [];
-        
-        return {
-          ...acc,
-          [id]: { 
-            ...player, 
-            queue: processedQueue
-          }
-        };
-      }, {});
-      
-      setGameState(prevState => ({
-        ...prevState,
-        players: processedPlayers
-      }));
-    });
-    
-    newSocket.on("update_items", (items: Record<string, GameItem> | GameItem[]) => {
-      console.log("Items update:", items);
-      const itemsObject = Array.isArray(items)
-        ? items.reduce((acc, item) => ({ ...acc, [item.id]: item }), {})
-        : items;
-      setGameState(prevState => ({
-        ...prevState,
-        items: itemsObject
-      }));
     });
     
     newSocket.emit("join_room");

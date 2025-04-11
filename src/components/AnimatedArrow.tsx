@@ -12,8 +12,8 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
 }) => {
   // Base circle properties
   const baseCircleProps = {
-    r: 4, // Smaller circles
-    fill: isClickable ? "#ffffff" : "#333", // White when clickable, dark otherwise
+    r: 3, // Smaller circles (reduced from 4 to 3)
+    fill: isClickable ? "#ffffff" : "#333333", // White when clickable, dark otherwise
     className: "animate-pulse"
   };
 
@@ -24,17 +24,17 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
 
   // Generate the arrow shape using dots (circles)
   const generateArrowPoints = () => {
-    // Main horizontal line points - reduced spacing
+    // Main horizontal line points - with smaller spacing
     const mainLinePoints: [number, number][] = [
-      [20, 40], [35, 40], [50, 40], [65, 40], [80, 40], 
-      [95, 40], [110, 40], [125, 40], [140, 40], [155, 40],
-      [170, 40], [185, 40], [200, 40]
+      [20, 40], [30, 40], [40, 40], [50, 40], [60, 40], 
+      [70, 40], [80, 40], [90, 40], [100, 40], [110, 40],
+      [120, 40], [130, 40], [140, 40], [150, 40], [160, 40]
     ];
     
-    // Arrow head points - adjusted for smaller spacing
+    // Arrow head points - with smaller spacing
     const arrowHeadPoints: [number, number][] = [
-      [185, 25], [195, 30], [205, 35], [215, 40], // Upper diagonal
-      [205, 45], [195, 50], [185, 55] // Lower diagonal
+      [150, 30], [155, 32], [160, 35], [165, 37], [170, 40], // Upper diagonal
+      [165, 43], [160, 45], [155, 48], [150, 50] // Lower diagonal
     ];
     
     // All arrow points
@@ -50,9 +50,9 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
             {...baseCircleProps}
             style={{ 
               animationDelay: getAnimationDelay(index, allPoints.length),
-              animationDuration: "2s",
+              animationDuration: "1.5s", // Faster animation
               animationIterationCount: "infinite",
-              filter: "drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.1))"
+              filter: isClickable ? "drop-shadow(0px 2px 4px rgba(255, 255, 255, 0.3))" : "none"
             }}
           />
         ))}
@@ -63,7 +63,7 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       <svg 
-        viewBox="0 0 240 80" // Reduced width for a smaller arrow
+        viewBox="0 0 200 80" // Smaller viewBox for a more compact arrow
         className="w-full h-full"
       >
         {generateArrowPoints()}
