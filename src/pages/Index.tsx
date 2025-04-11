@@ -17,6 +17,7 @@ import SkinPreview from "@/components/SkinPreview";
 import { Link } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import ZigzagTitle from "@/components/ZigzagTitle";
+import AnimatedArrow from "@/components/AnimatedArrow";
 
 const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
 
@@ -538,8 +539,8 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col w-full gap-3">
-            <Button
-              className="flex items-center justify-center rounded-full aspect-square mx-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-indigo-500/40 transition-all duration-300 transform hover:scale-[1.05] p-0 w-48 h-48 mb-4"
+            <button
+              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-48 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handlePlay}
               disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
             >
@@ -551,12 +552,9 @@ const Index = () => {
                   </svg>
                 </div>
               ) : (
-                <div className="flex flex-col items-center p-5">
-                  <Play className="h-16 w-16 mb-2" strokeWidth={2.5} />
-                  <span className="text-2xl font-bold tracking-wider">JOUER</span>
-                </div>
+                <AnimatedArrow className="w-full h-48" text="JOUER" />
               )}
-            </Button>
+            </button>
             
             <div className="flex justify-center">
               <AuthButtons />
