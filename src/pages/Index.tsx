@@ -552,7 +552,7 @@ const Index = () => {
                   </svg>
                 </div>
               ) : (
-                <AnimatedArrow className="w-full h-48" text="JOUER" />
+                <AnimatedArrow className="w-full h-48" />
               )}
             </button>
             
