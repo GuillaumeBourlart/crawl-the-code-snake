@@ -87,9 +87,9 @@ export default {
 					}
 				},
 				'pulse': {
-					'0%': { opacity: '0.7', transform: 'scale(0.97)' },
-					'50%': { opacity: '1', transform: 'scale(1.03)' },
-					'100%': { opacity: '0.7', transform: 'scale(0.97)' }
+					'0%': { opacity: '0.6', transform: 'scale(0.95)' },
+					'50%': { opacity: '1', transform: 'scale(1.05)' },
+					'100%': { opacity: '0.6', transform: 'scale(0.95)' }
 				},
 				'float': {
 					'0%': { transform: 'translateY(0)' },
