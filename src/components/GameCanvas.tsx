@@ -747,13 +747,13 @@ const GameCanvas = ({
         const animation = rendererStateRef.current.itemAnimations[item.id];
         if (!animation) return;
         
-        const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius;
-        const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius;
+        const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius * 1.15;
+        const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius * 1.15;
         
         animation.rotationAngle += animation.rotationSpeed * 0.01;
         
-        // Increase item size by 15%
-        const itemRadius = (item.radius || 5) * 1.15;
+        // Keep original item radius from server
+        const itemRadius = item.radius || 5;
         
         const itemGradient = ctx.createRadialGradient(
           itemX, itemY, 0,
@@ -768,18 +768,18 @@ const GameCanvas = ({
         ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Create larger glow radius (increased from 2x to 3x the item size)
+        // Create larger glow radius (increased from 2x to 4x the item size for more noticeable glow)
         const glowGradient = ctx.createRadialGradient(
           itemX, itemY, itemRadius * 0.5,
-          itemX, itemY, itemRadius * 3
+          itemX, itemY, itemRadius * 4
         );
-        glowGradient.addColorStop(0, `${item.color}60`);
-        glowGradient.addColorStop(0.7, `${item.color}20`);
+        glowGradient.addColorStop(0, `${item.color}80`);
+        glowGradient.addColorStop(0.6, `${item.color}40`);
         glowGradient.addColorStop(1, `${item.color}00`);
         
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, itemRadius * 3, 0, Math.PI * 2);
+        ctx.arc(itemX, itemY, itemRadius * 4, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = shadeColor(item.color, 30);
