@@ -752,9 +752,12 @@ const GameCanvas = ({
         
         animation.rotationAngle += animation.rotationSpeed * 0.01;
         
+        // Increase item size by 15%
+        const itemRadius = (item.radius || 5) * 1.15;
+        
         const itemGradient = ctx.createRadialGradient(
           itemX, itemY, 0,
-          itemX, itemY, item.radius || 5
+          itemX, itemY, itemRadius
         );
         
         itemGradient.addColorStop(0, item.color);
@@ -762,26 +765,27 @@ const GameCanvas = ({
         
         ctx.fillStyle = itemGradient;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
+        // Create larger glow radius (increased from 2x to 3x the item size)
         const glowGradient = ctx.createRadialGradient(
-          itemX, itemY, (item.radius || 5) * 0.5,
-          itemX, itemY, (item.radius || 5) * 2
+          itemX, itemY, itemRadius * 0.5,
+          itemX, itemY, itemRadius * 3
         );
-        glowGradient.addColorStop(0, `${item.color}40`);
-        glowGradient.addColorStop(0.7, `${item.color}10`);
+        glowGradient.addColorStop(0, `${item.color}60`);
+        glowGradient.addColorStop(0.7, `${item.color}20`);
         glowGradient.addColorStop(1, `${item.color}00`);
         
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, (item.radius || 5) * 2, 0, Math.PI * 2);
+        ctx.arc(itemX, itemY, itemRadius * 3, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.strokeStyle = shadeColor(item.color, 20);
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = shadeColor(item.color, 30);
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
+        ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.stroke();
       });
       

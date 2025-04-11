@@ -150,3 +150,15 @@ canvas {
   display: block;
   touch-action: none;
 }
+
+/* Ajout de padding pour les prévisualisations de skin */
+.skin-preview-container {
+  padding: 8px;
+  box-sizing: content-box;
+}
+
+/* Assurons-nous que les canvas de prévisualisation ont un espace suffisant */
+.skin-preview-wrapper {
+  margin: 8px;
+  overflow: visible;
+}
