@@ -541,7 +541,7 @@ const Index = () => {
           
           <div className="flex flex-col w-full gap-3">
             <button
-              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-48 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handlePlay}
               disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
             >
@@ -553,7 +553,10 @@ const Index = () => {
                   </svg>
                 </div>
               ) : (
-                <AnimatedArrow className="w-full h-48" />
+                <AnimatedArrow 
+                  className="w-full h-32" 
+                  isClickable={Boolean(username.trim() && selectedSkinId && !isLoading)}
+                />
               )}
             </button>
           </div>
