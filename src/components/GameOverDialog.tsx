@@ -1,14 +1,8 @@
 
-import React, { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LogOut, RefreshCw } from "lucide-react";
 
 interface GameOverDialogProps {
   isOpen: boolean;
@@ -18,133 +12,135 @@ interface GameOverDialogProps {
   playerColor?: string;
 }
 
-const GameOverDialog = ({
-  isOpen,
-  onClose,
-  onRetry,
-  onQuit,
-  playerColor = "#8B5CF6",
-}: GameOverDialogProps) => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const isMobile = useIsMobile();
+const GameOverDialog = ({ isOpen, onClose, onRetry, onQuit, playerColor = "#8B5CF6" }: GameOverDialogProps) => {
+  const [showDialog, setShowDialog] = useState(false);
+  const [open, setOpen] = useState(false);
   
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, []);
+    if (isOpen) {
+      setShowDialog(true);
+      const timer = setTimeout(() => setOpen(true), 100);
+      return () => clearTimeout(timer);
+    } else {
+      setOpen(false);
+      const timer = setTimeout(() => setShowDialog(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
   
-  const calculateEyeOffset = () => {
-    if (!isOpen) return { x: 0, y: 0 };
-    
-    const dialogX = window.innerWidth / 2;
-    const dialogY = window.innerHeight / 2 - 50;
-    
-    const dx = mousePosition.x - dialogX;
-    const dy = mousePosition.y - dialogY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (distance === 0) return { x: 0, y: 0 };
-    
-    const maxPupilOffset = 2;
-    return {
-      x: (dx / distance) * maxPupilOffset,
-      y: (dy / distance) * maxPupilOffset
-    };
-  };
-  
-  const eyeOffset = calculateEyeOffset();
+  if (!showDialog) return null;
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`bg-transparent border-0 shadow-none ${isMobile ? 'translate-y-0' : 'translate-y-28'}`}>
-        <DialogHeader className="flex flex-col items-center">
-          <div className="mb-4">
-            {/* Character circle with eyes, similar to skin previews */}
-            <div className="relative w-24 h-24 rounded-full bg-white/5 backdrop-blur-sm p-1" style={{ 
-              backgroundColor: "rgba(255, 255, 255, 0.1)", 
-              borderRadius: "100%",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)"
-            }}>
-              <div className="relative w-full h-full rounded-full" style={{ backgroundColor: playerColor, boxShadow: `0 0 20px ${playerColor}80` }}>
-                {/* Grid lines for the character */}
-                <div className="absolute inset-0 rounded-full opacity-30">
-                  <div className="absolute top-1/4 left-0 w-full h-px bg-white"></div>
-                  <div className="absolute top-2/4 left-0 w-full h-px bg-white"></div>
-                  <div className="absolute top-3/4 left-0 w-full h-px bg-white"></div>
-                  <div className="absolute left-1/4 top-0 h-full w-px bg-white"></div>
-                  <div className="absolute left-2/4 top-0 h-full w-px bg-white"></div>
-                  <div className="absolute left-3/4 top-0 h-full w-px bg-white"></div>
+    <Dialog open={open} onOpenChange={(value) => {
+      if (!value) onClose();
+      setOpen(value);
+    }}>
+      <DialogContent className="bg-gray-800/95 border-gray-700 rounded-2xl p-8 shadow-2xl max-w-md w-[90%] md:w-full overflow-visible fixed top-[50%] left-[50%] transform -translate-x-[50%] -translate-y-[50%]">
+        <DialogHeader className="mb-6">
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+            <div className="relative mb-2">
+              <div 
+                className="w-24 h-24 rounded-full relative flex items-center justify-center"
+                style={{ 
+                  backgroundColor: playerColor,
+                  boxShadow: `0 0 20px 5px ${playerColor}40`
+                }}
+              >
+                <div className="absolute w-full h-full rounded-full bg-white/10" />
+                
+                {/* Left eye */}
+                <div className="absolute w-6 h-6 bg-white rounded-full" 
+                  style={{ 
+                    top: "30%", 
+                    left: "50%", 
+                    transform: "translateX(-8px)",
+                    width: "12px",
+                    height: "12px"
+                  }}
+                >
+                  <div className="absolute w-3 h-3 bg-black rounded-full"
+                    style={{ 
+                      top: "50%", 
+                      left: "50%", 
+                      transform: "translate(-50%, -50%)",
+                      width: "7px",
+                      height: "7px"
+                    }}
+                  />
                 </div>
                 
-                {/* Left eye - Fixed size relative to head */}
-                <div className="absolute left-[calc(50%-12px)] top-[calc(50%-8px)] w-6 h-6 bg-white rounded-full overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
-                  <div 
-                    className="absolute w-4 h-4 bg-black rounded-full"
+                {/* Right eye */}
+                <div className="absolute w-6 h-6 bg-white rounded-full" 
+                  style={{ 
+                    top: "30%", 
+                    right: "50%", 
+                    transform: "translateX(8px)",
+                    width: "12px",
+                    height: "12px"
+                  }}
+                >
+                  <div className="absolute w-3 h-3 bg-black rounded-full"
                     style={{ 
-                      left: `${1 + eyeOffset.x}px`, 
-                      top: `${1 + eyeOffset.y}px` 
-                    }}
-                  />
-                  <div 
-                    className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-80"
-                    style={{ 
-                      left: `${0.5 + eyeOffset.x}px`, 
-                      top: `${0.5 + eyeOffset.y}px` 
+                      top: "50%", 
+                      left: "50%", 
+                      transform: "translate(-50%, -50%)",
+                      width: "7px",
+                      height: "7px"
                     }}
                   />
                 </div>
                 
-                {/* Right eye - Fixed size relative to head */}
-                <div className="absolute left-[calc(50%+6px)] top-[calc(50%-8px)] w-6 h-6 bg-white rounded-full overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
-                  <div 
-                    className="absolute w-4 h-4 bg-black rounded-full"
-                    style={{ 
-                      left: `${1 + eyeOffset.x}px`, 
-                      top: `${1 + eyeOffset.y}px` 
-                    }}
-                  />
-                  <div 
-                    className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-80"
-                    style={{ 
-                      left: `${0.5 + eyeOffset.x}px`, 
-                      top: `${0.5 + eyeOffset.y}px` 
-                    }}
-                  />
+                {/* Dead X for left eye */}
+                <div className="absolute" style={{ top: "30%", left: "50%", transform: "translateX(-8px)" }}>
+                  <div className="relative w-7 h-7">
+                    <div className="absolute bg-gray-800 h-1 w-7 top-3 left-0 transform rotate-45"></div>
+                    <div className="absolute bg-gray-800 h-1 w-7 top-3 left-0 transform -rotate-45"></div>
+                  </div>
+                </div>
+                
+                {/* Dead X for right eye */}
+                <div className="absolute" style={{ top: "30%", right: "50%", transform: "translateX(8px)" }}>
+                  <div className="relative w-7 h-7">
+                    <div className="absolute bg-gray-800 h-1 w-7 top-3 left-0 transform rotate-45"></div>
+                    <div className="absolute bg-gray-800 h-1 w-7 top-3 left-0 transform -rotate-45"></div>
+                  </div>
                 </div>
               </div>
             </div>
+            
+            <DialogTitle className="text-3xl font-bold text-white">
+              Game Over!
+            </DialogTitle>
+            
+            <DialogDescription className="text-gray-300 text-lg">
+              Vous avez été éliminé. Voulez-vous réessayer?
+            </DialogDescription>
           </div>
-          
-          <DialogTitle className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-            Vous avez perdu
-          </DialogTitle>
         </DialogHeader>
         
-        <div className="flex justify-center items-center gap-4 mt-4">
-          <Button
-            variant="ghost"
-            className="bg-black/30 hover:bg-black/50 text-lg font-medium text-red-500 hover:text-red-400"
-            onClick={onQuit}
-          >
-            Quitter
-          </Button>
-          <Button
-            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg font-medium border-0"
-            style={{ 
-              background: `linear-gradient(to right, ${playerColor}, ${playerColor}cc)`,
-              boxShadow: `0 4px 14px ${playerColor}50`
-            }}
+        <div className="flex flex-col md:flex-row gap-4 pt-4 w-full">
+          <Button 
+            className="flex-1 py-6 text-lg rounded-xl bg-transparent hover:bg-transparent text-white opacity-80 hover:opacity-100" 
             onClick={onRetry}
+            style={{
+              backgroundColor: `${playerColor}20`,
+              color: playerColor
+            }}
           >
+            <RefreshCw className="mr-2 h-5 w-5" />
             Réessayer
+          </Button>
+          
+          <Button 
+            className="flex-1 py-6 text-lg rounded-xl bg-transparent hover:bg-transparent text-white opacity-80 hover:opacity-100" 
+            onClick={onQuit}
+            style={{
+              backgroundColor: "rgba(244, 67, 54, 0.2)",
+              color: "#f44336"
+            }}
+          >
+            <LogOut className="mr-2 h-5 w-5" />
+            Quitter
           </Button>
         </div>
       </DialogContent>
