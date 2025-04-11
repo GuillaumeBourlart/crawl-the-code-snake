@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GameOverDialogProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ const GameOverDialog = ({
   playerColor = "#8B5CF6",
 }: GameOverDialogProps) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -60,7 +62,7 @@ const GameOverDialog = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-transparent border-0 shadow-none translate-y-28">
+      <DialogContent className={`bg-transparent border-0 shadow-none ${isMobile ? 'translate-y-0' : 'translate-y-28'}`}>
         <DialogHeader className="flex flex-col items-center">
           <div className="mb-4">
             {/* Character circle with eyes, similar to skin previews */}

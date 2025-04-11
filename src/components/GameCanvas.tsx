@@ -120,7 +120,7 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.25 : 1.5
+    zoom: isMobile ? 0.15 : 1.5
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
@@ -770,10 +770,10 @@ const GameCanvas = ({
         ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Create glow radius exactly 2x the item size as requested
+        // Create glow radius 3x the item size as requested
         const glowGradient = ctx.createRadialGradient(
           itemX, itemY, itemRadius * 0.5,
-          itemX, itemY, itemRadius * 2
+          itemX, itemY, itemRadius * 3
         );
         glowGradient.addColorStop(0, `${item.color}80`);
         glowGradient.addColorStop(0.6, `${item.color}40`);
@@ -781,7 +781,7 @@ const GameCanvas = ({
         
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, itemRadius * 2, 0, Math.PI * 2);
+        ctx.arc(itemX, itemY, itemRadius * 3, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = shadeColor(item.color, 30);
