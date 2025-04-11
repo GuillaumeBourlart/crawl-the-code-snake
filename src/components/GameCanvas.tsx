@@ -120,7 +120,7 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.5 : 1.5
+    zoom: isMobile ? 0.25 : 1.5
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
@@ -388,8 +388,6 @@ const GameCanvas = ({
           const random = Math.sin(hexId) * 0.5 + 0.5;
           const time = Date.now() * 0.001;
           const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
-          
-          const baseHue = 210 + (random * 40 - 20);
           
           gridCtx.beginPath();
           for (let i = 0; i < 6; i++) {
@@ -766,36 +764,4 @@ const GameCanvas = ({
         ctx.strokeStyle = shadeColor(item.color, 20);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, item.radius || 5, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        drawPlayerHead(player, id === playerId);
-      });
-      
-      ctx.restore();
-      
-      previousTimeRef.current = timestamp;
-      requestRef.current = requestAnimationFrame(renderFrame);
-    };
-    
-    requestRef.current = requestAnimationFrame(renderFrame);
-    
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [gameState, camera, playerId, isMobile]);
-  
-  return (
-    <canvas 
-      ref={canvasRef} 
-      className="absolute inset-0 w-full h-full touch-none"
-    />
-  );
-};
-
-export default GameCanvas;
+        ctx.arc(itemX,
