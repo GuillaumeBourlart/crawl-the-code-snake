@@ -66,53 +66,59 @@ const GameOverDialog = ({
         <DialogHeader className="flex flex-col items-center">
           <div className="mb-4">
             {/* Character circle with eyes, similar to skin previews */}
-            <div className="relative w-24 h-24 rounded-full" style={{ backgroundColor: playerColor, boxShadow: `0 0 20px ${playerColor}80` }}>
-              {/* Grid lines for the character */}
-              <div className="absolute inset-0 rounded-full opacity-30">
-                <div className="absolute top-1/4 left-0 w-full h-px bg-white"></div>
-                <div className="absolute top-2/4 left-0 w-full h-px bg-white"></div>
-                <div className="absolute top-3/4 left-0 w-full h-px bg-white"></div>
-                <div className="absolute left-1/4 top-0 h-full w-px bg-white"></div>
-                <div className="absolute left-2/4 top-0 h-full w-px bg-white"></div>
-                <div className="absolute left-3/4 top-0 h-full w-px bg-white"></div>
-              </div>
-              
-              {/* Left eye */}
-              <div className="absolute left-[calc(50%-7px)] top-[calc(50%-4px)] w-4 h-4 bg-white rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
-                <div 
-                  className="absolute w-2.5 h-2.5 bg-black rounded-full"
-                  style={{ 
-                    left: `${0.75 + eyeOffset.x}px`, 
-                    top: `${0.75 + eyeOffset.y}px` 
-                  }}
-                />
-                <div 
-                  className="absolute w-1 h-1 bg-white rounded-full opacity-80"
-                  style={{ 
-                    left: `${0.25 + eyeOffset.x}px`, 
-                    top: `${0.25 + eyeOffset.y}px` 
-                  }}
-                />
-              </div>
-              
-              {/* Right eye */}
-              <div className="absolute left-[calc(50%+3px)] top-[calc(50%-4px)] w-4 h-4 bg-white rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
-                <div 
-                  className="absolute w-2.5 h-2.5 bg-black rounded-full"
-                  style={{ 
-                    left: `${0.75 + eyeOffset.x}px`, 
-                    top: `${0.75 + eyeOffset.y}px` 
-                  }}
-                />
-                <div 
-                  className="absolute w-1 h-1 bg-white rounded-full opacity-80"
-                  style={{ 
-                    left: `${0.25 + eyeOffset.x}px`, 
-                    top: `${0.25 + eyeOffset.y}px` 
-                  }}
-                />
+            <div className="relative w-24 h-24 rounded-full bg-white/5 backdrop-blur-sm p-1" style={{ 
+              backgroundColor: "rgba(255, 255, 255, 0.1)", 
+              borderRadius: "100%",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)"
+            }}>
+              <div className="relative w-full h-full rounded-full" style={{ backgroundColor: playerColor, boxShadow: `0 0 20px ${playerColor}80` }}>
+                {/* Grid lines for the character */}
+                <div className="absolute inset-0 rounded-full opacity-30">
+                  <div className="absolute top-1/4 left-0 w-full h-px bg-white"></div>
+                  <div className="absolute top-2/4 left-0 w-full h-px bg-white"></div>
+                  <div className="absolute top-3/4 left-0 w-full h-px bg-white"></div>
+                  <div className="absolute left-1/4 top-0 h-full w-px bg-white"></div>
+                  <div className="absolute left-2/4 top-0 h-full w-px bg-white"></div>
+                  <div className="absolute left-3/4 top-0 h-full w-px bg-white"></div>
+                </div>
+                
+                {/* Left eye - Fixed size relative to head */}
+                <div className="absolute left-[calc(50%-12px)] top-[calc(50%-8px)] w-6 h-6 bg-white rounded-full overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
+                  <div 
+                    className="absolute w-4 h-4 bg-black rounded-full"
+                    style={{ 
+                      left: `${1 + eyeOffset.x}px`, 
+                      top: `${1 + eyeOffset.y}px` 
+                    }}
+                  />
+                  <div 
+                    className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-80"
+                    style={{ 
+                      left: `${0.5 + eyeOffset.x}px`, 
+                      top: `${0.5 + eyeOffset.y}px` 
+                    }}
+                  />
+                </div>
+                
+                {/* Right eye - Fixed size relative to head */}
+                <div className="absolute left-[calc(50%+6px)] top-[calc(50%-8px)] w-6 h-6 bg-white rounded-full overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
+                  <div 
+                    className="absolute w-4 h-4 bg-black rounded-full"
+                    style={{ 
+                      left: `${1 + eyeOffset.x}px`, 
+                      top: `${1 + eyeOffset.y}px` 
+                    }}
+                  />
+                  <div 
+                    className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-80"
+                    style={{ 
+                      left: `${0.5 + eyeOffset.x}px`, 
+                      top: `${0.5 + eyeOffset.y}px` 
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -124,14 +130,18 @@ const GameOverDialog = ({
         
         <div className="flex justify-center items-center gap-4 mt-4">
           <Button
-            variant="outline"
-            className="bg-black/50 hover:bg-black/70 text-white border-gray-600"
+            variant="ghost"
+            className="bg-black/30 hover:bg-black/50 text-lg font-medium text-red-500 hover:text-red-400"
             onClick={onQuit}
           >
             Quitter
           </Button>
           <Button
-            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg font-medium border-0"
+            style={{ 
+              background: `linear-gradient(to right, ${playerColor}, ${playerColor}cc)`,
+              boxShadow: `0 4px 14px ${playerColor}50`
+            }}
             onClick={onRetry}
           >
             Réessayer

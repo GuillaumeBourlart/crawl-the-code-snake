@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -9,10 +10,10 @@ interface Player {
   length?: number;
   color?: string;
   direction?: { x: number; y: number };
-  queue?: Array<{ x: number; y: number; color?: string }>; // Added color to queue segments
+  queue?: Array<{ x: number; y: number; color?: string }>;
   boosting?: boolean;
   itemEatenCount?: number;
-  skin_id?: number | null; // Add skin_id field to match server data
+  skin_id?: number | null;
 }
 
 interface GameItem {
@@ -120,7 +121,7 @@ const GameCanvas = ({
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.15 : 1.5
+    zoom: isMobile ? 0.05 : 1.5  // Changed to 0.05 for mobile as requested
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
