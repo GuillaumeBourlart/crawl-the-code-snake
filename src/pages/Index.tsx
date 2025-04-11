@@ -490,6 +490,12 @@ const Index = () => {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
       {!gameStarted && (
+        <div className="absolute top-4 right-4 z-50">
+          <AuthButtons />
+        </div>
+      )}
+
+      {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
           <div className="flex items-center mb-6">
             <ZigzagTitle className="w-full" />
@@ -513,10 +519,6 @@ const Index = () => {
           </div>
           
           <div className="w-full mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-medium text-gray-300">Votre skin</h2>
-            </div>
-            
             <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
               {isLoading ? (
                 <div className="flex justify-center py-2">
@@ -526,7 +528,6 @@ const Index = () => {
                 selectedSkin ? (
                   <div className="flex flex-col items-center">
                     <SkinPreview skin={selectedSkin} size="medium" animate={true} pattern="snake" />
-                    <h3 className="mt-2 text-md font-medium">{selectedSkin.name}</h3>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center py-4">
@@ -555,10 +556,6 @@ const Index = () => {
                 <AnimatedArrow className="w-full h-48" />
               )}
             </button>
-            
-            <div className="flex justify-center">
-              <AuthButtons />
-            </div>
           </div>
           
           {reconnectAttempts > 0 && (

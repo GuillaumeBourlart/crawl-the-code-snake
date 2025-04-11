@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -5,13 +6,12 @@ import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ZigzagTitle from "@/components/ZigzagTitle";
 
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
@@ -156,31 +156,10 @@ const SkinsPage = () => {
 
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
-      <header className="px-4 py-4 flex items-center justify-between bg-gray-900/80 backdrop-blur-sm shadow-md">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/')}
-            className="mr-4 text-gray-200 hover:text-white"
-          >
-            <ArrowLeft className="h-5 w-5 mr-1" />
-            Retour
-          </Button>
-          <h1 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-500">
-            zigzag.io Skins
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {user && profile && (
-            <div className="text-sm text-gray-300 mr-2">
-              {profile.pseudo}
-            </div>
-          )}
-          <AuthButtons />
-        </div>
-      </header>
+      {/* Auth button positioned in top right */}
+      <div className="absolute top-4 right-4 z-50">
+        <AuthButtons />
+      </div>
 
       <main className="flex-1 container mx-auto px-4 py-6 overflow-hidden">
         {isLoading ? (
@@ -189,26 +168,7 @@ const SkinsPage = () => {
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-150px)] pr-4">
-            <div className="mb-6 flex justify-center">
-              <Button 
-                className="bg-indigo-600 hover:bg-indigo-700"
-                onClick={handleConfirmSelection}
-                disabled={!selectedSkin}
-                size="lg"
-              >
-                Valider
-              </Button>
-            </div>
-
-            {!user && (
-              <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4 mb-4 text-sm">
-                <p className="text-center">
-                  Connectez-vous avec Google pour acheter et sauvegarder vos skins
-                </p>
-              </div>
-            )}
-            
+          <ScrollArea className="h-[calc(100vh-120px)] pr-4">
             <SkinSelector 
               onSelectSkin={handleSkinSelectAndSave}
               onPurchase={handlePurchase}
@@ -219,9 +179,23 @@ const SkinsPage = () => {
         )}
       </main>
 
-      <footer className="py-4 px-6 text-center bg-gray-900/80 text-gray-400 text-sm">
-        © 2025 zigzag.io - Tous les skins achetés sont liés à votre compte
-      </footer>
+      {/* Floating confirmation button at bottom */}
+      <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
+        <Button 
+          className="bg-indigo-600 hover:bg-indigo-700 py-6 px-12 text-lg rounded-full shadow-lg transition-all hover:scale-105"
+          onClick={handleConfirmSelection}
+          disabled={!selectedSkin || isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Chargement...
+            </>
+          ) : (
+            "Valider et retourner au jeu"
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
