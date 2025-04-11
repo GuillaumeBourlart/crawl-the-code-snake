@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -142,7 +141,14 @@ const GameCanvas = ({
       radius: number,
       rotationSpeed: number,
       rotationAngle: number
-    }>
+    }>,
+    detachedSegments: [] as {
+      x: number, 
+      y: number, 
+      radius: number, 
+      color: string, 
+      zIndex: number
+    }[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -296,6 +302,32 @@ const GameCanvas = ({
       }
     });
     
+    const detachedSegments: {
+      x: number, 
+      y: number, 
+      radius: number, 
+      color: string, 
+      zIndex: number
+    }[] = [];
+    
+    Object.entries(gameState.players).forEach(([id, player]) => {
+      if (player.queue && player.queue.length > 0) {
+        player.queue.forEach((segment, index) => {
+          const radius = getSegmentRadius(player);
+          const segmentColor = segment.color || player.color || '#8B5CF6';
+          
+          detachedSegments.push({
+            x: segment.x,
+            y: segment.y,
+            radius,
+            color: segmentColor,
+            zIndex: player.queue!.length - index
+          });
+        });
+      }
+    });
+    
+    rendererStateRef.current.detachedSegments = detachedSegments;
     rendererStateRef.current.players = { ...gameState.players };
     rendererStateRef.current.items = gameState.items || [];
   }, [gameState]);
@@ -687,25 +719,7 @@ const GameCanvas = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
-      const allSegments = [];
-      
-      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        if (player.queue && player.queue.length > 0) {
-          player.queue.forEach((segment, index) => {
-            const radius = getSegmentRadius(player);
-            const segmentColor = segment.color || player.color || '#8B5CF6';
-            
-            allSegments.push({
-              x: segment.x,
-              y: segment.y,
-              radius,
-              color: segmentColor,
-              zIndex: player.queue!.length - index,
-              playerId: id
-            });
-          });
-        }
-      });
+      const allSegments = [...rendererStateRef.current.detachedSegments];
       
       allSegments.sort((a, b) => a.zIndex - b.zIndex);
       
