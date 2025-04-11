@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
@@ -156,19 +156,27 @@ const SkinsPage = () => {
 
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
-      {/* Header with just the auth button */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* Header with back button and auth button */}
+      <div className="flex justify-between items-center w-full p-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="rounded-full bg-gray-800/60 hover:bg-gray-700/70"
+          onClick={() => navigate('/')}
+        >
+          <ArrowLeft className="h-5 w-5 text-white" />
+        </Button>
         <AuthButtons />
       </div>
 
-      <main className="flex-1 container mx-auto px-4 py-6 overflow-hidden">
+      <main className="flex-1 container mx-auto px-4 py-2 overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-120px)] pr-4">
+          <ScrollArea className="h-[calc(100vh-170px)] pr-4">
             <SkinSelector 
               onSelectSkin={handleSkinSelectAndSave}
               onPurchase={handlePurchase}
@@ -182,17 +190,14 @@ const SkinsPage = () => {
       {/* Floating confirmation button at bottom */}
       <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
         <Button 
-          className="bg-indigo-600 hover:bg-indigo-700 py-6 px-12 text-lg rounded-full shadow-lg transition-all hover:scale-105"
+          className="bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105 rounded-full w-16 h-16 shadow-lg p-0"
           onClick={handleConfirmSelection}
           disabled={!selectedSkin || isLoading}
         >
           {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Chargement...
-            </>
+            <Loader2 className="h-6 w-6 animate-spin" />
           ) : (
-            "Valider et retourner au jeu"
+            <Check className="h-6 w-6" />
           )}
         </Button>
       </div>
