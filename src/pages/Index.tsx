@@ -511,7 +511,7 @@ const Index = () => {
                 placeholder="Entrez votre pseudo"
                 value={username}
                 onChange={handleUsernameChange}
-                className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6"
+                className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
                 maxLength={16}
                 required
               />
@@ -573,17 +573,6 @@ const Index = () => {
       {gameStarted && (
         <>
           <div className="absolute top-4 right-4 z-20 flex space-x-2">
-            <Link to="/skins">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="bg-gray-900/70 border-indigo-500/30 text-white hover:bg-indigo-900/30 rounded-lg shadow-md"
-              >
-                <Palette className="mr-1 h-4 w-4 text-indigo-400" />
-                Skins
-              </Button>
-            </Link>
-            
             <Button 
               variant="outline" 
               size="sm"

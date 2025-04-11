@@ -41,12 +41,10 @@ const GameOverDialog = ({
     if (!isOpen) return { x: 0, y: 0 };
     
     const dialogX = window.innerWidth / 2;
-    const dialogY = window.innerHeight / 2 + 100;
-    const processorX = dialogX - 50;
-    const processorY = dialogY;
+    const dialogY = window.innerHeight / 2 - 50;
     
-    const dx = mousePosition.x - processorX;
-    const dy = mousePosition.y - processorY;
+    const dx = mousePosition.x - dialogX;
+    const dy = mousePosition.y - dialogY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     if (distance === 0) return { x: 0, y: 0 };
@@ -63,139 +61,63 @@ const GameOverDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-transparent border-0 shadow-none translate-y-28">
-        <DialogHeader>
-          <div className="flex items-center justify-center mb-2">
-            <div className="relative w-16 h-16 mr-2">
-              <div 
-                className="w-12 h-12 rounded-md absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-                style={{ 
-                  backgroundColor: playerColor,
-                  boxShadow: `0 0 10px ${playerColor}80`,
-                  borderWidth: "2px",
-                  borderColor: `${playerColor}70`,
-                  borderStyle: "solid"
-                }}
-              >
+        <DialogHeader className="flex flex-col items-center">
+          <div className="mb-4">
+            {/* Character circle with eyes, similar to skin previews */}
+            <div className="relative w-24 h-24 rounded-full" style={{ backgroundColor: playerColor, boxShadow: `0 0 20px ${playerColor}80` }}>
+              {/* Grid lines for the character */}
+              <div className="absolute inset-0 rounded-full opacity-30">
+                <div className="absolute top-1/4 left-0 w-full h-px bg-white"></div>
+                <div className="absolute top-2/4 left-0 w-full h-px bg-white"></div>
+                <div className="absolute top-3/4 left-0 w-full h-px bg-white"></div>
+                <div className="absolute left-1/4 top-0 h-full w-px bg-white"></div>
+                <div className="absolute left-2/4 top-0 h-full w-px bg-white"></div>
+                <div className="absolute left-3/4 top-0 h-full w-px bg-white"></div>
+              </div>
+              
+              {/* Left eye */}
+              <div className="absolute left-[calc(50%-7px)] top-[calc(50%-4px)] w-4 h-4 bg-white rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
                 <div 
-                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-1.5"
+                  className="absolute w-2.5 h-2.5 bg-black rounded-full"
                   style={{ 
-                    backgroundColor: `${playerColor}00`,
-                    borderBottomLeftRadius: "4px",
-                    borderBottomRightRadius: "4px",
-                    borderLeft: `4px solid ${playerColor}40`,
-                    borderRight: `4px solid ${playerColor}40`,
-                    borderBottom: `4px solid ${playerColor}40`,
-                  }}
-                />
-                
-                <div className="absolute inset-1 opacity-30">
-                  <div className="absolute top-1/4 left-0 w-full h-px bg-white" />
-                  <div className="absolute top-2/4 left-0 w-full h-px bg-white" />
-                  <div className="absolute top-3/4 left-0 w-full h-px bg-white" />
-                  <div className="absolute left-1/4 top-0 h-full w-px bg-white" />
-                  <div className="absolute left-2/4 top-0 h-full w-px bg-white" />
-                  <div className="absolute left-3/4 top-0 h-full w-px bg-white" />
-                </div>
-              </div>
-              
-              <div 
-                className="w-8 h-8 rounded-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-                style={{ 
-                  background: `linear-gradient(135deg, ${playerColor} 0%, ${playerColor}DD 100%)`,
-                  boxShadow: "inset 0 0 5px rgba(0,0,0,0.3)",
-                  borderWidth: "1px",
-                  borderColor: `${playerColor}90`,
-                  borderStyle: "solid"
-                }}
-              />
-              
-              <div className="absolute left-[calc(50%-12px)] top-0 w-1.5 h-3 flex flex-col">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute left-[calc(50%-4px)] top-0 w-1.5 h-3 flex flex-col">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute left-[calc(50%+4px)] top-0 w-1.5 h-3 flex flex-col">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              
-              <div className="absolute left-[calc(50%-12px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute left-[calc(50%-4px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute left-[calc(50%+4px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute left-[calc(50%+12px)] bottom-0 w-1.5 h-3 flex flex-col-reverse">
-                <div className="h-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="h-0.5 w-[7px] -ml-[1px] bg-gray-300" />
-              </div>
-              
-              <div className="absolute left-0 top-[calc(50%-8px)] h-1.5 w-3 flex flex-row">
-                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute left-0 top-[calc(50%+8px)] h-1.5 w-3 flex flex-row">
-                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
-              </div>
-              
-              <div className="absolute right-0 top-[calc(50%-8px)] h-1.5 w-3 flex flex-row-reverse">
-                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
-              </div>
-              <div className="absolute right-0 top-[calc(50%+8px)] h-1.5 w-3 flex flex-row-reverse">
-                <div className="w-2.5" style={{ backgroundColor: playerColor }} />
-                <div className="w-0.5 h-[7px] -mt-[1px] bg-gray-300" />
-              </div>
-              
-              <div className="absolute left-[calc(50%-6px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200" />
-                <div 
-                  className="absolute w-2 h-2 bg-black rounded-full"
-                  style={{ 
-                    left: `${0.5 + eyeOffset.x}px`, 
-                    top: `${0.5 + eyeOffset.y}px` 
+                    left: `${0.75 + eyeOffset.x}px`, 
+                    top: `${0.75 + eyeOffset.y}px` 
                   }}
                 />
                 <div 
                   className="absolute w-1 h-1 bg-white rounded-full opacity-80"
                   style={{ 
-                    left: `${0.2 + eyeOffset.x}px`, 
-                    top: `${0.2 + eyeOffset.y}px` 
+                    left: `${0.25 + eyeOffset.x}px`, 
+                    top: `${0.25 + eyeOffset.y}px` 
                   }}
                 />
               </div>
-              <div className="absolute left-[calc(50%+3px)] top-[calc(50%-2px)] w-3 h-3 bg-white rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200" />
+              
+              {/* Right eye */}
+              <div className="absolute left-[calc(50%+3px)] top-[calc(50%-4px)] w-4 h-4 bg-white rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-200"></div>
                 <div 
-                  className="absolute w-2 h-2 bg-black rounded-full"
+                  className="absolute w-2.5 h-2.5 bg-black rounded-full"
                   style={{ 
-                    left: `${0.5 + eyeOffset.x}px`, 
-                    top: `${0.5 + eyeOffset.y}px` 
+                    left: `${0.75 + eyeOffset.x}px`, 
+                    top: `${0.75 + eyeOffset.y}px` 
                   }}
                 />
                 <div 
                   className="absolute w-1 h-1 bg-white rounded-full opacity-80"
                   style={{ 
-                    left: `${0.2 + eyeOffset.x}px`, 
-                    top: `${0.2 + eyeOffset.y}px` 
+                    left: `${0.25 + eyeOffset.x}px`, 
+                    top: `${0.25 + eyeOffset.y}px` 
                   }}
                 />
               </div>
             </div>
-            <DialogTitle className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-              Vous avez perdu
-            </DialogTitle>
           </div>
+          
+          <DialogTitle className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
+            Vous avez perdu
+          </DialogTitle>
         </DialogHeader>
         
         <div className="flex justify-center items-center gap-4 mt-4">

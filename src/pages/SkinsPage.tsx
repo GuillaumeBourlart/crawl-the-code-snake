@@ -156,7 +156,7 @@ const SkinsPage = () => {
 
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
-      {/* Auth button positioned in top right */}
+      {/* Header with just the auth button */}
       <div className="absolute top-4 right-4 z-50">
         <AuthButtons />
       </div>
