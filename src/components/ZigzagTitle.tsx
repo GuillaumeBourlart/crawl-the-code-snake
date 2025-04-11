@@ -13,7 +13,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   const baseCircleProps = {
     cx: 0,
     cy: 0,
-    r: 6, // Taille des cercles légèrement réduite pour permettre plus de détails
+    r: 6,
     fill: "currentColor"
   };
   
@@ -22,9 +22,12 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
     return (
       <g key={index} className="letter-group">
         {points.map((point, i) => {
-          // Utilisation de la coordonnée Y pour synchroniser les points sur la même ligne
-          // et utiliser l'index de la lettre pour donner un rythme d'ensemble à chaque lettre
-          const animationDelay = `${(point[1] % 100) * 0.01 + index * 0.05}s`;
+          // Utiliser la coordonnée Y pour créer un délai progressif vers le bas
+          // Tous les cercles d'une même lettre auront le même type d'animation
+          // Plus on descend dans la lettre, plus l'animation est décalée
+          const yPosition = point[1];
+          const yFactor = (yPosition - 20) / 60; // Normalize Y position (20-80) to get a factor between 0-1
+          const animationDelay = `${yFactor * 0.5}s`; // Délai progressif basé sur la position verticale
           
           return (
             <circle
@@ -36,6 +39,8 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
               className="animate-pulse"
               style={{ 
                 animationDelay,
+                animationDuration: "2s",
+                animationIterationCount: "infinite",
                 filter: "drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.7))"
               }}
             />
@@ -121,7 +126,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
     <div className={`flex justify-center ${className}`}>
       <svg 
         viewBox="0 0 630 100" 
-        className="w-full max-w-5xl mx-auto" // Rendu plus grand
+        className="w-full max-w-5xl mx-auto" 
         style={{ 
           filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
         }}
