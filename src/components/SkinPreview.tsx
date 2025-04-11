@@ -418,7 +418,7 @@ const SkinPreview = ({
       ref={canvasRef} 
       width={width} 
       height={height} 
-      className="rounded-lg max-w-full"
+      className="rounded-full max-w-full"
     />
   );
 };

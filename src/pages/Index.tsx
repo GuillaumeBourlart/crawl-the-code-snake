@@ -7,7 +7,7 @@ import MobileControls from "@/components/MobileControls";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import GameOverDialog from "@/components/GameOverDialog";
-import { Trophy, User, ArrowRight, Settings, Palette, LogOut } from "lucide-react";
+import { Trophy, User, ArrowRight, Settings, Palette, LogOut, Play } from "lucide-react";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
@@ -504,7 +504,7 @@ const Index = () => {
                 placeholder="Entrez votre pseudo"
                 value={username}
                 onChange={handleUsernameChange}
-                className="text-white bg-gray-800/80 border-gray-700 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 rounded-lg py-6"
+                className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6"
                 maxLength={16}
                 required
               />
@@ -516,7 +516,7 @@ const Index = () => {
               <h2 className="text-sm font-medium text-gray-300">Votre skin</h2>
             </div>
             
-            <Link to="/skins" className="block bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
+            <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
               {isLoading ? (
                 <div className="flex justify-center py-2">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
@@ -539,20 +539,21 @@ const Index = () => {
           
           <div className="flex flex-col w-full gap-3">
             <Button
-              className="flex items-center justify-center rounded-full aspect-square mx-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-lg shadow-indigo-500/30 transition-all duration-300 transform hover:scale-[1.05] p-0 w-auto h-auto"
+              className="flex items-center justify-center rounded-full aspect-square mx-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-indigo-500/40 transition-all duration-300 transform hover:scale-[1.05] p-0 w-48 h-48 mb-4"
               onClick={handlePlay}
               disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
             >
               {connecting ? (
                 <div className="p-5">
-                  <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                 </div>
               ) : (
-                <div className="p-5">
-                  <span className="text-lg font-medium">JOUER</span>
+                <div className="flex flex-col items-center p-5">
+                  <Play className="h-16 w-16 mb-2" strokeWidth={2.5} />
+                  <span className="text-2xl font-bold tracking-wider">JOUER</span>
                 </div>
               )}
             </Button>
