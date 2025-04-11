@@ -7,13 +7,13 @@ interface ZigzagTitleProps {
 
 const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   // Configuration des couleurs des cercles avec de meilleures couleurs pour la visibilité
-  const colors = ["#1EAEDB", "#8B5CF6", "#F97316", "#FFFFFF"];
+  const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
   
   // Définir les propriétés de base pour tous les cercles avec une taille plus grande
   const baseCircleProps = {
     cx: 0,
     cy: 0,
-    r: 12, // Augmentation de la taille des cercles
+    r: 15, // Augmentation de la taille des cercles pour meilleure visibilité
     fill: "currentColor"
   };
   
@@ -31,7 +31,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
             className="animate-pulse"
             style={{ 
               animationDelay: `${i * 0.1}s`,
-              filter: "drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5))" // Ajout d'ombre pour meilleure visibilité
+              filter: "drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.7))" // Ombre plus prononcée
             }}
           />
         ))}
@@ -39,35 +39,35 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
     );
   };
 
-  // Points pour chaque lettre (coordonnées [x, y] pour positionner les cercles) - réorganisés pour mieux former "ZIGZAG.IO"
+  // Points pour chaque lettre (coordonnées [x, y] pour positionner les cercles) - réorganisés et espacés
   const letterCoordinates: [number, number][][] = [
     // 'Z'
-    [[20, 10], [40, 10], [60, 10], [60, 25], [40, 40], [20, 40], [60, 40]],
+    [[30, 20], [50, 20], [70, 20], [70, 40], [50, 60], [30, 60], [70, 60]],
     // 'I'
-    [[80, 10], [80, 25], [80, 40]],
+    [[100, 20], [100, 40], [100, 60]],
     // 'G'
-    [[100, 10], [120, 10], [140, 10], [100, 25], [140, 25], [100, 40], [120, 40], [140, 40]],
+    [[130, 20], [150, 20], [170, 20], [130, 40], [130, 60], [150, 60], [170, 60], [170, 40]],
     // 'Z'
-    [[160, 10], [180, 10], [200, 10], [200, 25], [180, 40], [160, 40], [200, 40]],
+    [[200, 20], [220, 20], [240, 20], [240, 40], [220, 60], [200, 60], [240, 60]],
     // 'A'
-    [[220, 10], [240, 10], [220, 25], [240, 25], [260, 25], [220, 40], [260, 40]],
+    [[270, 20], [290, 20], [270, 40], [290, 40], [310, 40], [270, 60], [310, 60]],
     // 'G'
-    [[280, 10], [300, 10], [320, 10], [280, 25], [320, 25], [280, 40], [300, 40], [320, 40]],
+    [[340, 20], [360, 20], [380, 20], [340, 40], [340, 60], [360, 60], [380, 60], [380, 40]],
     // '.'
-    [[340, 40]],
+    [[410, 60]],
     // 'I'
-    [[360, 10], [360, 25], [360, 40]],
+    [[440, 20], [440, 40], [440, 60]],
     // 'O'
-    [[380, 10], [400, 10], [420, 10], [380, 25], [420, 25], [380, 40], [400, 40], [420, 40]]
+    [[470, 20], [490, 20], [510, 20], [470, 40], [510, 40], [470, 60], [490, 60], [510, 60]]
   ];
 
   return (
     <div className={`flex justify-center ${className}`}>
       <svg 
-        viewBox="0 0 440 60" 
-        className="w-full max-w-sm md:max-w-lg" // Augmentation de la taille maximale
+        viewBox="0 0 540 80" 
+        className="w-full max-w-xl mx-auto"
         style={{ 
-          filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))" 
+          filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
         }}
       >
         {letterCoordinates.map((letterPoints, index) => {
