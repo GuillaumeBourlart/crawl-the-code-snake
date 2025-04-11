@@ -124,6 +124,7 @@ const GameCanvas = ({
   });
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
+  const lastRenderTimeRef = useRef<number>(0);
   const rendererStateRef = useRef({
     players: {} as Record<string, Player>,
     items: [] as GameItem[],
@@ -674,7 +675,8 @@ const GameCanvas = ({
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      const numberOfStars = 200;
+      // Reduce number of stars on mobile for performance
+      const numberOfStars = isMobile ? 50 : 200;
       const time = Date.now() * 0.0004 * 0.4;
       
       for (let i = 0; i < numberOfStars; i++) {
@@ -768,10 +770,10 @@ const GameCanvas = ({
         ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Create larger glow radius (increased from 2x to 4x the item size for more noticeable glow)
+        // Create glow radius exactly 2x the item size as requested
         const glowGradient = ctx.createRadialGradient(
           itemX, itemY, itemRadius * 0.5,
-          itemX, itemY, itemRadius * 4
+          itemX, itemY, itemRadius * 2
         );
         glowGradient.addColorStop(0, `${item.color}80`);
         glowGradient.addColorStop(0.6, `${item.color}40`);
@@ -779,7 +781,7 @@ const GameCanvas = ({
         
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(itemX, itemY, itemRadius * 4, 0, Math.PI * 2);
+        ctx.arc(itemX, itemY, itemRadius * 2, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.strokeStyle = shadeColor(item.color, 30);
