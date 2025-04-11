@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -118,11 +117,25 @@ const GameCanvas = ({
 }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isMobile = useIsMobile();
+  
+  // Set the initial zoom level explicitly for both desktop and mobile
+  const initialZoom = isMobile ? 0.05 : 1.5;
+  
   const [camera, setCamera] = useState({ 
     x: 0, 
     y: 0, 
-    zoom: isMobile ? 0.05 : 1.5  // Changed to 0.05 for mobile as requested
+    zoom: initialZoom
   });
+  
+  // Force camera zoom update when mobile status changes
+  useEffect(() => {
+    setCamera(prev => ({ 
+      ...prev, 
+      zoom: isMobile ? 0.05 : 1.5 
+    }));
+    console.log("Mobile status changed, setting zoom to:", isMobile ? 0.05 : 1.5);
+  }, [isMobile]);
+  
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
   const lastRenderTimeRef = useRef<number>(0);
@@ -178,7 +191,9 @@ const GameCanvas = ({
     setCamera(prev => ({
       ...prev,
       x: player.x,
-      y: player.y
+      y: player.y,
+      // Keep the zoom level when updating camera position
+      zoom: prev.zoom
     }));
   }, [gameState, playerId]);
   
@@ -670,6 +685,11 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
+      // Log camera zoom on first frame to debug mobile zoom issues
+      if (!previousTimeRef.current) {
+        console.log("Rendering first frame with camera zoom:", camera.zoom, "isMobile:", isMobile);
+      }
+      
       const width = canvas.width;
       const height = canvas.height;
       
@@ -719,6 +739,7 @@ const GameCanvas = ({
       ctx.save();
       
       ctx.translate(canvas.width / 2, canvas.height / 2);
+      // Apply the zoom - make sure we're using the current camera zoom
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       

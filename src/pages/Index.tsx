@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -286,6 +285,8 @@ const Index = () => {
       setGameStarted(true);
       
       console.log("Sending player info to server with skin:", selectedSkinId);
+      console.log("Is Mobile: ", isMobile);
+      
       newSocket.emit("setPlayerInfo", { 
         pseudo: username,
         skin_id: selectedSkinId
@@ -303,14 +304,12 @@ const Index = () => {
       toast.success("Vous avez rejoint la partie");
     });
     
-    // Nouveau gestionnaire pour le message update_entities
     newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
       console.log("Received update_entities with", 
         Object.keys(data.players).length, "players and", 
         data.items.length, "items and",
         data.leaderboard?.length || 0, "leaderboard entries");
       
-      // Convertir les items en objet pour compatibilité avec le code existant
       const itemsObject: Record<string, GameItem> = {};
       data.items.forEach(item => {
         itemsObject[item.id] = item;
@@ -322,7 +321,6 @@ const Index = () => {
         items: itemsObject
       }));
       
-      // Mise à jour du leaderboard
       if (data.leaderboard) {
         setRoomLeaderboard(data.leaderboard);
       }
