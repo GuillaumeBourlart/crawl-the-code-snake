@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HexBackground from "@/components/HexBackground";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
 
 const CookiePolicy = () => {
@@ -30,33 +31,35 @@ const CookiePolicy = () => {
       </div>
       
       <main className="flex-1 container mx-auto px-4 py-16 relative z-10">
-        <div className="max-w-3xl mx-auto bg-gray-900/70 backdrop-blur-sm p-8 rounded-xl border border-gray-800/50">
+        <div className="max-w-3xl mx-auto bg-gray-900/70 backdrop-blur-sm p-8 rounded-xl border border-gray-800/50 max-h-[80vh]">
           <h1 className="text-3xl font-bold mb-6 text-indigo-400">Politique relative aux cookies</h1>
           
-          <div className="prose prose-invert prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white max-w-none">
-            <p className="text-sm text-gray-400 mb-4">Dernière mise à jour : {currentDate}</p>
-            
-            <p className="mb-4">Notre site utilise uniquement des cookies strictement nécessaires au fonctionnement :</p>
-            
-            <ul className="mb-6 space-y-3">
-              <li>
-                <strong className="text-indigo-300">Cookies techniques</strong> : 
-                <span className="ml-1">pour gérer votre connexion au jeu (connexion via Google) et votre session de paiement sécurisée via Stripe.</span>
-              </li>
-              <li>
-                <strong className="text-indigo-300">Cookies de préférences</strong> : 
-                <span className="ml-1">mémorisent vos préférences d'utilisation (comme le thème ou les paramètres du jeu).</span>
-              </li>
-            </ul>
-            
-            <p className="mb-6">Nous n'utilisons <strong className="text-amber-400">aucun cookie analytique ou publicitaire</strong>.</p>
-            
-            <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Consentement</h2>
-            <p className="mb-4">
-              Ces cookies étant strictement nécessaires, votre consentement explicite n'est pas requis.<br />
-              Toutefois, vous pouvez paramétrer votre navigateur pour bloquer ces cookies, mais cela risque de perturber le bon fonctionnement du site.
-            </p>
-          </div>
+          <ScrollArea className="h-[calc(80vh-120px)]">
+            <div className="prose prose-invert prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white max-w-none pr-4">
+              <p className="text-sm text-gray-400 mb-4">Dernière mise à jour : {currentDate}</p>
+              
+              <p className="mb-4">Notre site utilise uniquement des cookies strictement nécessaires au fonctionnement :</p>
+              
+              <ul className="mb-6 space-y-3">
+                <li>
+                  <strong className="text-indigo-300">Cookies techniques</strong> : 
+                  <span className="ml-1">pour gérer votre connexion au jeu (connexion via Google) et votre session de paiement sécurisée via Stripe.</span>
+                </li>
+                <li>
+                  <strong className="text-indigo-300">Cookies de préférences</strong> : 
+                  <span className="ml-1">mémorisent vos préférences d'utilisation (comme le thème ou les paramètres du jeu).</span>
+                </li>
+              </ul>
+              
+              <p className="mb-6">Nous n'utilisons <strong className="text-amber-400">aucun cookie analytique ou publicitaire</strong>.</p>
+              
+              <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Consentement</h2>
+              <p className="mb-4">
+                Ces cookies étant strictement nécessaires, votre consentement explicite n'est pas requis.<br />
+                Toutefois, vous pouvez paramétrer votre navigateur pour bloquer ces cookies, mais cela risque de perturber le bon fonctionnement du site.
+              </p>
+            </div>
+          </ScrollArea>
         </div>
       </main>
     </div>

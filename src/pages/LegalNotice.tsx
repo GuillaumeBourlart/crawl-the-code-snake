@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HexBackground from "@/components/HexBackground";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const LegalNotice = () => {
   const navigate = useNavigate();
@@ -23,33 +24,35 @@ const LegalNotice = () => {
       </div>
       
       <main className="flex-1 container mx-auto px-4 py-16 relative z-10">
-        <div className="max-w-3xl mx-auto bg-gray-900/70 backdrop-blur-sm p-8 rounded-xl border border-gray-800/50">
+        <div className="max-w-3xl mx-auto bg-gray-900/70 backdrop-blur-sm p-8 rounded-xl border border-gray-800/50 max-h-[80vh]">
           <h1 className="text-3xl font-bold mb-6 text-indigo-400">Mentions légales</h1>
           
-          <div className="prose prose-invert prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white max-w-none">
-            <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Éditeur du site</h2>
-            <p className="mb-4">
-              <strong>Guillaume Bourlart</strong> (Auto-entrepreneur)<br />
-              Code APE : 5829C – Édition de logiciels applicatifs<br />
-              Email : <a href="mailto:contact.gb.entreprise@gmail.com" className="text-indigo-400 hover:underline">contact.gb.entreprise@gmail.com</a><br />
-              Pays : France
-            </p>
-            
-            <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Hébergeur du site</h2>
-            <p className="mb-4">
-              Hostinger France<br />
-              61 rue Lordou Vironos, 6023 Larnaca, Chypre<br />
-              Site web : <a href="https://www.hostinger.fr" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">https://www.hostinger.fr</a>
-            </p>
-            
-            <hr className="border-gray-700 my-6" />
-            
-            <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Contact</h2>
-            <p className="mb-4">
-              Pour toute question ou réclamation concernant ce site, contactez :<br />
-              <strong className="text-indigo-400">contact.gb.entreprise@gmail.com</strong>
-            </p>
-          </div>
+          <ScrollArea className="h-[calc(80vh-120px)]">
+            <div className="prose prose-invert prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white max-w-none pr-4">
+              <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Éditeur du site</h2>
+              <p className="mb-4">
+                <strong>Guillaume Bourlart</strong> (Auto-entrepreneur)<br />
+                Code APE : 5829C – Édition de logiciels applicatifs<br />
+                Email : <a href="mailto:contact.gb.entreprise@gmail.com" className="text-indigo-400 hover:underline">contact.gb.entreprise@gmail.com</a><br />
+                Pays : France
+              </p>
+              
+              <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Hébergeur du site</h2>
+              <p className="mb-4">
+                Hostinger France<br />
+                61 rue Lordou Vironos, 6023 Larnaca, Chypre<br />
+                Site web : <a href="https://www.hostinger.fr" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">https://www.hostinger.fr</a>
+              </p>
+              
+              <hr className="border-gray-700 my-6" />
+              
+              <h2 className="text-xl font-semibold text-indigo-300 mt-6 mb-4">Contact</h2>
+              <p className="mb-4">
+                Pour toute question ou réclamation concernant ce site, contactez :<br />
+                <strong className="text-indigo-400">contact.gb.entreprise@gmail.com</strong>
+              </p>
+            </div>
+          </ScrollArea>
         </div>
       </main>
     </div>
