@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Settings, LogOut, Trash2 } from "lucide-react";
+import { Settings, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const UserProfileMenu = () => {
