@@ -41,7 +41,9 @@ const AuthButtons = () => {
   }
 
   return user ? (
-    <UserProfileMenu />
+    <div className="z-50">
+      <UserProfileMenu />
+    </div>
   ) : (
     <Button
       variant="outline"
