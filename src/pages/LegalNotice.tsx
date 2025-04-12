@@ -28,7 +28,26 @@ const LegalNotice = () => {
           
           <div className="prose prose-invert max-w-none">
             {/* Le contenu sera ajouté par l'utilisateur */}
-            <p className="text-gray-300 italic">Le contenu des mentions légales sera ajouté ultérieurement.</p>
+            <p className="text-gray-300 italic"># Mentions légales
+
+**Éditeur du site :**  
+Guillaume Bourlart (Auto-entrepreneur)  
+Code APE : 5829C – Édition de logiciels applicatifs  
+Email : contact.gb.entreprise@gmail.com  
+Pays : France  
+
+**Hébergeur du site :**  
+Hostinger France  
+61 rue Lordou Vironos, 6023 Larnaca, Chypre  
+Site web : [https://www.hostinger.fr](https://www.hostinger.fr)
+
+---
+
+## Contact
+
+Pour toute question ou réclamation concernant ce site, contactez :  
+**contact.gb.entreprise@gmail.com**
+</p>
           </div>
         </div>
       </main>
