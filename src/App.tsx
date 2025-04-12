@@ -14,6 +14,7 @@ import LegalNotice from "./pages/LegalNotice";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import TermsOfSale from "./pages/TermsOfSale";
+import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
         <Sonner />
         <HexBackground />
         <BrowserRouter>
+          <CookieConsent />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/skins" element={<SkinsPage />} />
