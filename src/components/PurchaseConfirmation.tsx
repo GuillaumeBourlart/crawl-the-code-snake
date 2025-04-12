@@ -50,7 +50,7 @@ const PurchaseConfirmation = ({
             Confirmer l'achat
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Vous êtes sur le point d'acheter le skin <span className="text-indigo-400 font-medium">{skin.name}</span> pour <span className="text-green-500 font-medium">{skin.price_eur ? `${skin.price_eur}€` : `${skin.price}€`}</span>.
+            Vous êtes sur le point d'acheter le skin <span className="text-indigo-400 font-medium">{skin.name}</span> pour <span className="text-green-500 font-medium">{`${skin.price}€`}</span>.
           </DialogDescription>
         </DialogHeader>
 
