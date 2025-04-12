@@ -12,6 +12,7 @@ import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import PurchaseConfirmation from "@/components/PurchaseConfirmation";
 
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
@@ -28,6 +29,8 @@ const SkinsPage = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
+  const [showPurchaseConfirmation, setShowPurchaseConfirmation] = useState(false);
+  const [skinToPurchase, setSkinToPurchase] = useState<GameSkin | null>(null);
 
   console.log("SkinsPage - Render state:", {
     user: !!user,
@@ -58,7 +61,7 @@ const SkinsPage = () => {
     }
   }, [fetchError]);
 
-  const handlePurchase = async (skin: GameSkin) => {
+  const initiateStripeCheckout = async (skin: GameSkin) => {
     if (!user) {
       toast.error("Veuillez vous connecter pour acheter des skins");
       console.error("Tentative d'achat sans authentification");
@@ -131,7 +134,13 @@ const SkinsPage = () => {
       toast.error(`Échec de traitement du paiement: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
+      setShowPurchaseConfirmation(false);
     }
+  };
+
+  const handlePurchase = (skin: GameSkin) => {
+    setSkinToPurchase(skin);
+    setShowPurchaseConfirmation(true);
   };
 
   const handleSkinSelectAndSave = (skinId: number) => {
@@ -201,6 +210,15 @@ const SkinsPage = () => {
           )}
         </Button>
       </div>
+
+      {/* Purchase confirmation dialog */}
+      <PurchaseConfirmation
+        isOpen={showPurchaseConfirmation}
+        onClose={() => setShowPurchaseConfirmation(false)}
+        onConfirm={() => skinToPurchase && initiateStripeCheckout(skinToPurchase)}
+        skin={skinToPurchase}
+        isLoading={isProcessing}
+      />
     </div>
   );
 };
