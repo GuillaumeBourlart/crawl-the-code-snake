@@ -51,4 +51,7 @@ const CookieConsent = () => {
         </motion.div>
       )}
     </AnimatePresence>
-  </div>
+  );
+};
+
+export default CookieConsent;
