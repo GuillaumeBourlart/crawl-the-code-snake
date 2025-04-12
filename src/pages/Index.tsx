@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
+import Footer from "@/components/Footer";
 
 const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
 
@@ -620,6 +621,8 @@ const Index = () => {
         onQuit={handleQuitGame}
         playerColor={playerId && gameState.players[playerId]?.color}
       />
+
+      {!gameStarted && <Footer />}
     </div>
   );
 };

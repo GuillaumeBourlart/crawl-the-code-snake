@@ -12,6 +12,7 @@ import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Footer from "@/components/Footer";
 
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
@@ -176,7 +177,7 @@ const SkinsPage = () => {
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-170px)] pr-4">
+          <ScrollArea className="h-[calc(100vh-230px)] pr-4">
             <SkinSelector 
               onSelectSkin={handleSkinSelectAndSave}
               onPurchase={handlePurchase}
@@ -186,6 +187,9 @@ const SkinsPage = () => {
           </ScrollArea>
         )}
       </main>
+
+      {/* Footer */}
+      <Footer />
 
       {/* Floating confirmation button at bottom */}
       <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
