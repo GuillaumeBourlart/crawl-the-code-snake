@@ -76,7 +76,7 @@ const UserProfileMenu = () => {
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 bg-gray-900/95 backdrop-blur-sm border border-gray-800">
+        <DropdownMenuContent align="end" className="w-56 bg-gray-900/95 backdrop-blur-sm border border-gray-800 z-50">
           <DropdownMenuLabel className="text-gray-300">
             <span className="block text-sm font-medium text-white">{profile.pseudo}</span>
             <span className="block text-xs text-gray-400 truncate">{user.email}</span>
