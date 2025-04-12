@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,7 @@ import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 
-const SOCKET_SERVER_URL = "wss://grubz.io";
+const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
 
 interface ServerPlayer {
   id?: string;
@@ -68,411 +67,562 @@ const MAX_ITEM_RADIUS = 10;
 const DEFAULT_ITEM_EATEN_COUNT = 18;
 
 const Index = () => {
-  // State and hooks
-  const [pseudo, setPseudo] = useState("");
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [gameState, setGameState] = useState<ServerGameState | null>(null);
+  const [socket, setSocket] = useState<any>(null);
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [gameOver, setGameOver] = useState(false);
-  const [deathReason, setDeathReason] = useState("");
-  const [lastScore, setLastScore] = useState(0);
-  const [highestScore, setHighestScore] = useState(0);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [gameState, setGameState] = useState<ServerGameState>({
+    players: {},
+    items: {},
+    worldSize: { width: 4000, height: 4000 }
+  });
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const [showGameOverDialog, setShowGameOverDialog] = useState(false);
   const [roomLeaderboard, setRoomLeaderboard] = useState<PlayerLeaderboardEntry[]>([]);
-  const socketRef = useRef<any>(null);
-  const reconnectionAttemptsRef = useRef(0);
-  const reconnectingRef = useRef(false);
-  const movementRef = useRef({ up: false, down: false, left: false, right: false });
-  const boosting = useRef(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(true);
+  const [username, setUsername] = useState<string>("");
+  const [isSpectator, setIsSpectator] = useState(false);
+  const [availableSkins, setAvailableSkins] = useState<any[]>([]);
+  const [skinLoadAttempted, setSkinLoadAttempted] = useState(false);
+
+  const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
+  
   const isMobile = useIsMobile();
-  const { data: globalLeaderboard = [] } = useGlobalLeaderboard();
-  const { user, profile } = useAuth();
-  const { selectedSkin } = useSkins();
-
-  // Initialize socket connection
+  const moveThrottleRef = useRef(false);
+  const lastDirectionRef = useRef({ x: 0, y: 0 });
+  const directionIntervalRef = useRef<number | null>(null);
+  
+  const { user, profile, loading: authLoading, updateProfile } = useAuth();
+  const { 
+    selectedSkin, 
+    selectedSkinId, 
+    availableSkins: userSkins, 
+    loading: skinsLoading, 
+    setSelectedSkin,
+    refresh: refreshSkins
+  } = useSkins();
+  
   useEffect(() => {
-    if (!socketRef.current) {
-      const socket = io(SOCKET_SERVER_URL);
-      socketRef.current = socket;
+    if (!skinLoadAttempted) {
+      console.log("Initial skins refresh");
+      refreshSkins();
+      setSkinLoadAttempted(true);
+    }
+  }, [refreshSkins, skinLoadAttempted]);
+  
+  useEffect(() => {
+    if (userSkins && userSkins.length > 0) {
+      console.log("Setting available skins from userSkins:", userSkins.length);
+      setAvailableSkins(userSkins);
+    }
+  }, [userSkins]);
+  
+  useEffect(() => {
+    if (profile && profile.pseudo) {
+      setUsername(profile.pseudo);
+    }
+  }, [profile]);
+  
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (socket) {
+        socket.emit("clean_disconnect");
+        socket.disconnect();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (socket) socket.disconnect();
+      if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+      if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
+    };
+  }, [socket]);
 
-      socket.on("connect", () => {
-        console.log("Connected to server");
-        reconnectingRef.current = false;
-        reconnectionAttemptsRef.current = 0;
-      });
-
-      socket.on("disconnect", () => {
-        console.log("Disconnected from server");
-        if (isPlaying) {
-          setIsPlaying(false);
-          toast.error("Déconnecté du serveur de jeu", {
-            description: "Tentative de reconnexion en cours...",
-          });
+  useEffect(() => {
+    if (gameStarted && socket && playerId && !isSpectator) {
+      directionIntervalRef.current = window.setInterval(() => {
+        if (lastDirectionRef.current.x !== 0 || lastDirectionRef.current.y !== 0) {
+          socket.emit("changeDirection", { direction: lastDirectionRef.current });
         }
-        attemptReconnect();
-      });
-
-      socket.on("gameState", (state: ServerGameState) => {
-        setGameState(state);
-      });
-
-      socket.on("playerJoined", (id: string) => {
-        setPlayerId(id);
-      });
-
-      socket.on("leaderboard", (data: PlayerLeaderboardEntry[]) => {
-        setRoomLeaderboard(data);
-      });
-
-      socket.on("gameOver", (data: { reason: string; score: number }) => {
-        setIsPlaying(false);
-        setGameOver(true);
-        setDeathReason(data.reason);
-        setLastScore(data.score);
-        if (data.score > highestScore) {
-          setHighestScore(data.score);
-        }
-      });
+      }, 50);
 
       return () => {
-        socket.disconnect();
-        socketRef.current = null;
+        if (directionIntervalRef.current) {
+          window.clearInterval(directionIntervalRef.current);
+          directionIntervalRef.current = null;
+        }
       };
     }
-  }, [isPlaying, highestScore]);
-
-  // Handle reconnection attempts
-  const attemptReconnect = useCallback(() => {
-    if (reconnectingRef.current) return;
     
-    reconnectingRef.current = true;
-    const attemptReconnection = () => {
-      if (reconnectionAttemptsRef.current >= MAX_RECONNECTION_ATTEMPTS) {
-        toast.error("Impossible de se connecter au serveur de jeu", {
-          description: "Veuillez réessayer ultérieurement.",
-        });
-        reconnectingRef.current = false;
-        return;
-      }
-
-      if (socketRef.current && !socketRef.current.connected) {
-        socketRef.current.connect();
-        reconnectionAttemptsRef.current++;
-        setTimeout(() => {
-          if (!socketRef.current?.connected) {
-            attemptReconnection();
-          }
-        }, RECONNECTION_DELAY);
+    return () => {
+      if (directionIntervalRef.current) {
+        window.clearInterval(directionIntervalRef.current);
+        directionIntervalRef.current = null;
       }
     };
-
-    attemptReconnection();
-  }, []);
-
-  // Handle starting the game
-  const handleStartGame = useCallback(() => {
-    if (!socketRef.current || !socketRef.current.connected) {
-      toast.error("Non connecté au serveur", {
-        description: "Tentative de reconnexion...",
-      });
-      attemptReconnect();
+  }, [gameStarted, socket, playerId, isSpectator]);
+  
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
+      setReconnectAttempts(prev => prev + 1);
+      toast.info(`Tentative de reconnexion (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
+      reconnectTimerRef.current = window.setTimeout(() => {
+        handlePlay();
+      }, RECONNECTION_DELAY);
+    } else {
+      toast.error("Impossible de se reconnecter au serveur après plusieurs tentatives");
+      setConnecting(false);
+      setReconnectAttempts(0);
+    }
+  }, [reconnectAttempts]);
+  
+  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
+    const items: Record<string, GameItem> = {};
+    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#33A8FF', '#33FFF5', '#FFD133', '#8F33FF'];
+    
+    const randomItemRadius = () => Math.floor(Math.random() * (MAX_ITEM_RADIUS - MIN_ITEM_RADIUS + 1)) + MIN_ITEM_RADIUS;
+    
+    for (let i = 0; i < count; i++) {
+      const id = `item-${i}`;
+      items[id] = {
+        id,
+        x: Math.random() * worldSize.width,
+        y: Math.random() * worldSize.height,
+        value: Math.floor(Math.random() * 5) + 1,
+        color: itemColors[Math.floor(Math.random() * itemColors.length)],
+        radius: randomItemRadius()
+      };
+    }
+    return items;
+  };
+  
+  const handlePlay = () => {
+    if (!username.trim()) {
+      toast.error("Veuillez entrer un pseudo avant de jouer");
       return;
     }
-
-    const displayName = user && profile ? profile.pseudo : pseudo.trim() || "Player";
-    socketRef.current.emit("join", { 
-      pseudo: displayName,
-      skin_id: selectedSkin
-    });
-    setIsPlaying(true);
-    setGameOver(false);
-  }, [pseudo, attemptReconnect, user, profile, selectedSkin]);
-
-  // Handle movement controls
-  const handleMovement = useCallback((direction: string, isKeyDown: boolean) => {
-    if (!socketRef.current || !isPlaying) return;
-
-    switch (direction) {
-      case "up":
-        movementRef.current.up = isKeyDown;
-        break;
-      case "down":
-        movementRef.current.down = isKeyDown;
-        break;
-      case "left":
-        movementRef.current.left = isKeyDown;
-        break;
-      case "right":
-        movementRef.current.right = isKeyDown;
-        break;
-    }
-
-    socketRef.current.emit("movement", movementRef.current);
-  }, [isPlaying]);
-
-  // Handle boost
-  const handleBoost = useCallback((isKeyDown: boolean) => {
-    if (!socketRef.current || !isPlaying) return;
-    boosting.current = isKeyDown;
-    socketRef.current.emit("boost", isKeyDown);
-  }, [isPlaying]);
-
-  // KeyDown event handler
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isPlaying || isMobile) return;
-
-    switch (e.code) {
-      case "ArrowUp":
-      case "KeyW":
-        handleMovement("up", true);
-        break;
-      case "ArrowDown":
-      case "KeyS":
-        handleMovement("down", true);
-        break;
-      case "ArrowLeft":
-      case "KeyA":
-        handleMovement("left", true);
-        break;
-      case "ArrowRight":
-      case "KeyD":
-        handleMovement("right", true);
-        break;
-      case "ShiftLeft":
-      case "ShiftRight":
-      case "Space":
-        handleBoost(true);
-        break;
-    }
-  }, [isPlaying, isMobile, handleMovement, handleBoost]);
-
-  // KeyUp event handler
-  const handleKeyUp = useCallback((e: KeyboardEvent) => {
-    if (!isPlaying || isMobile) return;
-
-    switch (e.code) {
-      case "ArrowUp":
-      case "KeyW":
-        handleMovement("up", false);
-        break;
-      case "ArrowDown":
-      case "KeyS":
-        handleMovement("down", false);
-        break;
-      case "ArrowLeft":
-      case "KeyA":
-        handleMovement("left", false);
-        break;
-      case "ArrowRight":
-      case "KeyD":
-        handleMovement("right", false);
-        break;
-      case "ShiftLeft":
-      case "ShiftRight":
-      case "Space":
-        handleBoost(false);
-        break;
-    }
-  }, [isPlaying, isMobile, handleMovement, handleBoost]);
-
-  // Setup keyboard listeners
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [handleKeyDown, handleKeyUp]);
-
-  // Filter players with length property
-  const getNonSpectatorPlayers = useCallback(() => {
-    if (!gameState || !gameState.players) return {};
     
-    const activePlayers: Record<string, ServerPlayer> = {};
-    Object.entries(gameState.players).forEach(([id, player]) => {
-      if (!player.spectator) {
-        activePlayers[id] = player;
+    if (user && profile && username !== profile.pseudo) {
+      updateProfile({ pseudo: username });
+    }
+    
+    if (!selectedSkinId) {
+      toast.error("Veuillez sélectionner un skin avant de jouer");
+      return;
+    }
+    
+    console.log("Starting game with skin ID:", selectedSkinId);
+    
+    setConnecting(true);
+    setShowGameOverDialog(false);
+    setIsSpectator(false);
+    
+    if (socket) {
+      socket.emit("clean_disconnect");
+      socket.disconnect();
+    }
+    
+    const newSocket = io(SOCKET_SERVER_URL, {
+      transports: ["websocket"],
+      upgrade: false,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000
+    });
+    
+    newSocket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+      setConnected(true);
+      setConnecting(false);
+      setReconnectAttempts(0);
+      toast.success("Connecté au serveur");
+    });
+    
+    newSocket.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+      setConnecting(false);
+      toast.error("Erreur de connexion au serveur");
+      attemptReconnect();
+    });
+    
+    newSocket.on("disconnect", (reason) => {
+      console.log("Disconnected from WebSocket server. Reason:", reason);
+      setConnected(false);
+      setGameStarted(false);
+      setRoomId(null);
+      
+      if (reason === "io server disconnect") {
+        toast.error("Déconnecté par le serveur");
+      } else if (reason === "transport close") {
+        toast.error("Connexion perdue");
+        attemptReconnect();
+      } else if (reason === "ping timeout") {
+        toast.error("Délai d'attente serveur dépassé");
+        attemptReconnect();
+      } else {
+        toast.error("Déconnecté du serveur");
       }
     });
     
-    return activePlayers;
-  }, [gameState]);
+    newSocket.on("error", (error) => {
+      console.error("Socket error:", error);
+      toast.error("Erreur de socket: " + error);
+      
+      if (!connected) {
+        attemptReconnect();
+      }
+    });
+    
+    newSocket.on("joined_room", (data: { roomId: string }) => {
+      console.log("Joined room:", data.roomId);
+      setRoomId(data.roomId);
+      setPlayerId(newSocket.id);
+      setGameStarted(true);
+      
+      console.log("Sending player info to server with skin:", selectedSkinId);
+      console.log("Is Mobile: ", isMobile);
+      
+      newSocket.emit("setPlayerInfo", { 
+        pseudo: username,
+        skin_id: selectedSkinId
+      });
+      
+      const worldSize = { width: 4000, height: 4000 };
+      const randomItems = generateRandomItems(50, worldSize);
+      
+      setGameState(prevState => ({
+        ...prevState,
+        items: randomItems,
+        worldSize
+      }));
+      
+      toast.success("Vous avez rejoint la partie");
+    });
+    
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
+      console.log("Received update_entities with", 
+        Object.keys(data.players).length, "players and", 
+        data.items.length, "items and",
+        data.leaderboard?.length || 0, "leaderboard entries");
+      
+      const itemsObject: Record<string, GameItem> = {};
+      data.items.forEach(item => {
+        itemsObject[item.id] = item;
+      });
+      
+      setGameState(prevState => ({
+        ...prevState,
+        players: data.players,
+        items: itemsObject
+      }));
+      
+      if (data.leaderboard) {
+        setRoomLeaderboard(data.leaderboard);
+      }
+    });
+    
+    newSocket.on("player_eliminated", () => {
+      console.log("You were eliminated!");
+      toast.error("Vous avez été éliminé!");
+      setIsSpectator(true);
+      setShowGameOverDialog(true);
+    });
+    
+    newSocket.on("set_spectator", (isSpectator: boolean) => {
+      console.log("Set spectator mode:", isSpectator);
+      setIsSpectator(isSpectator);
+    });
+    
+    newSocket.on("player_grew", (data: { growth: number }) => {
+      console.log("You ate another player! Growing by:", data.growth);
+      toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
+      if (playerId) {
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          
+          const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
+          
+          const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
+          const currentQueueLength = currentPlayer.queue?.length || 0;
+          const segmentsToAdd = targetQueueLength - currentQueueLength;
+          
+          let newQueue = [...(currentPlayer.queue || [])];
+          
+          for (let i = 0; i < segmentsToAdd; i++) {
+            newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
+          }
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                queue: newQueue,
+                itemEatenCount: newItemEatenCount
+              }
+            }
+          };
+        });
+      }
+    });
+    
+    newSocket.on("no_room_available", () => {
+      toast.error("Aucune salle disponible");
+      setConnecting(false);
+      newSocket.disconnect();
+    });
+    
+    newSocket.on("ping_request", () => {
+      newSocket.emit("pong_response");
+    });
+    
+    newSocket.emit("join_room");
+    setSocket(newSocket);
+  };
+  
+  const handleMove = (direction: { x: number; y: number }) => {
+    lastDirectionRef.current = direction;
+  };
+  
+  const handleBoostStart = () => {
+    if (socket && gameStarted && !isSpectator) {
+      socket.emit("boostStart");
+    }
+  };
+  
+  const handleBoostStop = () => {
+    if (socket && gameStarted && !isSpectator) {
+      socket.emit("boostStop");
+    }
+  };
+  
+  const handlePlayerCollision = (otherPlayerId: string) => {
+    if (socket && gameStarted && playerId && !isSpectator) {
+      const currentPlayer = gameState.players[playerId];
+      const otherPlayer = gameState.players[otherPlayerId];
+      if (!currentPlayer || !otherPlayer) return;
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
+      const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
+      if (distance < (currentSize + otherSize) / 2) {
+        const currentQueueLength = currentPlayer.queue?.length || 0;
+        const otherQueueLength = otherPlayer.queue?.length || 0;
+        if (currentQueueLength <= otherQueueLength) {
+          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+          toast.error("Vous avez été éliminé!");
+          setIsSpectator(true);
+          setShowGameOverDialog(true);
+        } else {
+          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+        }
+      } else {
+        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+        toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
+        setIsSpectator(true);
+        setShowGameOverDialog(true);
+      }
+    }
+  };
 
-  const activePlayers = gameState ? getNonSpectatorPlayers() : {};
+  const handleQuitGame = () => {
+    if (socket) {
+      socket.emit("clean_disconnect");
+      socket.disconnect();
+    }
+    setGameStarted(false);
+    setShowGameOverDialog(false);
+    setPlayerId(null);
+    setRoomId(null);
+    setIsSpectator(false);
+  };
+
+  const handleRetry = () => {
+    if (socket) {
+      socket.emit("clean_disconnect");
+      socket.disconnect();
+    }
+    
+    setShowGameOverDialog(false);
+    setIsSpectator(false);
+    handlePlay();
+  };
+
+  const handleJoystickMove = (direction: { x: number; y: number }) => {
+    lastDirectionRef.current = direction;
+  };
+
+  const toggleLeaderboard = () => {
+    setShowLeaderboard(prev => !prev);
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
+  };
+
+  const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 via-blue-900/20 to-gray-900 text-white">
-      <main className="flex-1 relative overflow-hidden">
-        {isPlaying ? (
-          <>
-            <GameCanvas 
-              gameState={gameState} 
-              playerId={playerId} 
-              itemRadiusRange={[MIN_ITEM_RADIUS, MAX_ITEM_RADIUS]}
-            />
-            
-            {isMobile && (
-              <MobileControls 
-                onMove={handleMovement} 
-                onBoost={handleBoost}
-              />
-            )}
-            
-            {playerId && gameState && (
-              <PlayerScore 
-                playerId={playerId} 
-                players={gameState.players}
-                roomLeaderboard={roomLeaderboard}
-              />
-            )}
-            
-            <LeaderboardPanel 
-              roomLeaderboard={roomLeaderboard}
-              globalLeaderboard={globalLeaderboard}
-            />
-          </>
-        ) : (
-          <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[80vh]">
-            <div className="w-full max-w-4xl">
-              <div className="mb-12 text-center">
-                <ZigzagTitle title="GRUBZ.IO" colorClass="text-indigo-400" />
-                <p className="mt-4 text-xl text-gray-300 max-w-2xl mx-auto">
-                  Le jeu de serpent multijoueur où vous pouvez vous mesurer à d'autres joueurs en temps réel
-                </p>
+    <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
+      {!gameStarted && (
+        <div className="absolute top-4 right-4 z-50">
+          <AuthButtons />
+        </div>
+      )}
+
+      {!gameStarted && (
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
+          <div className="flex items-center mb-6">
+            <ZigzagTitle className="w-full" />
+          </div>
+          
+          <div className="w-full max-w-sm mb-6">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                <User className="h-5 w-5" />
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
-                <div className="md:col-span-3 bg-gray-900/70 backdrop-blur-lg p-6 rounded-2xl border border-indigo-500/20 shadow-xl">
-                  <h2 className="text-2xl font-bold mb-4 text-indigo-300 flex items-center">
-                    <Play className="h-5 w-5 mr-2" />
-                    Jouer maintenant
-                  </h2>
-                  
-                  {!user ? (
-                    <div className="mb-6">
-                      <label htmlFor="pseudo" className="block text-sm font-medium text-gray-300 mb-2">
-                        Votre pseudo
-                      </label>
-                      <Input
-                        id="pseudo"
-                        value={pseudo}
-                        onChange={(e) => setPseudo(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white"
-                        placeholder="Entrez votre pseudo"
-                      />
-                    </div>
-                  ) : (
-                    <div className="mb-6 flex items-center">
-                      <User className="h-5 w-5 mr-2 text-indigo-400" />
-                      <span>Vous jouez en tant que <strong>{profile?.pseudo}</strong></span>
-                    </div>
-                  )}
-                  
-                  <div className="mb-6">
-                    <h3 className="text-lg font-medium text-gray-300 mb-3">Apparence</h3>
-                    <SkinPreview />
-                    {user && (
-                      <div className="mt-3">
-                        <Link to="/skins" className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center">
-                          <Palette className="h-4 w-4 mr-1" />
-                          Voir tous les skins disponibles
-                          <ArrowRight className="h-3 w-3 ml-1" />
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Button 
-                      onClick={handleStartGame}
-                      className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg"
-                    >
-                      Rejoindre la partie
-                      <AnimatedArrow />
-                    </Button>
-                    
-                    {!user && (
-                      <div className="flex flex-col space-y-3 mt-4">
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-gray-700" />
-                          </div>
-                          <div className="relative flex justify-center text-xs">
-                            <span className="bg-gray-900/70 px-2 text-gray-400">Ou connectez-vous pour sauvegarder votre progression</span>
-                          </div>
-                        </div>
-                        
-                        <AuthButtons />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="md:col-span-2 flex flex-col gap-6">
-                  <div className="bg-gray-900/70 backdrop-blur-lg p-6 rounded-2xl border border-indigo-500/20 shadow-xl">
-                    <h2 className="text-xl font-bold mb-4 text-yellow-400 flex items-center">
-                      <Trophy className="h-5 w-5 mr-2" />
-                      Classement global
-                    </h2>
-                    <div className="space-y-3">
-                      {globalLeaderboard.slice(0, 5).map((entry, index) => (
-                        <div 
-                          key={index} 
-                          className="flex items-center justify-between p-2 rounded-lg bg-gray-800/60"
-                        >
-                          <div className="flex items-center">
-                            <span className="w-6 text-center font-medium text-gray-400">#{index + 1}</span>
-                            <div 
-                              className="h-3 w-3 rounded-full ml-2 mr-3"
-                              style={{ backgroundColor: entry.color || '#6366F1' }}
-                            />
-                            <span className="font-medium">{entry.pseudo || 'Joueur inconnu'}</span>
-                          </div>
-                          <span className="font-mono font-bold text-yellow-300">{entry.score}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-900/70 backdrop-blur-lg p-6 rounded-2xl border border-indigo-500/20 shadow-xl">
-                    <h2 className="text-xl font-bold mb-3 text-indigo-300">Comment jouer</h2>
-                    <div className="space-y-2 text-gray-300 text-sm">
-                      <p className="flex items-start">
-                        <span className="mr-2 bg-gray-800 px-2 py-0.5 rounded text-xs">⬆️ ⬇️ ⬅️ ➡️</span>
-                        <span>Utilisez les flèches ou WASD pour vous déplacer</span>
-                      </p>
-                      <p className="flex items-start">
-                        <span className="mr-2 bg-gray-800 px-2 py-0.5 rounded text-xs">SHIFT</span>
-                        <span>Maintenez pour accélérer temporairement</span>
-                      </p>
-                      <p className="flex items-start">
-                        <span className="mr-2 text-purple-400">•</span>
-                        <span>Mangez les items pour grandir et gagner des points</span>
-                      </p>
-                      <p className="flex items-start">
-                        <span className="mr-2 text-red-400">⚠</span>
-                        <span>Évitez de vous cogner contre les autres joueurs</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Input
+                type="text"
+                placeholder="Entrez votre pseudo"
+                value={username}
+                onChange={handleUsernameChange}
+                className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
+                maxLength={16}
+                required
+              />
             </div>
           </div>
-        )}
-      </main>
+          
+          <div className="w-full mb-6">
+            <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
+              {isLoading ? (
+                <div className="flex justify-center py-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
+                </div>
+              ) : (
+                selectedSkin ? (
+                  <div className="flex flex-col items-center">
+                    <SkinPreview skin={selectedSkin} size="medium" animate={true} pattern="snake" />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-4">
+                    <p className="text-gray-400">Aucun skin sélectionné</p>
+                    <p className="text-xs text-indigo-400 mt-2">Cliquez pour en choisir un</p>
+                  </div>
+                )
+              )}
+            </Link>
+          </div>
+          
+          <div className="flex flex-col w-full gap-3">
+            <button
+              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handlePlay}
+              disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
+            >
+              {connecting ? (
+                <div className="p-5">
+                  <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              ) : (
+                <AnimatedArrow 
+                  className="w-full h-32" 
+                  isClickable={Boolean(username.trim() && selectedSkinId && !isLoading)}
+                />
+              )}
+            </button>
+          </div>
+          
+          {reconnectAttempts > 0 && (
+            <p className="mt-4 text-amber-400 flex items-center">
+              <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
+            </p>
+          )}
+        </div>
+      )}
       
-      {!isPlaying && <Footer />}
-      
+      {gameStarted && (
+        <>
+          <div className="absolute top-4 right-4 z-20 flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
+              onClick={handleQuitGame}
+            >
+              <LogOut className="mr-1 h-4 w-4 text-red-400" />
+              Quitter
+            </Button>
+          </div>
+          
+          {isSpectator && (
+            <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-red-600/70 text-white rounded-lg shadow-md">
+              Mode Spectateur
+            </div>
+          )}
+          
+          <PlayerScore 
+            playerId={playerId} 
+            players={gameState.players}
+            roomLeaderboard={roomLeaderboard} 
+          />
+          
+          <LeaderboardPanel 
+            roomLeaderboard={roomLeaderboard}
+            currentPlayerId={playerId}
+          />
+          
+          <GameCanvas
+            gameState={{
+              ...gameState,
+              players: gameState.players || {},
+              items: gameState.items ? Object.values(gameState.items) : [],
+              worldSize: gameState.worldSize || { width: 4000, height: 4000 }
+            }}
+            playerId={playerId}
+            onMove={handleMove}
+            onBoostStart={handleBoostStart}
+            onBoostStop={handleBoostStop}
+            onPlayerCollision={handlePlayerCollision}
+            isSpectator={isSpectator}
+          />
+          
+          {isMobile && !isSpectator && (
+            <MobileControls 
+              onMove={handleMove} 
+              onBoostStart={handleBoostStart} 
+              onBoostStop={handleBoostStop}
+              onJoystickMove={handleJoystickMove}
+            />
+          )}
+        </>
+      )}
+
       <GameOverDialog 
-        open={gameOver} 
-        onClose={() => setGameOver(false)}
-        deathReason={deathReason}
-        score={lastScore}
-        highestScore={highestScore}
-        onPlayAgain={handleStartGame}
+        isOpen={showGameOverDialog}
+        onClose={() => setShowGameOverDialog(false)}
+        onRetry={handleRetry}
+        onQuit={handleQuitGame}
+        playerColor={playerId && gameState.players[playerId]?.color}
       />
+
+      {!gameStarted && <Footer />}
     </div>
   );
 };

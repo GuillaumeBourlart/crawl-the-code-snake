@@ -32,7 +32,7 @@ export function useGlobalLeaderboard(socketUrl: string) {
       try {
         setIsLoading(true);
         // URL directe au lieu d'essayer de l'extraire du socketUrl
-        const url = "https://www.grubz.io/globalLeaderboard";
+        const url = "https://codecrawl-production.up.railway.app/globalLeaderboard";
         
         console.log("Fetching global leaderboard from:", url);
         
