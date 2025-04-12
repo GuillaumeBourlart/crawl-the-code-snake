@@ -28,7 +28,60 @@ const PrivacyPolicy = () => {
           
           <div className="prose prose-invert max-w-none">
             {/* Le contenu sera ajouté par l'utilisateur */}
-            <p className="text-gray-300 italic">Le contenu de la politique de confidentialité sera ajouté ultérieurement.</p>
+            <p className="text-gray-300 italic">L# Politique de confidentialité
+
+Dernière mise à jour : [DATE DU JOUR]
+
+Cette politique détaille la manière dont nous traitons vos données personnelles sur ce site.
+
+## Données collectées
+
+Nous collectons exclusivement les données suivantes lors de votre inscription avec Google :
+
+- Adresse email (via Google Sign-in)
+- Nom d'affichage (pseudo via Google)
+- Date de création du compte
+- Date de dernière connexion
+
+Aucun mot de passe n’est stocké par notre site. L’authentification se fait exclusivement via Google Sign-in.
+
+## Données liées au jeu
+
+Nous stockons également :
+
+- Skins achetés par l’utilisateur (dates, prix, identifiants de transaction Stripe)
+- Votre pseudo et votre score (si votre score fait partie des 1000 meilleurs scores)
+
+Ces scores sont conservés de manière illimitée.
+
+## Paiements
+
+Tous les paiements sont traités exclusivement par **Stripe**.  
+Nous ne conservons jamais vos informations financières.
+
+## Suppression de compte
+
+Vous pouvez supprimer définitivement votre compte directement depuis votre espace personnel sur notre site. **Attention : cette suppression est immédiate et entraîne la perte définitive de tous vos skins achetés, ainsi que toutes vos autres données.**
+
+## Données temporaires durant les parties
+
+Pendant une partie, nous stockons temporairement en mémoire :
+
+- Votre pseudo
+- Votre score temporaire
+- Taille de votre personnage
+- Votre adresse IP (temporairement via Socket.io)
+
+Ces données temporaires sont immédiatement supprimées dès la fin de votre partie.
+
+## Sécurité des données
+
+Nous nous engageons à sécuriser vos données et travaillons activement à renforcer les mesures de sécurité afin d'éviter tout accès non autorisé.
+
+## Vos droits
+
+Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement et de portabilité de vos données personnelles. Vous pouvez exercer ces droits en nous contactant directement à l’adresse : contact.gb.entreprise@gmail.com
+</p>
           </div>
         </div>
       </main>
