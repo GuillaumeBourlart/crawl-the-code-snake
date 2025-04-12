@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, LogOut, Trash2 } from "lucide-react";
+import { User, Settings, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const UserProfileMenu = () => {
@@ -76,7 +76,7 @@ const UserProfileMenu = () => {
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 bg-gray-900/95 backdrop-blur-sm border border-gray-800 z-50">
+        <DropdownMenuContent align="end" className="w-56 bg-gray-900/95 backdrop-blur-sm border border-gray-800">
           <DropdownMenuLabel className="text-gray-300">
             <span className="block text-sm font-medium text-white">{profile.pseudo}</span>
             <span className="block text-xs text-gray-400 truncate">{user.email}</span>
