@@ -28,7 +28,22 @@ const CookiePolicy = () => {
           
           <div className="prose prose-invert max-w-none">
             {/* Le contenu sera ajouté par l'utilisateur */}
-            <p className="text-gray-300 italic">Le contenu de la politique relative aux cookies sera ajouté ultérieurement.</p>
+            <p className="text-gray-300 italic"># Politique relative aux cookies
+
+Dernière mise à jour : [DATE DU JOUR]
+
+Notre site utilise uniquement des cookies strictement nécessaires au fonctionnement :
+
+- **Cookies techniques** : pour gérer votre connexion au jeu (connexion via Google) et votre session de paiement sécurisée via Stripe.
+- **Cookies de préférences** : mémorisent vos préférences d'utilisation (comme le thème ou les paramètres du jeu).
+
+Nous n'utilisons **aucun cookie analytique ou publicitaire**.
+
+## Consentement
+
+Ces cookies étant strictement nécessaires, votre consentement explicite n’est pas requis.  
+Toutefois, vous pouvez paramétrer votre navigateur pour bloquer ces cookies, mais cela risque de perturber le bon fonctionnement du site.
+</p>
           </div>
         </div>
       </main>
