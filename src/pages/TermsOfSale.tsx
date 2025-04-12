@@ -29,7 +29,7 @@ const TermsOfSale = () => {
         </Button>
       </div>
       
-      <main className="flex-1 container mx-auto px-4 py-16 relative z-10">
+      <main className="flex-1 container mx-auto px-4 py-16 relative z-10 overflow-auto">
         <div className="max-w-3xl mx-auto bg-gray-900/70 backdrop-blur-sm p-8 rounded-xl border border-gray-800/50">
           <h1 className="text-3xl font-bold mb-6 text-indigo-400">Conditions de vente</h1>
           
