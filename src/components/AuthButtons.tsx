@@ -1,12 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogIn, Loader2 } from "lucide-react";
+import { LogOut, LogIn, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import ProfileDropdown from "@/components/ProfileDropdown";
 
 const AuthButtons = () => {
-  const { user, signInWithGoogle, loading: authLoading } = useAuth();
+  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   // Reset loading state if user changes or auth loading state changes
@@ -26,6 +25,16 @@ const AuthButtons = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    setIsLoading(true);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+    // Loading state will be reset by the useEffect
+  };
+
   if (authLoading) {
     return (
       <Button
@@ -41,7 +50,20 @@ const AuthButtons = () => {
   }
 
   return user ? (
-    <ProfileDropdown />
+    <Button
+      variant="outline"
+      size="sm"
+      className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
+      onClick={handleSignOut}
+      disabled={isLoading}
+    >
+      {isLoading ? (
+        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+      ) : (
+        <LogOut className="mr-1 h-4 w-4 text-red-400" />
+      )}
+      Sign Out
+    </Button>
   ) : (
     <Button
       variant="outline"

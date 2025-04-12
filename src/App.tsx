@@ -10,7 +10,6 @@ import NotFound from "./pages/NotFound";
 import SkinsPage from "./pages/SkinsPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import HexBackground from "./components/HexBackground";
-import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +20,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <HexBackground />
-        <CookieConsent />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
