@@ -19,6 +19,7 @@ import AuthButtons from "@/components/AuthButtons";
 import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
+import GlobalLeaderboardButton from "@/components/GlobalLeaderboardButton";
 
 const SOCKET_SERVER_URL = "https://api.grubz.io";
 
@@ -482,6 +483,8 @@ const Index = () => {
           <AuthButtons />
         </div>
       )}
+
+      {!gameStarted && <GlobalLeaderboardButton />}
 
       {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
