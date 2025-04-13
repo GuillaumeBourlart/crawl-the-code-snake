@@ -20,7 +20,7 @@ import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 
-const SOCKET_SERVER_URL = "https://codecrawl-production.up.railway.app";
+const SOCKET_SERVER_URL = "https://api.grubz.io";
 
 interface ServerPlayer {
   id?: string;
@@ -227,6 +227,8 @@ const Index = () => {
       socket.emit("clean_disconnect");
       socket.disconnect();
     }
+    
+    console.log("Connecting to socket server:", SOCKET_SERVER_URL);
     
     const newSocket = io(SOCKET_SERVER_URL, {
       transports: ["websocket"],
