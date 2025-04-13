@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -7,6 +6,8 @@ import { useAuth } from './use-auth';
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
+const apiUrl = "https://api.grubz.io"; // Add API URL
+
 let supabaseInstance: any = null;
 
 const getSupabase = () => {
@@ -28,19 +29,16 @@ export const useSkins = () => {
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   
-  // Utilisation d'une ref pour éviter les rendus en boucle
   const availableSkinsRef = useRef<GameSkin[]>([]);
 
   const selectedSkin = useMemo(() => {
     return allSkins.find(skin => skin.id === selectedSkinId) || null;
   }, [allSkins, selectedSkinId]);
 
-  // Process profile skins only once when profile is available
   useEffect(() => {
     if (profile && profile.skins && !profileSkinsProcessed) {
       console.log("Processing skins from profile:", profile.skins);
       try {
-        // Extract the IDs of skins from the profile skins array
         const skinIds = Array.isArray(profile.skins) 
           ? profile.skins.map(skin => typeof skin === 'number' ? skin : Number(skin))
           : [];
@@ -51,48 +49,37 @@ export const useSkins = () => {
         console.error("Error processing profile skins:", error);
       }
     } else if (!profile) {
-      // Reset when profile is not available
-      console.log("No profile available, resetting profileSkinsProcessed");
       setProfileSkinsProcessed(false);
     }
   }, [profile, profileSkinsProcessed]);
 
-  // Get sorted skin lists for convenience - utiliser useMemo pour éviter les recalculs inutiles
-  // Free skins (not paid)
   const freeSkins = useMemo(() => {
     return allSkins.filter(skin => !skin.is_paid)
       .sort((a, b) => a.id - b.id);
   }, [allSkins]);
   
-  // Paid skins that the user has purchased
   const purchasedSkins = useMemo(() => {
     return allSkins.filter(skin => 
       skin.is_paid && ownedSkinIds.includes(skin.id)
     ).sort((a, b) => a.id - b.id);
   }, [allSkins, ownedSkinIds]);
   
-  // All skins that the user can use (free + purchased)
   const availableSkins = useMemo(() => {
     const result = [...freeSkins, ...purchasedSkins];
-    // Update the ref for external components
     availableSkinsRef.current = result;
     return result;
   }, [freeSkins, purchasedSkins]);
   
-  // Paid skins that the user can purchase
   const purchasableSkins = useMemo(() => {
     return allSkins.filter(skin => 
       skin.is_paid && !ownedSkinIds.includes(skin.id)
     ).sort((a, b) => a.id - b.id);
   }, [allSkins, ownedSkinIds]);
 
-  // Unified sorted list of all skins according to the specified order
   const getUnifiedSkinsList = useCallback((): GameSkin[] => {
     if (user) {
-      // For logged in users: free -> paid owned -> paid unowned
       return [...freeSkins, ...purchasedSkins, ...purchasableSkins];
     } else {
-      // For logged out users: free -> all paid
       const paidSkins = allSkins.filter(skin => skin.is_paid)
         .sort((a, b) => a.id - b.id);
       return [...freeSkins, ...paidSkins];
@@ -107,9 +94,6 @@ export const useSkins = () => {
       setFetchError(null);
       console.log("Fetching all skins...");
       
-      // Log the exact query we're about to make
-      console.log("Query: supabase.from('game_skins').select('*')");
-      
       const { data, error } = await supabase
         .from('game_skins')
         .select('*');
@@ -121,7 +105,6 @@ export const useSkins = () => {
       
       console.log("Fetched all skins, response data:", data);
       
-      // Check the structure of the first skin to verify field names
       if (data && data.length > 0) {
         console.log("First skin data structure:", JSON.stringify(data[0], null, 2));
       }
@@ -156,7 +139,6 @@ export const useSkins = () => {
     }
   }, [allSkins, selectedSkinId]);
 
-  // Fetch user's default skin
   const fetchUserDefaultSkin = useCallback(async () => {
     if (!user) return;
     
@@ -197,7 +179,6 @@ export const useSkins = () => {
     }
   }, [user, fetchUserDefaultSkin]);
 
-  // Cette fonction garantit qu'un seul skin est sélectionné à la fois
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
@@ -216,7 +197,6 @@ export const useSkins = () => {
     }
     
     console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
-    // Cette ligne est cruciale - elle désélectionne tout skin précédent en définissant le nouveau
     setSelectedSkinId(skinId);
     
     localStorage.setItem('selected_skin_id', skinId.toString());
@@ -224,15 +204,39 @@ export const useSkins = () => {
     if (user) {
       try {
         console.log("Updating user profile with selected skin:", skinId);
-        const { error } = await supabase
-          .from('profiles')
-          .update({ default_skin_id: skinId })
-          .eq('id', user.id);
-          
-        if (error) {
-          console.error('Error updating default skin in profile:', error);
-          throw error;
+        
+        const supabase = getSupabase();
+        const sessionResponse = await supabase.auth.getSession();
+        const accessToken = sessionResponse.data.session?.access_token;
+        
+        if (!accessToken) {
+          throw new Error('Non authentifié');
         }
+        
+        const response = await fetch(`${apiUrl}/updateProfile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            pseudo: undefined,
+            skin_id: skinId
+          })
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error from API:', errorText);
+          throw new Error(`Erreur API: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.message || 'Échec de mise à jour du skin');
+        }
+        
         toast.success("Skin enregistré dans votre profil");
       } catch (error) {
         console.error('Error updating default skin:', error);

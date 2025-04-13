@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -26,14 +25,12 @@ const ProfilePage = () => {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Set initial pseudo from profile when loaded
   useEffect(() => {
     if (profile?.pseudo) {
       setPseudo(profile.pseudo);
     }
   }, [profile]);
 
-  // Redirect to home if not logged in
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
@@ -112,7 +109,6 @@ const ProfilePage = () => {
         <div className="bg-gray-900/70 border border-blue-500/30 rounded-lg p-6 max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold text-white mb-6">Profil Utilisateur</h1>
           
-          {/* Pseudo Section */}
           <div className="mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl text-white flex items-center">
@@ -131,7 +127,6 @@ const ProfilePage = () => {
             <p className="text-gray-300">{profile?.pseudo || "Non défini"}</p>
           </div>
           
-          {/* Default Skin Section with Preview */}
           <div className="mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl text-white flex items-center">
@@ -148,7 +143,6 @@ const ProfilePage = () => {
               </Button>
             </div>
             
-            {/* Skin preview */}
             <div 
               onClick={navigateToSkins}
               className="mt-4 flex justify-center cursor-pointer transition-transform hover:scale-105 bg-gray-900/50 p-4 rounded-lg border border-gray-700"
@@ -173,7 +167,6 @@ const ProfilePage = () => {
             </div>
           </div>
           
-          {/* Delete Account Section */}
           <div className="p-4 bg-gray-800/50 rounded-lg border border-red-900/30">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl text-white flex items-center">
@@ -198,7 +191,6 @@ const ProfilePage = () => {
 
       <Footer />
 
-      {/* Edit Pseudo Dialog */}
       <Dialog open={isEditingPseudo} onOpenChange={setIsEditingPseudo}>
         <DialogContent className="bg-gray-900 border-blue-500/30 text-white">
           <DialogHeader>
@@ -228,7 +220,6 @@ const ProfilePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Change Skin Dialog */}
       <Dialog open={isChangingSkin} onOpenChange={setIsChangingSkin}>
         <DialogContent className="bg-gray-900 border-blue-500/30 text-white max-w-3xl">
           <DialogHeader>
@@ -255,7 +246,6 @@ const ProfilePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Initial Delete Account Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-gray-900 border-red-500/30 text-white">
           <DialogHeader>
@@ -297,7 +287,6 @@ const ProfilePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Final Confirmation Delete Account Dialog */}
       <AlertDialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
         <AlertDialogContent className="bg-gray-900 border-red-500/30 text-white">
           <AlertDialogHeader>

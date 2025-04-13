@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -206,13 +205,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!user) throw new Error('Non authentifié');
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(data)
-        .eq('id', user.id);
-        
-      if (error) throw error;
+      // Get auth token for the API call
+      const sessionResponse = await supabase.auth.getSession();
+      const accessToken = sessionResponse.data.session?.access_token;
       
+      if (!accessToken) {
+        throw new Error('Non authentifié');
+      }
+      
+      // Call the new API endpoint for updating profile
+      const response = await fetch(`${apiUrl}/updateProfile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          pseudo: data.pseudo,
+          skin_id: data.default_skin_id
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error from API:', errorText);
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Échec de mise à jour du profil');
+      }
+      
+      // Update local state with new data
       setProfile(prev => prev ? { ...prev, ...data } : null);
       toast.success('Profil mis à jour');
     } catch (error) {
