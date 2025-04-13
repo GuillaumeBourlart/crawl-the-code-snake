@@ -7,9 +7,9 @@ const Footer = () => {
   const isMobile = useIsMobile();
   
   return (
-    <footer className={`w-full py-4 px-4 bg-gray-900/80 backdrop-blur-sm border-t border-gray-800/50 mt-auto ${isMobile ? 'pb-16' : ''}`}>
+    <footer className={`w-full py-3 px-4 bg-gray-900/80 backdrop-blur-sm border-t border-gray-800/50 ${isMobile ? 'mt-14 pb-20' : 'mt-auto'}`}>
       <div className="container mx-auto">
-        <div className={`flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-400 ${isMobile ? 'text-xs' : ''}`}>
+        <div className={`flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-400 ${isMobile ? 'text-xs' : ''}`}>
           <Link to="/legal-notice" className="flex items-center hover:text-indigo-400 transition-colors">
             <FileText className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-1`} />
             <span>Mentions légales</span>
