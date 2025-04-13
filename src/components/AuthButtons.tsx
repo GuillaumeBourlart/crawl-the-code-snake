@@ -33,17 +33,26 @@ const AuthButtons = () => {
     const RETRY_DELAY = 1500;
     
     if (loginAttempt > 0 && loginAttempt <= MAX_RETRIES && !user && !authLoading) {
-      const retryTimer = setTimeout(() => {
-        toast.info(`Nouvelle tentative de connexion (${loginAttempt}/${MAX_RETRIES})...`);
-        handleSignIn(true);
-      }, RETRY_DELAY);
-      
-      return () => clearTimeout(retryTimer);
+      // Only retry if we're not currently in the OAuth redirect flow
+      if (!window.location.hash.includes("access_token") && !window.location.hash.includes("error=")) {
+        const retryTimer = setTimeout(() => {
+          toast.info(`Nouvelle tentative de connexion (${loginAttempt}/${MAX_RETRIES})...`);
+          handleSignIn(true);
+        }, RETRY_DELAY);
+        
+        return () => clearTimeout(retryTimer);
+      }
     }
   }, [loginAttempt, user, authLoading]);
 
   const handleSignIn = async (isRetry = false) => {
     try {
+      // Vérifier si nous ne sommes pas en train de traiter déjà une redirection OAuth
+      if (window.location.hash.includes("access_token") || window.location.hash.includes("error=")) {
+        console.log("Nous sommes dans le processus de redirection OAuth, ignorer la demande de connexion");
+        return;
+      }
+      
       setIsLoading(true);
       
       if (!isRetry) {

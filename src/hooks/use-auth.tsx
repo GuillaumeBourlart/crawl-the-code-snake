@@ -227,13 +227,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       console.log("Attempting to sign in with Google...");
       
+      // Modification : Utiliser redirectTo avec l'URL complète et s'assurer que la redirection se fait dans la fenêtre principale
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
           queryParams: {
             prompt: 'select_account', // Toujours montrer le sélecteur de compte Google
-          }
+            access_type: 'offline' // Pour recevoir un refresh token
+          },
+          skipBrowserRedirect: false // S'assurer que la redirection se fait dans la fenêtre principale
         }
       });
       
