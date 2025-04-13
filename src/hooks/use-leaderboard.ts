@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 
@@ -17,7 +18,7 @@ const FALLBACK_LEADERBOARD: GlobalLeaderboardEntry[] = [
 ];
 
 // URL base pour l'API
-const API_BASE_URL = "https://crawl-the-code-snake.lovable.app";
+const API_BASE_URL = "https://api.grubz.io";
 
 export function useGlobalLeaderboard(socketUrl: string) {
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
