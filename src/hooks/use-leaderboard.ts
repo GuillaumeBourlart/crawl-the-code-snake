@@ -17,6 +17,9 @@ const FALLBACK_LEADERBOARD: GlobalLeaderboardEntry[] = [
   { id: '5', pseudo: 'Joueur 5', score: 780 },
 ];
 
+// Nouvelle URL base pour l'API
+const API_BASE_URL = "https://api.grubz.io";
+
 export function useGlobalLeaderboard(socketUrl: string) {
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,8 +34,8 @@ export function useGlobalLeaderboard(socketUrl: string) {
     async function fetchLeaderboard() {
       try {
         setIsLoading(true);
-        // URL directe au lieu d'essayer de l'extraire du socketUrl
-        const url = "https://codecrawl-production.up.railway.app/globalLeaderboard";
+        // Utilisation de la nouvelle URL base
+        const url = `${API_BASE_URL}/globalLeaderboard`;
         
         console.log("Fetching global leaderboard from:", url);
         
