@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -246,7 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setLoading(true);
       
-      // Call the server's deleteUserAccount function
+      // Get auth token for the API call
       const sessionResponse = await supabase.auth.getSession();
       const accessToken = sessionResponse.data.session?.access_token;
       
@@ -254,9 +253,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Non authentifié');
       }
       
-      // Call the API endpoint that will trigger deleteUserAccount
+      // Call the API endpoint that will trigger deleteUserAccount - Use DELETE method
       const response = await fetch(`${apiUrl}/deleteAccount`, {
-        method: 'POST',
+        method: 'DELETE', // Changed from POST to DELETE to match the server endpoint
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
