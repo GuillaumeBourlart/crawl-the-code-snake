@@ -20,7 +20,7 @@ import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 
-const SOCKET_SERVER_URL = "https://api.grubz.io";
+const SOCKET_SERVER_URL = "https://www.grubz.io";
 
 interface ServerPlayer {
   id?: string;
