@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -233,6 +235,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Échec de mise à jour du profil');
+      throw error;
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      if (!user) throw new Error('Non authentifié');
+      
+      setLoading(true);
+      
+      // First delete the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+        
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        // Continue with user deletion anyway
+      }
+      
+      // Then delete the user
+      const { error: userError } = await supabase.auth.admin.deleteUser(user.id);
+      
+      if (userError) throw userError;
+      
+      // Sign out to clear local state
+      await signOut();
+      
+      toast.success('Votre compte a été supprimé avec succès');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Échec de la suppression du compte');
+      setLoading(false);
+      throw error;
     }
   };
 
@@ -246,6 +283,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         loading,
         updateProfile,
+        deleteAccount,
       }}
     >
       {children}
