@@ -6,6 +6,7 @@ import SkinPreview from './SkinPreview';
 import { useAuth } from '@/hooks/use-auth';
 import { Lock, CheckCircle2, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
+import PurchaseConfirmationDialog from './PurchaseConfirmationDialog';
 
 interface SkinSelectorProps {
   onSelectSkin?: (skinId: number) => void;
@@ -34,6 +35,7 @@ const SkinSelector = ({
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
+  const [purchaseConfirmationSkin, setPurchaseConfirmationSkin] = useState<GameSkin | null>(null);
   
   const unifiedSkinsList = useMemo(() => {
     if (!allSkins?.length) return [];
@@ -74,7 +76,7 @@ const SkinSelector = ({
     }
   };
 
-  const handlePurchase = (skin: GameSkin, e: React.MouseEvent) => {
+  const handlePurchaseRequest = (skin: GameSkin, e: React.MouseEvent) => {
     e.stopPropagation();
     console.log("SkinSelector: Buy button clicked for skin", skin.id, skin.name);
     
@@ -84,12 +86,24 @@ const SkinSelector = ({
       return;
     }
     
+    setPurchaseConfirmationSkin(skin);
+  };
+  
+  const handleConfirmPurchase = (skin: GameSkin) => {
+    console.log("SkinSelector: Purchase confirmed for skin", skin.id, skin.name);
+    setPurchaseConfirmationSkin(null);
+    
     console.log("SkinSelector: Calling onPurchase callback", !!onPurchase);
     if (onPurchase) {
       onPurchase(skin);
     } else {
       console.warn("SkinSelector: No onPurchase callback provided");
     }
+  };
+
+  const handleCancelPurchase = () => {
+    console.log("SkinSelector: Purchase cancelled");
+    setPurchaseConfirmationSkin(null);
   };
 
   if (skinsLoading) {
@@ -222,7 +236,7 @@ const SkinSelector = ({
                     size="sm"
                     variant="outline"
                     className="w-full text-xs bg-indigo-950/50 hover:bg-indigo-900/50 border-indigo-800"
-                    onClick={(e) => handlePurchase(skin, e)}
+                    onClick={(e) => handlePurchaseRequest(skin, e)}
                   >
                     <ShoppingCart className="h-4 w-4 mr-1" />
                     Acheter
@@ -233,6 +247,13 @@ const SkinSelector = ({
           );
         })}
       </div>
+      
+      <PurchaseConfirmationDialog
+        skin={purchaseConfirmationSkin}
+        isOpen={!!purchaseConfirmationSkin}
+        onClose={handleCancelPurchase}
+        onConfirm={handleConfirmPurchase}
+      />
     </div>
   );
 };

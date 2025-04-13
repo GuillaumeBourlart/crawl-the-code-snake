@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -157,7 +156,6 @@ const SkinsPage = () => {
 
   return (
     <div className="h-screen flex flex-col text-white overflow-hidden">
-      {/* Header with back button and auth button */}
       <div className="flex justify-between items-center w-full p-4">
         <Button 
           variant="ghost" 
@@ -188,10 +186,8 @@ const SkinsPage = () => {
         )}
       </main>
 
-      {/* Footer */}
       <Footer />
 
-      {/* Floating confirmation button at bottom */}
       <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
         <Button 
           className="bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105 rounded-full w-16 h-16 shadow-lg p-0"
