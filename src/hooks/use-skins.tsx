@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin } from '@/types/supabase';
@@ -27,8 +27,13 @@ export const useSkins = () => {
   const [skinsLoaded, setSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
+  
+  // Utilisation d'une ref pour éviter les rendus en boucle
+  const availableSkinsRef = useRef<GameSkin[]>([]);
 
-  const selectedSkin = allSkins.find(skin => skin.id === selectedSkinId) || null;
+  const selectedSkin = useMemo(() => {
+    return allSkins.find(skin => skin.id === selectedSkinId) || null;
+  }, [allSkins, selectedSkinId]);
 
   // Process profile skins only once when profile is available
   useEffect(() => {
@@ -52,26 +57,37 @@ export const useSkins = () => {
     }
   }, [profile, profileSkinsProcessed]);
 
-  // Get sorted skin lists for convenience
+  // Get sorted skin lists for convenience - utiliser useMemo pour éviter les recalculs inutiles
   // Free skins (not paid)
-  const freeSkins = allSkins.filter(skin => !skin.is_paid)
-    .sort((a, b) => a.id - b.id);
+  const freeSkins = useMemo(() => {
+    return allSkins.filter(skin => !skin.is_paid)
+      .sort((a, b) => a.id - b.id);
+  }, [allSkins]);
   
   // Paid skins that the user has purchased
-  const purchasedSkins = allSkins.filter(skin => 
-    skin.is_paid && ownedSkinIds.includes(skin.id)
-  ).sort((a, b) => a.id - b.id);
+  const purchasedSkins = useMemo(() => {
+    return allSkins.filter(skin => 
+      skin.is_paid && ownedSkinIds.includes(skin.id)
+    ).sort((a, b) => a.id - b.id);
+  }, [allSkins, ownedSkinIds]);
   
   // All skins that the user can use (free + purchased)
-  const availableSkins = [...freeSkins, ...purchasedSkins];
+  const availableSkins = useMemo(() => {
+    const result = [...freeSkins, ...purchasedSkins];
+    // Update the ref for external components
+    availableSkinsRef.current = result;
+    return result;
+  }, [freeSkins, purchasedSkins]);
   
   // Paid skins that the user can purchase
-  const purchasableSkins = allSkins.filter(skin => 
-    skin.is_paid && !ownedSkinIds.includes(skin.id)
-  ).sort((a, b) => a.id - b.id);
+  const purchasableSkins = useMemo(() => {
+    return allSkins.filter(skin => 
+      skin.is_paid && !ownedSkinIds.includes(skin.id)
+    ).sort((a, b) => a.id - b.id);
+  }, [allSkins, ownedSkinIds]);
 
   // Unified sorted list of all skins according to the specified order
-  const getUnifiedSkinsList = (): GameSkin[] => {
+  const getUnifiedSkinsList = useCallback((): GameSkin[] => {
     if (user) {
       // For logged in users: free -> paid owned -> paid unowned
       return [...freeSkins, ...purchasedSkins, ...purchasableSkins];
@@ -81,7 +97,7 @@ export const useSkins = () => {
         .sort((a, b) => a.id - b.id);
       return [...freeSkins, ...paidSkins];
     }
-  };
+  }, [user, freeSkins, purchasedSkins, purchasableSkins, allSkins]);
 
   const fetchAllSkins = useCallback(async () => {
     if (skinsLoaded) return;
@@ -225,10 +241,10 @@ export const useSkins = () => {
     }
   };
 
-  const getSkinById = (id: number | null): GameSkin | null => {
+  const getSkinById = useCallback((id: number | null): GameSkin | null => {
     if (!id) return null;
     return allSkins.find(skin => skin.id === id) || null;
-  };
+  }, [allSkins]);
 
   const refresh = useCallback(() => {
     console.log("Refreshing skins data");

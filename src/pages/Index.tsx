@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +86,6 @@ const Index = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(true);
   const [username, setUsername] = useState<string>("");
   const [isSpectator, setIsSpectator] = useState(false);
-  const [availableSkins, setAvailableSkins] = useState<any[]>([]);
   const [skinLoadAttempted, setSkinLoadAttempted] = useState(false);
 
   const { leaderboard: globalLeaderboard, isLoading: isGlobalLeaderboardLoading, error: globalLeaderboardError, usesFallback } = useGlobalLeaderboard(SOCKET_SERVER_URL);
@@ -105,18 +105,24 @@ const Index = () => {
     refresh: refreshSkins
   } = useSkins();
   
+  // Utiliser un useRef pour stocker les skins disponibles et éviter les rendus en boucle
+  const availableSkinsRef = useRef<any[]>([]);
+  
+  // Ce useEffect ne s'exécute qu'une seule fois, avec une dépendance vide
   useEffect(() => {
     if (!skinLoadAttempted) {
       console.log("Initial skins refresh");
       refreshSkins();
       setSkinLoadAttempted(true);
     }
-  }, [refreshSkins, skinLoadAttempted]);
+  }, [skinLoadAttempted]); // Suppression de refreshSkins de la liste des dépendances
   
+  // Utilisez un memo pour éviter les recalculs inutiles
   useEffect(() => {
-    if (userSkins && userSkins.length > 0) {
+    if (userSkins && userSkins.length > 0 && 
+        JSON.stringify(availableSkinsRef.current) !== JSON.stringify(userSkins)) {
       console.log("Setting available skins from userSkins:", userSkins.length);
-      setAvailableSkins(userSkins);
+      availableSkinsRef.current = userSkins;
     }
   }, [userSkins]);
   
@@ -496,7 +502,7 @@ const Index = () => {
                 type="text"
                 placeholder="Entrez votre pseudo"
                 value={username}
-                onChange={handleUsernameChange}
+                onChange={(e) => setUsername(e.target.value)}
                 className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
                 maxLength={16}
                 required
