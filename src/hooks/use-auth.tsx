@@ -21,12 +21,10 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create Supabase client instance with persistSession: true to enable session persistence
+// Create Supabase client instance with persistSession: false
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    persistSession: true, // Enabling session persistence across tabs/refreshes
-    autoRefreshToken: true, // Auto refresh token
-    detectSessionInUrl: true // Detect session in URL for OAuth
+    persistSession: false // Disable session persistence across tabs/refreshes
   }
 });
 
@@ -35,7 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
-  const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     if (!userId) {
@@ -83,39 +80,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         console.error("Profile not found after maximum attempts");
         toast.error('Impossible de récupérer votre profil');
-        
-        // Si le profil n'existe pas après plusieurs tentatives, on peut essayer de le créer
-        try {
-          console.log("Attempting to create a new profile for user:", userId);
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert([{ id: userId, pseudo: `User_${Math.floor(Math.random() * 10000)}` }])
-            .select()
-            .single();
-            
-          if (createError) {
-            console.error("Failed to create profile:", createError);
-            throw createError;
-          }
-          
-          if (newProfile) {
-            console.log("New profile created:", newProfile);
-            setProfile(newProfile as Profile);
-            toast.success('Nouveau profil créé');
-          }
-        } catch (createError) {
-          console.error("Error creating profile:", createError);
-          toast.error('Impossible de créer un nouveau profil');
-        }
       }
     } catch (error) {
       console.error('Critical error handling profile:', error);
       toast.error('Problème de connexion au profil');
       
-      // Critical failure, sign out the user only if it's a critical database error
-      if (error.code && error.code.startsWith('PGRST')) {
-        await signOut();
-      }
+      // Critical failure, sign out the user
+      await signOut();
     } finally {
       setProfileFetchAttempted(true);
       setLoading(false);
@@ -153,13 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const getSession = async () => {
       try {
         setLoading(true);
-        console.log("Checking for existing session...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Session retrieval error:", sessionError);
-          throw sessionError;
-        }
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (!isMounted) return;
         
@@ -176,13 +141,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Session retrieval error:", error);
         if (isMounted) {
           setLoading(false);
-          // If there's an error getting the session, we don't force sign out, just continue as logged out
-          setUser(null);
-          setProfile(null);
-        }
-      } finally {
-        if (isMounted) {
-          setSessionCheckComplete(true);
+          // If there's an error getting the session, force sign out
+          signOut();
         }
       }
     };
@@ -206,12 +166,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setProfileFetchAttempted(false);
           setLoading(false);
-        } else if (event === 'USER_UPDATED' && session?.user) {
-          console.log("User updated:", session.user.id);
-          setUser(session.user);
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log("Token refreshed for user:", session.user.id);
-          setUser(session.user);
         }
       }
     );
@@ -227,16 +181,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       console.log("Attempting to sign in with Google...");
       
-      // Modification : Utiliser redirectTo avec l'URL complète et s'assurer que la redirection se fait dans la fenêtre principale
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            prompt: 'select_account', // Toujours montrer le sélecteur de compte Google
-            access_type: 'offline' // Pour recevoir un refresh token
-          },
-          skipBrowserRedirect: false // S'assurer que la redirection se fait dans la fenêtre principale
+          redirectTo: window.location.origin
         }
       });
       
@@ -327,7 +275,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Call the API endpoint that will trigger deleteUserAccount - Use DELETE method
       const response = await fetch(`${apiUrl}/deleteAccount`, {
-        method: 'DELETE',
+        method: 'DELETE', // Changed from POST to DELETE to match the server endpoint
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`

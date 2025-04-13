@@ -17,16 +17,7 @@ import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
 import ProfilePage from "./pages/ProfilePage";
 
-// Configurer QueryClient avec des options spécifiques pour la gestion des erreurs
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false
-    }
-  }
-});
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

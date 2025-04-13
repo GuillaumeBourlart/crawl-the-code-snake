@@ -5,7 +5,6 @@ import { LogOut, LogIn, Loader2, UserRound, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +15,6 @@ import {
 const AuthButtons = () => {
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [loginAttempt, setLoginAttempt] = useState(0);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
@@ -27,46 +25,13 @@ const AuthButtons = () => {
     }
   }, [user, authLoading]);
 
-  // Retry mechanism for authentication failures
-  useEffect(() => {
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 1500;
-    
-    if (loginAttempt > 0 && loginAttempt <= MAX_RETRIES && !user && !authLoading) {
-      // Only retry if we're not currently in the OAuth redirect flow
-      if (!window.location.hash.includes("access_token") && !window.location.hash.includes("error=")) {
-        const retryTimer = setTimeout(() => {
-          toast.info(`Nouvelle tentative de connexion (${loginAttempt}/${MAX_RETRIES})...`);
-          handleSignIn(true);
-        }, RETRY_DELAY);
-        
-        return () => clearTimeout(retryTimer);
-      }
-    }
-  }, [loginAttempt, user, authLoading]);
-
-  const handleSignIn = async (isRetry = false) => {
+  const handleSignIn = async () => {
+    setIsLoading(true);
     try {
-      // Vérifier si nous ne sommes pas en train de traiter déjà une redirection OAuth
-      if (window.location.hash.includes("access_token") || window.location.hash.includes("error=")) {
-        console.log("Nous sommes dans le processus de redirection OAuth, ignorer la demande de connexion");
-        return;
-      }
-      
-      setIsLoading(true);
-      
-      if (!isRetry) {
-        setLoginAttempt(1);
-      } else {
-        setLoginAttempt(prev => prev + 1);
-      }
-      
       await signInWithGoogle();
-      // Loading state will be reset by the useEffect when auth state changes
+      // No need for timeout as the page will redirect
     } catch (error) {
-      console.error("Sign in error:", error);
       setIsLoading(false);
-      toast.error("Échec de connexion. Veuillez réessayer.");
     }
   };
 
@@ -74,10 +39,8 @@ const AuthButtons = () => {
     setIsLoading(true);
     try {
       await signOut();
-      toast.success("Vous êtes déconnecté");
     } catch (error) {
       console.error("Sign out error:", error);
-      toast.error("Échec de déconnexion. Veuillez réessayer.");
     }
     // Loading state will be reset by the useEffect
   };
@@ -144,7 +107,7 @@ const AuthButtons = () => {
       variant="outline"
       size="sm"
       className={`bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md ${isMobile ? 'scale-75' : ''}`}
-      onClick={() => handleSignIn(false)}
+      onClick={handleSignIn}
       disabled={isLoading}
     >
       {isLoading ? (
