@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 
@@ -34,23 +33,23 @@ export function useGlobalLeaderboard(socketUrl: string) {
     async function fetchLeaderboard() {
       try {
         setIsLoading(true);
-        // Utilisation de la nouvelle URL base
         const url = `${API_BASE_URL}/globalLeaderboard`;
         
         console.log("Fetching global leaderboard from:", url);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // Augmenté à 8 secondes
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
         
         const response = await fetch(url, {
           signal: controller.signal,
           method: 'GET',
           headers: {
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
             'Cache-Control': 'no-cache'
           },
-          // Ajout du mode 'cors' pour les requêtes cross-origin
-          mode: 'cors'
+          mode: 'cors',
+          credentials: 'omit' // Don't send cookies
         });
         
         clearTimeout(timeoutId);
@@ -63,43 +62,51 @@ export function useGlobalLeaderboard(socketUrl: string) {
         
         if (isMounted) {
           console.log("Global leaderboard data received:", data);
-          setLeaderboard(data);
+          setLeaderboard(Array.isArray(data) ? data : []);
           setError(null);
           setUsesFallback(false);
+          
+          // Reset loading state
+          setIsLoading(false);
         }
       } catch (err) {
         console.error('Error fetching global leaderboard:', err);
         
         if (isMounted) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          setError(err instanceof Error ? err : new Error(String(err)));
-          
-          // Si nous avons épuisé nos tentatives, utiliser les données de fallback
+          // If we've exhausted our retries, use the fallback data
           if (retryCount >= maxRetries) {
             console.log('Using fallback leaderboard data after failed attempts');
             setLeaderboard(FALLBACK_LEADERBOARD);
             setUsesFallback(true);
             toast.error("Impossible de charger le classement global. Utilisation des données locales.");
-          } else if (isMounted) {
-            // Sinon, réessayer après un délai
+            setIsLoading(false);
+          } else {
+            // Otherwise, retry after a delay
             retryCount++;
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff with max 10s
             console.log(`Retrying in ${delay}ms (attempt ${retryCount}/${maxRetries})`);
-            setTimeout(fetchLeaderboard, delay);
-            return; // Ne pas définir isLoading à false pour continuer à afficher le loader
+            
+            setTimeout(() => {
+              if (isMounted) {
+                fetchLeaderboard();
+              }
+            }, delay);
           }
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
+          
+          setError(err instanceof Error ? err : new Error(String(err)));
         }
       }
     }
 
     fetchLeaderboard();
     
-    // Rafraîchir toutes les 60 secondes
-    const intervalId = setInterval(fetchLeaderboard, 60000);
+    // Refresh every 60 seconds
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        retryCount = 0; // Reset retry count for periodic refreshes
+        fetchLeaderboard();
+      }
+    }, 60000);
     
     return () => {
       isMounted = false;
