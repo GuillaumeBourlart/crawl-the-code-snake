@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { LogOut, LogIn, Loader2, UserRound, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,7 @@ const AuthButtons = () => {
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // Reset loading state if user changes or auth loading state changes
   useEffect(() => {
@@ -52,7 +54,7 @@ const AuthButtons = () => {
       <Button
         variant="outline"
         size="sm"
-        className="bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md"
+        className={`bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md ${isMobile ? 'scale-75' : ''}`}
         disabled
       >
         <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -67,10 +69,10 @@ const AuthButtons = () => {
         <Button
           variant="outline"
           size="sm"
-          className="bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md"
+          className={`bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md ${isMobile ? 'scale-75' : ''}`}
         >
           <UserRound className="mr-1 h-4 w-4 text-blue-400" />
-          {user.email?.split('@')[0]}
+          {isMobile ? '' : user.email?.split('@')[0]}
           <ChevronDown className="ml-1 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -104,7 +106,7 @@ const AuthButtons = () => {
     <Button
       variant="outline"
       size="sm"
-      className="bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md"
+      className={`bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md ${isMobile ? 'scale-75' : ''}`}
       onClick={handleSignIn}
       disabled={isLoading}
     >
@@ -113,7 +115,7 @@ const AuthButtons = () => {
       ) : (
         <LogIn className="mr-1 h-4 w-4 text-blue-400" />
       )}
-      Sign In with Google
+      {isMobile ? '' : 'Sign In with Google'}
     </Button>
   );
 };

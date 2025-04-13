@@ -2,11 +2,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Cookie } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COOKIE_CONSENT_KEY = "cookie-consent-accepted";
 
 const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Check if the user has already given consent
@@ -30,7 +32,7 @@ const CookieConsent = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-50 p-3 md:p-4 animate-fade-in">
+    <div className={`fixed ${isMobile ? 'bottom-20' : 'bottom-16'} left-0 right-0 z-50 p-3 md:p-4 animate-fade-in`}>
       <div className="max-w-2xl mx-auto bg-gray-900/90 backdrop-blur-md border border-indigo-500/30 rounded-lg shadow-lg overflow-hidden">
         <div className="p-3 md:p-4">
           <div className="flex items-center justify-between mb-1">

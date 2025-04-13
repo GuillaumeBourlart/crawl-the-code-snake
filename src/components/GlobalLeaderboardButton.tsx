@@ -3,16 +3,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trophy } from "lucide-react";
 import GlobalLeaderboardDialog from "./GlobalLeaderboardDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const GlobalLeaderboardButton = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <>
       <Button
         variant="pill"
         size="pill"
-        className="fixed left-4 bottom-4 z-50 gap-2 animate-fade-in"
+        className={`fixed ${isMobile ? 'left-4 bottom-24' : 'left-4 bottom-20'} z-50 gap-2 animate-fade-in`}
         onClick={() => setIsDialogOpen(true)}
       >
         <Trophy className="h-5 w-5 text-yellow-400" />
