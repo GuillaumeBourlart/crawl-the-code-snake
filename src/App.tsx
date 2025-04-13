@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/use-auth";
-import HomePage from "./pages/HomePage";
+import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SkinsPage from "./pages/SkinsPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -16,7 +16,6 @@ import CookiePolicy from "./pages/CookiePolicy";
 import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
 import ProfilePage from "./pages/ProfilePage";
-import GamePage from "./pages/GamePage";
 
 const queryClient = new QueryClient();
 
@@ -31,8 +30,7 @@ const App = () => (
           <div className="min-h-screen flex flex-col overflow-y-auto">
             <CookieConsent />
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/game" element={<GamePage />} />
+              <Route path="/" element={<Index />} />
               <Route path="/skins" element={<SkinsPage />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/legal-notice" element={<LegalNotice />} />
