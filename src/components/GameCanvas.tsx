@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -119,8 +118,8 @@ const GameCanvas = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isMobile = useIsMobile();
   
-  // Set the initial zoom level to 0.8 for mobile, and 1.5 for desktop
-  const initialZoom = isMobile ? 0.8 : 1.5;
+  // Set the initial zoom level to 0.6 for mobile, and 1.5 for desktop
+  const initialZoom = isMobile ? 0.6 : 1.5;
   
   const [camera, setCamera] = useState({ 
     x: 0, 
@@ -132,9 +131,9 @@ const GameCanvas = ({
   useEffect(() => {
     setCamera(prev => ({ 
       ...prev, 
-      zoom: isMobile ? 0.8 : 1.5 
+      zoom: isMobile ? 0.6 : 1.5 
     }));
-    console.log("Mobile status changed, setting zoom to:", isMobile ? 0.8 : 1.5);
+    console.log("Mobile status changed, setting zoom to:", isMobile ? 0.6 : 1.5);
   }, [isMobile]);
   
   const requestRef = useRef<number>();
@@ -843,4 +842,3 @@ const GameCanvas = ({
 };
 
 export default GameCanvas;
-
