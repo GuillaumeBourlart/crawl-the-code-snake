@@ -119,7 +119,7 @@ const GameCanvas = ({
   const isMobile = useIsMobile();
   
   // Set the initial zoom level explicitly for both desktop and mobile
-  const initialZoom = isMobile ? 0.05 : 1.5;
+  const initialZoom = isMobile ? 0.3 : 1.5;
   
   const [camera, setCamera] = useState({ 
     x: 0, 
@@ -131,9 +131,9 @@ const GameCanvas = ({
   useEffect(() => {
     setCamera(prev => ({ 
       ...prev, 
-      zoom: isMobile ? 0.05 : 1.5 
+      zoom: isMobile ? 0.3 : 1.5 
     }));
-    console.log("Mobile status changed, setting zoom to:", isMobile ? 0.05 : 1.5);
+    console.log("Mobile status changed, setting zoom to:", isMobile ? 0.3 : 1.5);
   }, [isMobile]);
   
   const requestRef = useRef<number>();
