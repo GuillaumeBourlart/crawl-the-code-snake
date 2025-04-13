@@ -74,7 +74,11 @@ const AuthButtons = () => {
           <ChevronDown className="ml-1 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-gray-900/95 border-blue-500/30 text-white">
+      <DropdownMenuContent 
+        className="bg-gray-900/95 border-blue-500/30 text-white z-50"
+        sideOffset={5}
+        align="end"
+      >
         <DropdownMenuItem 
           className="hover:bg-blue-900/30 cursor-pointer"
           onClick={goToProfile}
