@@ -119,7 +119,7 @@ const GameCanvas = ({
   const isMobile = useIsMobile();
   
   // Set the initial zoom level explicitly for both desktop and mobile
-  const initialZoom = isMobile ? 1.2 : 1.5;
+  const initialZoom = isMobile ? 2 : 1.5;
   
   const [camera, setCamera] = useState({ 
     x: 0, 
