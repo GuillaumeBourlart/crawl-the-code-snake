@@ -15,7 +15,6 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
-import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +30,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/skins" element={<SkinsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/legal-notice" element={<LegalNotice />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
