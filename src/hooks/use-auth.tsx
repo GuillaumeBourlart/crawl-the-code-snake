@@ -41,65 +41,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      console.log("Fetching profile for user:", userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        // If error is not 'no rows returned', it's a real error
-        if (error.code !== 'PGRST116') {
-          console.error('Database error fetching profile:', error);
-          throw error;
-        }
+      console.log("Attempting to fetch profile for user:", userId);
+      
+      // Essayer de récupérer le profil plusieurs fois sur une période de 5 secondes
+      let attempts = 0;
+      const maxAttempts = 10; // 10 tentatives sur 5 secondes (une tentative toutes les 500ms)
+      let profileData = null;
+      
+      while (attempts < maxAttempts) {
+        console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch profile`);
         
-        // No profile found, create a new one
-        console.log("No profile found, creating new profile for user:", userId);
-        const newProfile: Profile = {
-          id: userId,
-          pseudo: `Player_${Math.floor(Math.random() * 10000)}`,
-          skins: [], // Initialize with empty skins array
-          created_at: new Date().toISOString()
-        };
-        
-        console.log("Attempting to insert profile:", newProfile);
-        const { error: insertError, data: insertData } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
-          .insert([newProfile])
-          .select();
+          .select('*')
+          .eq('id', userId)
+          .single();
           
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          throw insertError;
-        }
-        
-        console.log("Profile insertion response:", insertData);
-        
-        if (insertData && insertData.length > 0) {
-          console.log("Using inserted profile data:", insertData[0]);
-          setProfile(insertData[0] as Profile);
-        } else {
-          // Fetch the newly created profile to ensure we have the server-generated values
-          const { data: newData, error: refetchError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-            
-          if (refetchError) {
-            console.error('Error fetching created profile:', refetchError);
-            throw refetchError;
+        if (error) {
+          if (error.code !== 'PGRST116') { // Si c'est une erreur autre que "no rows returned"
+            console.error('Database error fetching profile:', error);
+            throw error;
           }
-          
-          console.log("New profile created and fetched:", newData);
-          setProfile(newData as Profile);
+        } else if (data) {
+          // Profil trouvé
+          console.log("Profile retrieved:", data);
+          profileData = data;
+          break;
         }
+        
+        // Attendre 500ms avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+      }
+      
+      if (profileData) {
+        setProfile(profileData as Profile);
       } else {
-        // Profile successfully fetched
-        console.log("Profile retrieved:", data);
-        setProfile(data as Profile);
+        console.error("Profile not found after maximum attempts");
+        toast.error('Impossible de récupérer votre profil');
       }
     } catch (error) {
       console.error('Critical error handling profile:', error);
