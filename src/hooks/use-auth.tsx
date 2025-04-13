@@ -6,6 +6,7 @@ import { Profile } from '@/types/supabase';
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
+const apiUrl = "https://api.grubz.io"; // Using the new API URL
 
 type AuthContextType = {
   user: User | null;
@@ -245,18 +246,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setLoading(true);
       
-      // First delete the profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
-        
-      if (profileError) {
-        console.error('Error deleting profile:', profileError);
-        // Continue with user deletion anyway
+      // Call the server's deleteUserAccount function
+      const sessionResponse = await supabase.auth.getSession();
+      const accessToken = sessionResponse.data.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('Non authentifié');
       }
       
-      // Then delete the user
+      // Call the API endpoint that will trigger deleteUserAccount
+      const response = await fetch(`${apiUrl}/deleteAccount`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ userId: user.id })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error from API:', errorText);
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Échec de la suppression');
+      }
+      
+      // Then delete the user auth record
       const { error: userError } = await supabase.auth.admin.deleteUser(user.id);
       
       if (userError) throw userError;

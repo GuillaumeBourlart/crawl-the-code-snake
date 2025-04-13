@@ -12,11 +12,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import SkinSelector from "@/components/SkinSelector";
 import { useSkins } from "@/hooks/use-skins";
+import SkinPreview from "@/components/SkinPreview";
 
 const ProfilePage = () => {
   const { user, profile, loading, updateProfile, deleteAccount } = useAuth();
   const navigate = useNavigate();
-  const { selectedSkinId } = useSkins();
+  const { selectedSkinId, selectedSkin, loading: skinsLoading } = useSkins();
   
   const [pseudo, setPseudo] = useState("");
   const [isEditingPseudo, setIsEditingPseudo] = useState(false);
@@ -78,6 +79,10 @@ const ProfilePage = () => {
     }
   };
 
+  const navigateToSkins = () => {
+    navigate('/skins');
+  };
+
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -126,7 +131,7 @@ const ProfilePage = () => {
             <p className="text-gray-300">{profile?.pseudo || "Non défini"}</p>
           </div>
           
-          {/* Default Skin Section */}
+          {/* Default Skin Section with Preview */}
           <div className="mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl text-white flex items-center">
@@ -142,9 +147,30 @@ const ProfilePage = () => {
                 Changer
               </Button>
             </div>
-            <p className="text-gray-300">
-              {selectedSkinId ? `Skin #${selectedSkinId}` : "Skin par défaut"}
-            </p>
+            
+            {/* Skin preview */}
+            <div 
+              onClick={navigateToSkins}
+              className="mt-4 flex justify-center cursor-pointer transition-transform hover:scale-105 bg-gray-900/50 p-4 rounded-lg border border-gray-700"
+            >
+              {selectedSkin ? (
+                <div className="flex flex-col items-center">
+                  <SkinPreview 
+                    skin={selectedSkin} 
+                    pattern="snake" 
+                    size="medium" 
+                    animate={true} 
+                  />
+                  <p className="mt-3 text-sm text-indigo-300">
+                    Cliquez pour changer votre skin
+                  </p>
+                </div>
+              ) : (
+                <div className="h-48 w-48 flex items-center justify-center">
+                  <p className="text-gray-400">Chargement du skin...</p>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Delete Account Section */}
