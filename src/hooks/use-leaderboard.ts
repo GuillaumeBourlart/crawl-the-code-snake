@@ -17,9 +17,6 @@ const FALLBACK_LEADERBOARD: GlobalLeaderboardEntry[] = [
   { id: '5', pseudo: 'Joueur 5', score: 780 },
 ];
 
-// URL base pour l'API
-const API_BASE_URL = "https://www.grubz.io";
-
 export function useGlobalLeaderboard(socketUrl: string) {
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,13 +31,13 @@ export function useGlobalLeaderboard(socketUrl: string) {
     async function fetchLeaderboard() {
       try {
         setIsLoading(true);
-        // Utilisation de la nouvelle URL base
-        const url = `${API_BASE_URL}/globalLeaderboard`;
+        // Utiliser l'URL fournie
+        const url = `${socketUrl}/globalLeaderboard`;
         
         console.log("Fetching global leaderboard from:", url);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // Augmenté à 8 secondes
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         
         const response = await fetch(url, {
           signal: controller.signal,
@@ -49,7 +46,6 @@ export function useGlobalLeaderboard(socketUrl: string) {
             'Accept': 'application/json',
             'Cache-Control': 'no-cache'
           },
-          // Ajout du mode 'cors' pour les requêtes cross-origin
           mode: 'cors'
         });
         
@@ -79,7 +75,7 @@ export function useGlobalLeaderboard(socketUrl: string) {
             console.log('Using fallback leaderboard data after failed attempts');
             setLeaderboard(FALLBACK_LEADERBOARD);
             setUsesFallback(true);
-            toast.error("Impossible de charger le classement global. Utilisation des données locales.");
+            toast.info("Impossible de charger le classement global. Utilisation des données locales.");
           } else if (isMounted) {
             // Sinon, réessayer après un délai
             retryCount++;
@@ -105,7 +101,7 @@ export function useGlobalLeaderboard(socketUrl: string) {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [socketUrl]);
 
   return { leaderboard, isLoading, error, usesFallback };
 }
