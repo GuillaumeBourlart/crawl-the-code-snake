@@ -12,10 +12,8 @@ const LegalNotice = () => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen flex flex-col text-white overflow-y-auto">
-      <HexBackground />
-      
-      <div className="sticky top-4 left-4 z-20">
+    <div className="flex flex-col min-h-screen w-full text-white">      
+      <div className="sticky top-4 left-4 z-20 p-4">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -26,7 +24,7 @@ const LegalNotice = () => {
         </Button>
       </div>
       
-      <main className="flex-1 container mx-auto px-4 py-16 relative z-10">
+      <main className="flex-1 container mx-auto px-4 py-8 relative z-10 overflow-y-auto">
         <div className="max-w-3xl mx-auto bg-gray-900/70 backdrop-blur-sm p-6 rounded-xl border border-gray-800/50">
           <h1 className="text-3xl font-bold mb-6 text-indigo-400">Mentions légales</h1>
           

@@ -25,24 +25,26 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <HexBackground />
-        <BrowserRouter>
-          <div className="min-h-screen flex flex-col overflow-y-auto">
-            <CookieConsent />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/skins" element={<SkinsPage />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/legal-notice" element={<LegalNotice />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/cookie-policy" element={<CookiePolicy />} />
-              <Route path="/terms-of-sale" element={<TermsOfSale />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </BrowserRouter>
+        <div className="min-h-screen h-full flex flex-col overflow-y-auto">
+          <HexBackground />
+          <BrowserRouter>
+            <div className="min-h-screen w-full flex flex-col relative z-10">
+              <CookieConsent />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/skins" element={<SkinsPage />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/legal-notice" element={<LegalNotice />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/terms-of-sale" element={<TermsOfSale />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </BrowserRouter>
+        </div>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

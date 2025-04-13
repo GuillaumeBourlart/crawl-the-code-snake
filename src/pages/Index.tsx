@@ -477,7 +477,7 @@ const Index = () => {
   const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
+    <div className="flex flex-col min-h-screen w-full text-white">
       {!gameStarted && (
         <div className="absolute top-4 right-4 z-50">
           <AuthButtons />
@@ -486,140 +486,142 @@ const Index = () => {
 
       {!gameStarted && <GlobalLeaderboardButton />}
 
-      {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
-          <div className="flex items-center mb-6">
-            <ZigzagTitle className="w-full" />
-          </div>
-          
-          <div className="w-full max-w-sm mb-6">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                <User className="h-5 w-5" />
-              </div>
-              <Input
-                type="text"
-                placeholder="Entrez votre pseudo"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
-                maxLength={16}
-                required
-              />
+      <main className="flex-1 w-full flex flex-col items-center justify-center overflow-y-auto py-8">
+        {!gameStarted && (
+          <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
+            <div className="flex items-center mb-6">
+              <ZigzagTitle className="w-full" />
             </div>
-          </div>
-          
-          <div className="w-full mb-6">
-            <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
-              {isLoading ? (
-                <div className="flex justify-center py-2">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
+            
+            <div className="w-full max-w-sm mb-6">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                  <User className="h-5 w-5" />
                 </div>
-              ) : (
-                selectedSkin ? (
-                  <div className="flex flex-col items-center">
-                    <SkinPreview skin={selectedSkin} size="medium" animate={true} pattern="snake" />
+                <Input
+                  type="text"
+                  placeholder="Entrez votre pseudo"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
+                  maxLength={16}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="w-full mb-6">
+              <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
+                {isLoading ? (
+                  <div className="flex justify-center py-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center py-4">
-                    <p className="text-gray-400">Aucun skin sélectionné</p>
-                    <p className="text-xs text-indigo-400 mt-2">Cliquez pour en choisir un</p>
-                  </div>
-                )
-              )}
-            </Link>
-          </div>
-          
-          <div className="flex flex-col w-full gap-3">
-            <button
-              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handlePlay}
-              disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
-            >
-              {connecting ? (
-                <div className="p-5">
-                  <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              ) : (
-                <AnimatedArrow 
-                  className="w-full h-32" 
-                  isClickable={Boolean(username.trim() && selectedSkinId && !isLoading)}
-                />
-              )}
-            </button>
-          </div>
-          
-          {reconnectAttempts > 0 && (
-            <p className="mt-4 text-amber-400 flex items-center">
-              <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
-            </p>
-          )}
-        </div>
-      )}
-      
-      {gameStarted && (
-        <>
-          <div className="absolute top-4 right-4 z-20 flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
-              onClick={handleQuitGame}
-            >
-              <LogOut className="mr-1 h-4 w-4 text-red-400" />
-              Quitter
-            </Button>
-          </div>
-          
-          {isSpectator && (
-            <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-red-600/70 text-white rounded-lg shadow-md">
-              Mode Spectateur
+                  selectedSkin ? (
+                    <div className="flex flex-col items-center">
+                      <SkinPreview skin={selectedSkin} size="medium" animate={true} pattern="snake" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center py-4">
+                      <p className="text-gray-400">Aucun skin sélectionné</p>
+                      <p className="text-xs text-indigo-400 mt-2">Cliquez pour en choisir un</p>
+                    </div>
+                  )
+                )}
+              </Link>
             </div>
-          )}
-          
-          <PlayerScore 
-            playerId={playerId} 
-            players={gameState.players}
-            roomLeaderboard={roomLeaderboard} 
-          />
-          
-          <LeaderboardPanel 
-            roomLeaderboard={roomLeaderboard}
-            currentPlayerId={playerId}
-          />
-          
-          <GameCanvas
-            gameState={{
-              ...gameState,
-              players: gameState.players || {},
-              items: gameState.items ? Object.values(gameState.items) : [],
-              worldSize: gameState.worldSize || { width: 4000, height: 4000 }
-            }}
-            playerId={playerId}
-            onMove={handleMove}
-            onBoostStart={handleBoostStart}
-            onBoostStop={handleBoostStop}
-            onPlayerCollision={handlePlayerCollision}
-            isSpectator={isSpectator}
-          />
-          
-          {isMobile && !isSpectator && (
-            <MobileControls 
-              onMove={handleMove} 
-              onBoostStart={handleBoostStart} 
-              onBoostStop={handleBoostStop}
-              onJoystickMove={handleJoystickMove}
+            
+            <div className="flex flex-col w-full gap-3">
+              <button
+                className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handlePlay}
+                disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
+              >
+                {connecting ? (
+                  <div className="p-5">
+                    <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                ) : (
+                  <AnimatedArrow 
+                    className="w-full h-32" 
+                    isClickable={Boolean(username.trim() && selectedSkinId && !isLoading)}
+                  />
+                )}
+              </button>
+            </div>
+            
+            {reconnectAttempts > 0 && (
+              <p className="mt-4 text-amber-400 flex items-center">
+                <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
+              </p>
+            )}
+          </div>
+        )}
+        
+        {gameStarted && (
+          <>
+            <div className="absolute top-4 right-4 z-20 flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
+                onClick={handleQuitGame}
+              >
+                <LogOut className="mr-1 h-4 w-4 text-red-400" />
+                Quitter
+              </Button>
+            </div>
+            
+            {isSpectator && (
+              <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-red-600/70 text-white rounded-lg shadow-md">
+                Mode Spectateur
+              </div>
+            )}
+            
+            <PlayerScore 
+              playerId={playerId} 
+              players={gameState.players}
+              roomLeaderboard={roomLeaderboard} 
             />
-          )}
-        </>
-      )}
+            
+            <LeaderboardPanel 
+              roomLeaderboard={roomLeaderboard}
+              currentPlayerId={playerId}
+            />
+            
+            <GameCanvas
+              gameState={{
+                ...gameState,
+                players: gameState.players || {},
+                items: gameState.items ? Object.values(gameState.items) : [],
+                worldSize: gameState.worldSize || { width: 4000, height: 4000 }
+              }}
+              playerId={playerId}
+              onMove={handleMove}
+              onBoostStart={handleBoostStart}
+              onBoostStop={handleBoostStop}
+              onPlayerCollision={handlePlayerCollision}
+              isSpectator={isSpectator}
+            />
+            
+            {isMobile && !isSpectator && (
+              <MobileControls 
+                onMove={handleMove} 
+                onBoostStart={handleBoostStart} 
+                onBoostStop={handleBoostStop}
+                onJoystickMove={handleJoystickMove}
+              />
+            )}
+          </>
+        )}
+      </main>
 
       <GameOverDialog 
         isOpen={showGameOverDialog}

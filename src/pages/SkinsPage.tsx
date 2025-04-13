@@ -158,7 +158,7 @@ const SkinsPage = () => {
   const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="min-h-screen flex flex-col text-white overflow-y-auto">
+    <div className="flex flex-col min-h-screen w-full text-white">
       <div className="sticky top-0 z-10 flex justify-between items-center w-full p-4 bg-gray-900/80 backdrop-blur-sm">
         <Button 
           variant="ghost" 
@@ -171,7 +171,7 @@ const SkinsPage = () => {
         <AuthButtons />
       </div>
 
-      <main className="flex-1 container mx-auto px-4 py-2 mb-20">
+      <main className="flex-1 container mx-auto px-4 py-2 mb-20 overflow-y-auto">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
