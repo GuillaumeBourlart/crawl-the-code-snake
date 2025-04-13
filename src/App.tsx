@@ -15,7 +15,6 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
-import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +35,6 @@ const App = () => (
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/terms-of-sale" element={<TermsOfSale />} />
-            <Route path="/profile" element={<ProfilePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
