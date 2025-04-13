@@ -129,17 +129,7 @@ const Index = () => {
     }
   }, [profile]);
   
-  const updateBodyClass = useCallback((isGameActive: boolean) => {
-    if (isGameActive) {
-      document.body.classList.add('game-active');
-    } else {
-      document.body.classList.remove('game-active');
-    }
-  }, []);
-  
   useEffect(() => {
-    updateBodyClass(gameStarted);
-    
     const handleBeforeUnload = () => {
       if (socket) {
         socket.emit("clean_disconnect");
@@ -151,12 +141,11 @@ const Index = () => {
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      updateBodyClass(false);
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
       if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
     };
-  }, [socket, gameStarted, updateBodyClass]);
+  }, [socket]);
 
   useEffect(() => {
     if (gameStarted && socket && playerId && !isSpectator) {
@@ -236,7 +225,6 @@ const Index = () => {
     setConnecting(true);
     setShowGameOverDialog(false);
     setIsSpectator(false);
-    updateBodyClass(true);
     
     if (socket) {
       socket.emit("clean_disconnect");
@@ -461,7 +449,6 @@ const Index = () => {
     setPlayerId(null);
     setRoomId(null);
     setIsSpectator(false);
-    updateBodyClass(false);
   };
 
   const handleRetry = () => {
