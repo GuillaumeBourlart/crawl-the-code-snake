@@ -98,11 +98,19 @@
 
   body {
     @apply bg-background text-foreground;
-     overflow-y: auto;
+    overflow-y: auto;
     touch-action: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+  }
+  
+  /* Disable scrolling when the game is active */
+  body.game-active {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
   }
 }
 
