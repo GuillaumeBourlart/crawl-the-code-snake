@@ -30,29 +30,26 @@ const CookieConsent = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 animate-fade-in">
-      <div className="max-w-3xl mx-auto bg-gray-900/90 backdrop-blur-md border border-indigo-500/30 rounded-xl shadow-lg overflow-hidden">
-        <div className="p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
+    <div className="fixed bottom-16 left-0 right-0 z-50 p-3 md:p-4 animate-fade-in">
+      <div className="max-w-2xl mx-auto bg-gray-900/90 backdrop-blur-md border border-indigo-500/30 rounded-lg shadow-lg overflow-hidden">
+        <div className="p-3 md:p-4">
+          <div className="flex items-center justify-between mb-1">
             <div className="flex items-center">
-              <Cookie className="h-6 w-6 text-indigo-400 mr-3 flex-shrink-0" />
-              <h3 className="text-lg font-medium text-white">Utilisation de cookies</h3>
+              <Cookie className="h-4 w-4 text-indigo-400 mr-2 flex-shrink-0" />
+              <h3 className="text-sm font-medium text-white">Utilisation de cookies</h3>
             </div>
           </div>
           
-          <div className="mt-3">
-            <p className="text-gray-300 mb-4">
-              Nous utilisons des cookies nécessaires au fonctionnement du site et à la mémorisation de vos préférences. 
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-300 mr-4">
+              Nous utilisons des cookies nécessaires au fonctionnement du site.
             </p>
-            
-            <div className="flex justify-center">
-              <Button 
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={acceptCookies}
-              >
-                OK
-              </Button>
-            </div>
+            <Button 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 px-3"
+              onClick={acceptCookies}
+            >
+              OK
+            </Button>
           </div>
         </div>
       </div>
