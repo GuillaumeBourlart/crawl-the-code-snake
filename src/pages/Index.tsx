@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,7 @@ import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 
-const SOCKET_SERVER_URL = "https://www.grubz.io";
+const SOCKET_SERVER_URL = "https://crawl-the-code-snake.lovable.app";
 
 interface ServerPlayer {
   id?: string;
@@ -105,19 +104,16 @@ const Index = () => {
     refresh: refreshSkins
   } = useSkins();
   
-  // Utiliser un useRef pour stocker les skins disponibles et éviter les rendus en boucle
   const availableSkinsRef = useRef<any[]>([]);
   
-  // Ce useEffect ne s'exécute qu'une seule fois, avec une dépendance vide
   useEffect(() => {
     if (!skinLoadAttempted) {
       console.log("Initial skins refresh");
       refreshSkins();
       setSkinLoadAttempted(true);
     }
-  }, [skinLoadAttempted]); // Suppression de refreshSkins de la liste des dépendances
+  }, [skinLoadAttempted]);
   
-  // Utilisez un memo pour éviter les recalculs inutiles
   useEffect(() => {
     if (userSkins && userSkins.length > 0 && 
         JSON.stringify(availableSkinsRef.current) !== JSON.stringify(userSkins)) {

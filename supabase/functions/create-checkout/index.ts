@@ -114,8 +114,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `https://www.grubz.io/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://www.grubz.io/skins`,
+      success_url: `https://crawl-the-code-snake.lovable.app/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://crawl-the-code-snake.lovable.app/skins`,
       metadata: {
         userId: user.id,
         skinId: skinId.toString(),

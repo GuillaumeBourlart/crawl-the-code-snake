@@ -18,7 +18,7 @@ const FALLBACK_LEADERBOARD: GlobalLeaderboardEntry[] = [
 ];
 
 // URL base pour l'API
-const API_BASE_URL = "https://www.grubz.io";
+const API_BASE_URL = "https://crawl-the-code-snake.lovable.app";
 
 export function useGlobalLeaderboard(socketUrl: string) {
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
