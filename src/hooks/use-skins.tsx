@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -201,7 +202,7 @@ export const useSkins = () => {
     
     localStorage.setItem('selected_skin_id', skinId.toString());
     
-    if (user) {
+    if (user && profile) {
       try {
         console.log("Updating user profile with selected skin:", skinId);
         
@@ -213,6 +214,9 @@ export const useSkins = () => {
           throw new Error('Non authentifié');
         }
         
+        // Récupérer le pseudo actuel du profil pour l'envoyer avec la mise à jour
+        const currentPseudo = profile.pseudo || "";
+        
         const response = await fetch(`${apiUrl}/updateProfile`, {
           method: 'PUT',
           headers: {
@@ -221,7 +225,7 @@ export const useSkins = () => {
           },
           body: JSON.stringify({
             userId: user.id,
-            pseudo: undefined,
+            pseudo: currentPseudo,
             skin_id: skinId
           })
         });

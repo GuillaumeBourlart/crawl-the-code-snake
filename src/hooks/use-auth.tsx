@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -204,6 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateProfile = async (data: Partial<Profile>) => {
     try {
       if (!user) throw new Error('Non authentifié');
+      if (!profile) throw new Error('Profil non disponible');
       
       // Get auth token for the API call
       const sessionResponse = await supabase.auth.getSession();
@@ -213,6 +215,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Non authentifié');
       }
       
+      console.log("Updating profile with data:", data);
+      
+      // Prépare les données à envoyer à l'API
+      // Si pseudo n'est pas fourni, utiliser celui du profil actuel
+      // Si default_skin_id n'est pas fourni, utiliser celui du profil actuel
+      const updateData = {
+        userId: user.id,
+        pseudo: data.pseudo !== undefined ? data.pseudo : profile.pseudo || "",
+        skin_id: data.default_skin_id !== undefined ? data.default_skin_id : profile.default_skin_id || null
+      };
+      
+      console.log("Sending to API:", updateData);
+      
       // Call the new API endpoint for updating profile
       const response = await fetch(`${apiUrl}/updateProfile`, {
         method: 'PUT',
@@ -220,11 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-          userId: user.id,
-          pseudo: data.pseudo,
-          skin_id: data.default_skin_id
-        })
+        body: JSON.stringify(updateData)
       });
       
       if (!response.ok) {
