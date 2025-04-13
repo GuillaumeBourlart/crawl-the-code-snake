@@ -89,8 +89,8 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="w-full py-4 px-6 flex justify-between items-center z-10">
+    <div className="min-h-screen flex flex-col overflow-y-auto">
+      <header className="sticky top-0 w-full py-4 px-6 flex justify-between items-center z-10 bg-gray-900/80 backdrop-blur-sm">
         <Button
           variant="ghost"
           size="sm"
@@ -105,7 +105,7 @@ const ProfilePage = () => {
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 mb-16">
         <div className="bg-gray-900/70 border border-blue-500/30 rounded-lg p-6 max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold text-white mb-6">Profil Utilisateur</h1>
           
@@ -189,7 +189,9 @@ const ProfilePage = () => {
         </div>
       </main>
 
-      <Footer />
+      <div className="mt-auto">
+        <Footer />
+      </div>
 
       <Dialog open={isEditingPseudo} onOpenChange={setIsEditingPseudo}>
         <DialogContent className="bg-gray-900 border-blue-500/30 text-white">
