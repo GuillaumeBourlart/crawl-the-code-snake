@@ -104,21 +104,21 @@ const Index = () => {
     setSelectedSkin,
     refresh: refreshSkins
   } = useSkins();
-
+  
   useEffect(() => {
-    if (!skinLoadAttempted && !skinsLoading) {
+    if (!skinLoadAttempted) {
       console.log("Initial skins refresh");
       refreshSkins();
       setSkinLoadAttempted(true);
     }
-  }, [refreshSkins, skinLoadAttempted, skinsLoading]);
+  }, [refreshSkins, skinLoadAttempted]);
   
   useEffect(() => {
-    if (userSkins && userSkins.length > 0 && !availableSkins.length) {
+    if (userSkins && userSkins.length > 0) {
       console.log("Setting available skins from userSkins:", userSkins.length);
       setAvailableSkins(userSkins);
     }
-  }, [userSkins, availableSkins.length]);
+  }, [userSkins]);
   
   useEffect(() => {
     if (profile && profile.pseudo) {
@@ -230,173 +230,164 @@ const Index = () => {
     
     console.log("Connecting to socket server:", SOCKET_SERVER_URL);
     
-    setTimeout(() => {
-      try {
-        const newSocket = io(SOCKET_SERVER_URL, {
-          transports: ["websocket"],
-          upgrade: false,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-          timeout: 10000
-        });
-        
-        newSocket.on("connect", () => {
-          console.log("Connected to WebSocket server");
-          setConnected(true);
-          setConnecting(false);
-          setReconnectAttempts(0);
-          toast.success("Connecté au serveur");
-        });
-        
-        newSocket.on("connect_error", (err) => {
-          console.error("Connection error:", err);
-          setConnecting(false);
-          toast.error("Erreur de connexion au serveur: " + (err.message || ''));
-          attemptReconnect();
-        });
-        
-        newSocket.on("disconnect", (reason) => {
-          console.log("Disconnected from WebSocket server. Reason:", reason);
-          setConnected(false);
-          setGameStarted(false);
-          setRoomId(null);
-          
-          if (reason === "io server disconnect") {
-            toast.error("Déconnecté par le serveur");
-          } else if (reason === "transport close") {
-            toast.error("Connexion perdue");
-            attemptReconnect();
-          } else if (reason === "ping timeout") {
-            toast.error("Délai d'attente serveur dépassé");
-            attemptReconnect();
-          } else {
-            toast.error("Déconnecté du serveur");
-          }
-        });
-        
-        newSocket.on("error", (error) => {
-          console.error("Socket error:", error);
-          toast.error("Erreur de socket: " + error);
-          
-          if (!connected) {
-            attemptReconnect();
-          }
-        });
-        
-        newSocket.on("joined_room", (data: { roomId: string }) => {
-          console.log("Joined room:", data.roomId);
-          setRoomId(data.roomId);
-          setPlayerId(newSocket.id);
-          setGameStarted(true);
-          
-          console.log("Sending player info to server with skin:", selectedSkinId);
-          console.log("Is Mobile: ", isMobile);
-          
-          newSocket.emit("setPlayerInfo", { 
-            pseudo: username,
-            skin_id: selectedSkinId
-          });
-          
-          const worldSize = { width: 4000, height: 4000 };
-          const randomItems = generateRandomItems(50, worldSize);
-          
-          setGameState(prevState => ({
-            ...prevState,
-            items: randomItems,
-            worldSize
-          }));
-          
-          toast.success("Vous avez rejoint la partie");
-        });
-        
-        newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
-          console.log("Received update_entities with", 
-            Object.keys(data.players).length, "players and", 
-            data.items.length, "items and",
-            data.leaderboard?.length || 0, "leaderboard entries");
-          
-          const itemsObject: Record<string, GameItem> = {};
-          data.items.forEach(item => {
-            itemsObject[item.id] = item;
-          });
-          
-          setGameState(prevState => ({
-            ...prevState,
-            players: data.players,
-            items: itemsObject
-          }));
-          
-          if (data.leaderboard) {
-            setRoomLeaderboard(data.leaderboard);
-          }
-        });
-        
-        newSocket.on("player_eliminated", () => {
-          console.log("You were eliminated!");
-          toast.error("Vous avez été éliminé!");
-          setIsSpectator(true);
-          setShowGameOverDialog(true);
-        });
-        
-        newSocket.on("set_spectator", (isSpectator: boolean) => {
-          console.log("Set spectator mode:", isSpectator);
-          setIsSpectator(isSpectator);
-        });
-        
-        newSocket.on("player_grew", (data: { growth: number }) => {
-          console.log("You ate another player! Growing by:", data.growth);
-          toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
-          if (playerId) {
-            setGameState(prevState => {
-              const currentPlayer = prevState.players[playerId];
-              if (!currentPlayer) return prevState;
-              
-              const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
-              
-              const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
-              const currentQueueLength = currentPlayer.queue?.length || 0;
-              const segmentsToAdd = targetQueueLength - currentQueueLength;
-              
-              let newQueue = [...(currentPlayer.queue || [])];
-              
-              for (let i = 0; i < segmentsToAdd; i++) {
-                newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
-              }
-              
-              return {
-                ...prevState,
-                players: {
-                  ...prevState.players,
-                  [playerId]: {
-                    ...currentPlayer,
-                    queue: newQueue,
-                    itemEatenCount: newItemEatenCount
-                  }
-                }
-              };
-            });
-          }
-        });
-        
-        newSocket.on("no_room_available", () => {
-          toast.error("Aucune salle disponible");
-          setConnecting(false);
-          newSocket.disconnect();
-        });
-        
-        newSocket.on("ping_request", () => {
-          newSocket.emit("pong_response");
-        });
-        
-        newSocket.emit("join_room");
-        setSocket(newSocket);
-      } catch (error) {
-        console.error("Socket initialization error:", error);
-        setConnecting(false);
-        toast.error("Erreur lors de l'initialisation de la connexion");
+    const newSocket = io(SOCKET_SERVER_URL, {
+      transports: ["websocket"],
+      upgrade: false,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000
+    });
+    
+    newSocket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+      setConnected(true);
+      setConnecting(false);
+      setReconnectAttempts(0);
+      toast.success("Connecté au serveur");
+    });
+    
+    newSocket.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+      setConnecting(false);
+      toast.error("Erreur de connexion au serveur");
+      attemptReconnect();
+    });
+    
+    newSocket.on("disconnect", (reason) => {
+      console.log("Disconnected from WebSocket server. Reason:", reason);
+      setConnected(false);
+      setGameStarted(false);
+      setRoomId(null);
+      
+      if (reason === "io server disconnect") {
+        toast.error("Déconnecté par le serveur");
+      } else if (reason === "transport close") {
+        toast.error("Connexion perdue");
+        attemptReconnect();
+      } else if (reason === "ping timeout") {
+        toast.error("Délai d'attente serveur dépassé");
+        attemptReconnect();
+      } else {
+        toast.error("Déconnecté du serveur");
+      }
+    });
+    
+    newSocket.on("error", (error) => {
+      console.error("Socket error:", error);
+      toast.error("Erreur de socket: " + error);
+      
+      if (!connected) {
         attemptReconnect();
       }
-    }, 300);
+    });
+    
+    newSocket.on("joined_room", (data: { roomId: string }) => {
+      console.log("Joined room:", data.roomId);
+      setRoomId(data.roomId);
+      setPlayerId(newSocket.id);
+      setGameStarted(true);
+      
+      console.log("Sending player info to server with skin:", selectedSkinId);
+      console.log("Is Mobile: ", isMobile);
+      
+      newSocket.emit("setPlayerInfo", { 
+        pseudo: username,
+        skin_id: selectedSkinId
+      });
+      
+      const worldSize = { width: 4000, height: 4000 };
+      const randomItems = generateRandomItems(50, worldSize);
+      
+      setGameState(prevState => ({
+        ...prevState,
+        items: randomItems,
+        worldSize
+      }));
+      
+      toast.success("Vous avez rejoint la partie");
+    });
+    
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
+      console.log("Received update_entities with", 
+        Object.keys(data.players).length, "players and", 
+        data.items.length, "items and",
+        data.leaderboard?.length || 0, "leaderboard entries");
+      
+      const itemsObject: Record<string, GameItem> = {};
+      data.items.forEach(item => {
+        itemsObject[item.id] = item;
+      });
+      
+      setGameState(prevState => ({
+        ...prevState,
+        players: data.players,
+        items: itemsObject
+      }));
+      
+      if (data.leaderboard) {
+        setRoomLeaderboard(data.leaderboard);
+      }
+    });
+    
+    newSocket.on("player_eliminated", () => {
+      console.log("You were eliminated!");
+      toast.error("Vous avez été éliminé!");
+      setIsSpectator(true);
+      setShowGameOverDialog(true);
+    });
+    
+    newSocket.on("set_spectator", (isSpectator: boolean) => {
+      console.log("Set spectator mode:", isSpectator);
+      setIsSpectator(isSpectator);
+    });
+    
+    newSocket.on("player_grew", (data: { growth: number }) => {
+      console.log("You ate another player! Growing by:", data.growth);
+      toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
+      if (playerId) {
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          
+          const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
+          
+          const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
+          const currentQueueLength = currentPlayer.queue?.length || 0;
+          const segmentsToAdd = targetQueueLength - currentQueueLength;
+          
+          let newQueue = [...(currentPlayer.queue || [])];
+          
+          for (let i = 0; i < segmentsToAdd; i++) {
+            newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
+          }
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                queue: newQueue,
+                itemEatenCount: newItemEatenCount
+              }
+            }
+          };
+        });
+      }
+    });
+    
+    newSocket.on("no_room_available", () => {
+      toast.error("Aucune salle disponible");
+      setConnecting(false);
+      newSocket.disconnect();
+    });
+    
+    newSocket.on("ping_request", () => {
+      newSocket.emit("pong_response");
+    });
+    
+    newSocket.emit("join_room");
+    setSocket(newSocket);
   };
   
   const handleMove = (direction: { x: number; y: number }) => {
