@@ -1,5 +1,5 @@
+
 import React, { useRef, useEffect, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSnapshot } from 'valtio';
 import { state } from '@/state';
@@ -14,6 +14,12 @@ interface GameCanvasProps {
   onPlayerCollision: (otherPlayerId: string) => void;
   isSpectator: boolean;
 }
+
+// Export this function to be used in MobileControls
+export const handleJoystickDirection = (direction: { x: number; y: number }) => {
+  // This function can be used to control player eye movement
+  // Will be called from MobileControls
+};
 
 const GameCanvas = ({ 
   gameState, 
@@ -57,7 +63,7 @@ const GameCanvas = ({
 
   const { selectedPattern } = useSnapshot(state);
 
-  const handleWheel = (e: WheelEvent) => {
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const zoomAmount = e.deltaY * -0.005;
     const newZoom = Math.max(0.3, Math.min(camera.zoom + zoomAmount, 3));
@@ -202,133 +208,146 @@ const GameCanvas = ({
     };
   }, []);
 
-  useFrame(() => {
-    if (!canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
+  useEffect(() => {
+    const renderFrame = () => {
+      if (!canvasRef.current) return;
+      const ctx = canvasRef.current.getContext('2d');
+      if (!ctx) return;
 
-    ctx.clearRect(0, 0, windowSize.width, windowSize.height);
-    ctx.save();
+      ctx.clearRect(0, 0, windowSize.width, windowSize.height);
+      ctx.save();
 
-    const zoomDifference = camera.targetZoom - camera.zoom;
-    camera.zoom += zoomDifference * 0.05;
+      const zoomDifference = camera.targetZoom - camera.zoom;
+      camera.zoom += zoomDifference * 0.05;
 
-    ctx.translate(windowSize.width / 2, windowSize.height / 2);
-    ctx.scale(camera.zoom, camera.zoom);
-    ctx.translate(-camera.x, -camera.y);
+      ctx.translate(windowSize.width / 2, windowSize.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
 
-    const drawGrid = () => {
-      const gridSize = 50;
-      const offsetX = camera.x % gridSize;
-      const offsetY = camera.y % gridSize;
-      const gridColor = 'rgba(255, 255, 255, 0.05)';
+      const drawGrid = () => {
+        const gridSize = 50;
+        const offsetX = camera.x % gridSize;
+        const offsetY = camera.y % gridSize;
+        const gridColor = 'rgba(255, 255, 255, 0.05)';
 
-      ctx.strokeStyle = gridColor;
-      ctx.lineWidth = 1 / camera.zoom;
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1 / camera.zoom;
 
-      for (let x = -windowSize.width / 2 / camera.zoom - offsetX; x < gameState.worldSize.width - camera.x + windowSize.width / 2 / camera.zoom; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, -windowSize.height / 2 / camera.zoom - offsetY);
-        ctx.lineTo(x, gameState.worldSize.height - camera.y + windowSize.height / 2 / camera.zoom);
-        ctx.stroke();
-      }
-
-      for (let y = -windowSize.height / 2 / camera.zoom - offsetY; y < gameState.worldSize.height - camera.y + windowSize.height / 2 / camera.zoom; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(-windowSize.width / 2 / camera.zoom - offsetX, y);
-        ctx.lineTo(gameState.worldSize.width - camera.x + windowSize.width / 2 / camera.zoom, y);
-        ctx.stroke();
-      }
-    };
-
-    drawGrid();
-
-    const drawPlayer = (player: any, isCurrentPlayer: boolean) => {
-      if (!player.queue) return;
-
-      const headSize = 20;
-      const segmentSize = headSize * 0.9;
-
-      ctx.fillStyle = player.color || 'white';
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.lineWidth = 4 / camera.zoom;
-
-      const drawSegment = (x: number, y: number, index: number) => {
-        const size = index === 0 ? headSize : segmentSize;
-        const offset = (headSize - segmentSize) / 2;
-
-        if (selectedPattern === 'snake') {
+        for (let x = -windowSize.width / 2 / camera.zoom - offsetX; x < gameState.worldSize.width - camera.x + windowSize.width / 2 / camera.zoom; x += gridSize) {
           ctx.beginPath();
-          ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
-          ctx.fill();
+          ctx.moveTo(x, -windowSize.height / 2 / camera.zoom - offsetY);
+          ctx.lineTo(x, gameState.worldSize.height - camera.y + windowSize.height / 2 / camera.zoom);
           ctx.stroke();
-        } else if (selectedPattern === 'grub') {
-          const grubWidth = size;
-          const grubHeight = size * 0.75;
+        }
+
+        for (let y = -windowSize.height / 2 / camera.zoom - offsetY; y < gameState.worldSize.height - camera.y + windowSize.height / 2 / camera.zoom; y += gridSize) {
           ctx.beginPath();
-          ctx.ellipse(x, y, grubWidth / 2, grubHeight / 2, 0, 0, 2 * Math.PI);
-          ctx.fill();
+          ctx.moveTo(-windowSize.width / 2 / camera.zoom - offsetX, y);
+          ctx.lineTo(gameState.worldSize.width - camera.x + windowSize.width / 2 / camera.zoom, y);
           ctx.stroke();
-        } else if (selectedPattern === 'block') {
-          const blockSize = size * 0.8;
-          const blockOffset = (size - blockSize) / 2;
-          ctx.fillRect(x - blockSize / 2, y - blockSize / 2, blockSize, blockSize);
-          ctx.strokeRect(x - blockSize / 2, y - blockSize / 2, blockSize, blockSize);
         }
       };
 
-      for (let i = 0; i < player.queue.length; i++) {
-        const segment = player.queue[i];
-        drawSegment(segment.x, segment.y, i);
-      }
+      drawGrid();
 
-      if (isCurrentPlayer && !isSpectator) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.font = `bold ${16 / camera.zoom}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(player.pseudo || 'Grub', player.x, player.y - headSize);
-      } else {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.font = `${14 / camera.zoom}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(player.pseudo || 'Grub', player.x, player.y - headSize);
-      }
-    };
+      const drawPlayer = (player: any, isCurrentPlayer: boolean) => {
+        if (!player.queue) return;
 
-    for (const id in gameState.players) {
-      const player = gameState.players[id];
-      if (player) {
-        drawPlayer(player, id === playerId);
-        if (playerId !== id && playerId) {
-          onPlayerCollision(id);
+        const headSize = 20;
+        const segmentSize = headSize * 0.9;
+
+        ctx.fillStyle = player.color || 'white';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 4 / camera.zoom;
+
+        const drawSegment = (x: number, y: number, index: number) => {
+          const size = index === 0 ? headSize : segmentSize;
+          const offset = (headSize - segmentSize) / 2;
+
+          if (selectedPattern === 'snake') {
+            ctx.beginPath();
+            ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+          } else if (selectedPattern === 'grub') {
+            const grubWidth = size;
+            const grubHeight = size * 0.75;
+            ctx.beginPath();
+            ctx.ellipse(x, y, grubWidth / 2, grubHeight / 2, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+          } else if (selectedPattern === 'block') {
+            const blockSize = size * 0.8;
+            const blockOffset = (size - blockSize) / 2;
+            ctx.fillRect(x - blockSize / 2, y - blockSize / 2, blockSize, blockSize);
+            ctx.strokeRect(x - blockSize / 2, y - blockSize / 2, blockSize, blockSize);
+          }
+        };
+
+        for (let i = 0; i < player.queue.length; i++) {
+          const segment = player.queue[i];
+          drawSegment(segment.x, segment.y, i);
+        }
+
+        if (isCurrentPlayer && !isSpectator) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.font = `bold ${16 / camera.zoom}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(player.pseudo || 'Grub', player.x, player.y - headSize);
+        } else {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.font = `${14 / camera.zoom}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(player.pseudo || 'Grub', player.x, player.y - headSize);
+        }
+      };
+
+      for (const id in gameState.players) {
+        const player = gameState.players[id];
+        if (player) {
+          drawPlayer(player, id === playerId);
+          if (playerId !== id && playerId) {
+            onPlayerCollision(id);
+          }
         }
       }
-    }
 
-    const drawItem = (item: any) => {
-      ctx.fillStyle = item.color;
-      ctx.beginPath();
-      ctx.arc(item.x, item.y, item.radius || 5, 0, 2 * Math.PI);
-      ctx.fill();
+      const drawItem = (item: any) => {
+        ctx.fillStyle = item.color;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.radius || 5, 0, 2 * Math.PI);
+        ctx.fill();
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.font = `bold ${item.radius / 1.5}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.value.toString(), item.x, item.y);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.font = `bold ${item.radius / 1.5}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.value.toString(), item.x, item.y);
+      };
+
+      if (gameState.items) {
+        const itemsArray = Array.isArray(gameState.items) ? gameState.items : Object.values(gameState.items);
+        itemsArray.forEach(item => {
+          drawItem(item);
+        });
+      }
+
+      ctx.restore();
+      
+      // Request the next animation frame
+      requestAnimationFrame(renderFrame);
     };
 
-    if (gameState.items) {
-      const itemsArray = Array.isArray(gameState.items) ? gameState.items : Object.values(gameState.items);
-      itemsArray.forEach(item => {
-        drawItem(item);
-      });
-    }
-
-    ctx.restore();
-  });
+    // Start the animation loop
+    const animationId = requestAnimationFrame(renderFrame);
+    
+    // Clean up the animation frame when component unmounts
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, [camera, windowSize, gameState, playerId, onPlayerCollision, isSpectator, selectedPattern]);
 
   return (
     <canvas
