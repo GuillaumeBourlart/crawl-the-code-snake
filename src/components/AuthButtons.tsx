@@ -1,8 +1,15 @@
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, LogIn, Loader2 } from "lucide-react";
+import { LogOut, LogIn, Loader2, User, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link } from "react-router-dom";
 
 const AuthButtons = () => {
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
@@ -50,20 +57,39 @@ const AuthButtons = () => {
   }
 
   return user ? (
-    <Button
-      variant="outline"
-      size="sm"
-      className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
-      onClick={handleSignOut}
-      disabled={isLoading}
-    >
-      {isLoading ? (
-        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-      ) : (
-        <LogOut className="mr-1 h-4 w-4 text-red-400" />
-      )}
-      Sign Out
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-gray-900/70 border-green-500/30 text-white hover:bg-green-900/30 rounded-lg shadow-md"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
+            <User className="mr-1 h-4 w-4 text-green-400" />
+          )}
+          {user.email?.split('@')[0] || "Profil"}
+          <ChevronDown className="ml-1 h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="bg-gray-900/90 border-green-500/30 text-white min-w-[160px] z-50">
+        <DropdownMenuItem className="hover:bg-green-900/30 cursor-pointer" asChild>
+          <Link to="/profile" className="flex w-full">
+            <User className="mr-1 h-4 w-4 text-green-400" />
+            Profil
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className="hover:bg-red-900/30 cursor-pointer"
+          onClick={handleSignOut}
+        >
+          <LogOut className="mr-1 h-4 w-4 text-red-400" />
+          Déconnexion
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   ) : (
     <Button
       variant="outline"
