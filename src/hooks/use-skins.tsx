@@ -276,19 +276,8 @@ export const useSkins = () => {
       console.error("Error saving skin to localStorage:", error);
     }
 
-    // If user is logged in, update profile through the API
-    if (user && profile) {
-      try {
-        await updateProfile({
-          default_skin_id: skinId
-        });
-        setLastSavingMethod('profile-api');
-        console.log("Skin updated in profile successfully");
-      } catch (error) {
-        console.error("Error updating skin in profile:", error);
-        toast.error("Échec de sauvegarde du skin");
-      }
-    }
+    // Note: This function no longer updates the profile directly
+    // That should be handled by the component calling this function
   };
 
   const getSkinById = useCallback((id: number | null): GameSkin | null => {

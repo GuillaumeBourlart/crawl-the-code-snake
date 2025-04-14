@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -156,7 +157,7 @@ const SkinsPage = () => {
     if (user && profile) {
       console.log("User is logged in, updating skin in database");
       try {
-        // Update profile in database
+        // Update profile in database using the API
         await updateProfile({
           default_skin_id: skinId
         });

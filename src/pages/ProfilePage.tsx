@@ -82,7 +82,7 @@ const ProfilePage = () => {
       
       // Then update local state and localStorage
       console.log("Now updating selected skin in local state...");
-      await setSelectedSkin(skinId);
+      setSelectedSkin(skinId);
       
       setIsChangingSkin(false);
       toast.success("Skin par défaut mis à jour avec succès");
