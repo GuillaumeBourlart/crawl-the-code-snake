@@ -60,7 +60,12 @@ const ProfilePage = () => {
     }
 
     try {
-      await updateProfile({ pseudo: pseudo.trim() });
+      await updateProfile({
+        userId: user.id,
+        pseudo: pseudo.trim()
+      });
+
+
       setIsEditingPseudo(false);
       toast.success("Pseudo mis à jour avec succès");
     } catch (error) {
@@ -75,7 +80,11 @@ const ProfilePage = () => {
     try {
       // First update in DB via API
       console.log("Updating profile default_skin_id in database...");
-      await updateProfile({ skin_id: skinId });
+      await updateProfile({
+        userId: user.id,
+        skin_id: skinId
+      });
+
       
       // Then update local state and localStorage
       console.log("Now updating selected skin in local state...");
