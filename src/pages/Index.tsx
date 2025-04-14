@@ -482,6 +482,18 @@ const Index = () => {
 
   const isLoading = authLoading || skinsLoading;
 
+  useEffect(() => {
+    if (gameStarted) {
+      document.body.classList.add('game-active');
+    } else {
+      document.body.classList.remove('game-active');
+    }
+    
+    return () => {
+      document.body.classList.remove('game-active');
+    };
+  }, [gameStarted]);
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
       {!gameStarted && (

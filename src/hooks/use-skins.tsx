@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -40,14 +39,22 @@ export const useSkins = () => {
     if (profile && profile.skins && !profileSkinsProcessed) {
       console.log("Processing skins from profile:", profile.skins);
       try {
-        const skinIds = Array.isArray(profile.skins) 
-          ? profile.skins.map(skin => typeof skin === 'number' ? skin : Number(skin))
-          : [];
+        let skinIds: number[] = [];
+        
+        if (Array.isArray(profile.skins)) {
+          skinIds = profile.skins
+            .filter(skin => skin !== null && skin !== undefined)
+            .map(skin => typeof skin === 'number' ? skin : Number(skin))
+            .filter(id => !isNaN(id));
+        }
+        
         console.log("Extracted skin IDs from profile:", skinIds);
         setOwnedSkinIds(skinIds);
         setProfileSkinsProcessed(true);
       } catch (error) {
         console.error("Error processing profile skins:", error);
+        setOwnedSkinIds([]);
+        setProfileSkinsProcessed(true);
       }
     } else if (!profile) {
       setProfileSkinsProcessed(false);
@@ -106,16 +113,20 @@ export const useSkins = () => {
       
       console.log("Fetched all skins, response data:", data);
       
-      if (data && data.length > 0) {
+      if (!data || data.length === 0) {
+        console.warn("No skins found in database");
+        setAllSkins([]);
+      } else {
         console.log("First skin data structure:", JSON.stringify(data[0], null, 2));
+        setAllSkins(data as GameSkin[]);
       }
-      
-      setAllSkins(data as GameSkin[]);
       setSkinsLoaded(true);
     } catch (error: any) {
       console.error('Error fetching skins:', error);
       setFetchError(error);
       toast.error('Erreur de chargement des skins');
+      setAllSkins([]);
+      setSkinsLoaded(true);
     } finally {
       setLoading(false);
     }
@@ -127,15 +138,28 @@ export const useSkins = () => {
 
   useEffect(() => {
     if (allSkins.length > 0 && !selectedSkinId) {
-      const savedSkinId = localStorage.getItem('selected_skin_id');
-      if (savedSkinId) {
-        const parsedId = parseInt(savedSkinId, 10);
-        console.log("Loading selected skin ID from localStorage:", parsedId);
-        setSelectedSkinId(parsedId);
-      } else if (allSkins[0]) {
-        console.log("No skin selected, selecting first available:", allSkins[0].id);
-        setSelectedSkinId(allSkins[0].id);
-        localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
+      try {
+        const savedSkinId = localStorage.getItem('selected_skin_id');
+        if (savedSkinId) {
+          const parsedId = parseInt(savedSkinId, 10);
+          if (!isNaN(parsedId) && allSkins.some(skin => skin.id === parsedId)) {
+            console.log("Loading selected skin ID from localStorage:", parsedId);
+            setSelectedSkinId(parsedId);
+          } else if (allSkins[0]) {
+            console.log("Invalid saved skin ID, selecting first available:", allSkins[0].id);
+            setSelectedSkinId(allSkins[0].id);
+            localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
+          }
+        } else if (allSkins[0]) {
+          console.log("No skin selected, selecting first available:", allSkins[0].id);
+          setSelectedSkinId(allSkins[0].id);
+          localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
+        }
+      } catch (error) {
+        console.error("Error setting initial skin:", error);
+        if (allSkins[0]) {
+          setSelectedSkinId(allSkins[0].id);
+        }
       }
     }
   }, [allSkins, selectedSkinId]);
@@ -200,7 +224,11 @@ export const useSkins = () => {
     console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
     setSelectedSkinId(skinId);
     
-    localStorage.setItem('selected_skin_id', skinId.toString());
+    try {
+      localStorage.setItem('selected_skin_id', skinId.toString());
+    } catch (error) {
+      console.error("Error saving skin to localStorage:", error);
+    }
     
     if (user && profile) {
       try {

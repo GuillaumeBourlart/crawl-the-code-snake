@@ -118,7 +118,6 @@ const GameCanvas = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isMobile = useIsMobile();
   
-  // Set the initial zoom level to 0.6 for mobile, and 1.5 for desktop
   const initialZoom = isMobile ? 0.6 : 1.5;
   
   const [camera, setCamera] = useState({ 
@@ -127,7 +126,6 @@ const GameCanvas = ({
     zoom: initialZoom
   });
   
-  // Force camera zoom update when mobile status changes
   useEffect(() => {
     setCamera(prev => ({ 
       ...prev, 
@@ -192,7 +190,6 @@ const GameCanvas = ({
       ...prev,
       x: player.x,
       y: player.y,
-      // Keep the zoom level when updating camera position
       zoom: prev.zoom
     }));
   }, [gameState, playerId]);
@@ -490,202 +487,11 @@ const GameCanvas = ({
       rendererStateRef.current.gridNeedsUpdate = false;
     };
     
-    const drawPlayerHead = (player: Player, isCurrentPlayer: boolean) => {
-      const ctx = canvasRef.current?.getContext('2d');
-      if (!ctx) return;
-      
-      const headRadius = getHeadRadius(player);
-      const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
-      
-      let pupilOffsetX = 0;
-      let pupilOffsetY = 0;
-      
-      let directionX = 0;
-      let directionY = -1;
-      
-      if (player.direction) {
-        directionX = player.direction.x;
-        directionY = player.direction.y;
-      } else if (player.queue && player.queue.length > 0) {
-        const firstSegment = player.queue[0];
-        const dx = player.x - firstSegment.x;
-        const dy = player.y - firstSegment.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        if (length > 0) {
-          directionX = dx / length;
-          directionY = dy / length;
-        }
-      }
-      
-      const perpDirX = -directionY;
-      const perpDirY = directionX;
-      
-      // Adjust eye size to be exactly half of head radius, matching the preview
-      const eyeSize = headRadius * 0.5;
-      const pupilSize = eyeSize * 0.6;
-      const eyeDistance = eyeSize * 1.1;
-      const eyeForwardOffset = headRadius * 0.30;
-      
-      ctx.save();
-      
-      const gradient = ctx.createRadialGradient(
-        player.x, player.y, 0,
-        player.x, player.y, headRadius
-      );
-      gradient.addColorStop(0, playerColor);
-      gradient.addColorStop(1, shadeColor(playerColor, -15));
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = shadeColor(playerColor, -30);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Removed the grid pattern and nodes on the head
-      
-      const leftEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance;
-      const leftEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance;
-      const rightEyeX = player.x + directionX * eyeForwardOffset + perpDirX * eyeDistance;
-      const rightEyeY = player.y + directionY * eyeForwardOffset + perpDirY * eyeDistance;
-      
-      if (isCurrentPlayer) {
-        if (isMobile) {
-          const joystickDir = rendererStateRef.current.joystickDirection;
-          if (joystickDir && (joystickDir.x !== 0 || joystickDir.y !== 0)) {
-            const maxPupilOffset = eyeSize * 0.3;
-            pupilOffsetX = joystickDir.x * maxPupilOffset;
-            pupilOffsetY = joystickDir.y * maxPupilOffset;
-          }
-        } else {
-          const mousePos = rendererStateRef.current.mousePosition;
-          if (mousePos) {
-            const canvasWidth = canvasRef.current?.width || 0;
-            const canvasHeight = canvasRef.current?.height || 0;
-            
-            const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
-            const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
-            
-            const dx = worldMouseX - player.x;
-            const dy = worldMouseY - player.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance > 0) {
-              const maxPupilOffset = eyeSize * 0.3;
-              pupilOffsetX = (dx / distance) * maxPupilOffset;
-              pupilOffsetY = (dy / distance) * maxPupilOffset;
-            }
-          }
-        }
-      }
-      
-      ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath();
-      ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath();
-      ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = "#666666";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      if (player.boosting) {
-        const pupilColor = "#ea384c";
-        
-        ctx.fillStyle = pupilColor;
-        ctx.beginPath();
-        ctx.moveTo(leftEyeX + pupilOffsetX - pupilSize, leftEyeY + pupilOffsetY - pupilSize/2);
-        ctx.lineTo(leftEyeX + pupilOffsetX + pupilSize, leftEyeY + pupilOffsetY);
-        ctx.lineTo(leftEyeX + pupilOffsetX - pupilSize, leftEyeY + pupilOffsetY + pupilSize/2);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.moveTo(rightEyeX + pupilOffsetX - pupilSize, rightEyeY + pupilOffsetY - pupilSize/2);
-        ctx.lineTo(rightEyeX + pupilOffsetX + pupilSize, rightEyeY + pupilOffsetY);
-        ctx.lineTo(rightEyeX + pupilOffsetX - pupilSize, rightEyeY + pupilOffsetY + pupilSize/2);
-        ctx.closePath();
-        ctx.fill();
-      } else {
-        ctx.fillStyle = "#000000";
-        ctx.beginPath();
-        ctx.arc(leftEyeX + pupilOffsetX, leftEyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.fillStyle = "#000000";
-        ctx.beginPath();
-        ctx.arc(rightEyeX + pupilOffsetX, rightEyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      const highlightSize = eyeSize * 0.3;
-      const highlightOffsetX = -pupilSize * 0.5;
-      const highlightOffsetY = -pupilSize * 0.5;
-      
-      ctx.fillStyle = "#FFFFFF";
-      
-      ctx.beginPath();
-      ctx.arc(
-        leftEyeX + pupilOffsetX + highlightOffsetX, 
-        leftEyeY + pupilOffsetY + highlightOffsetY, 
-        highlightSize, 
-        0, Math.PI * 2
-      );
-      ctx.fill();
-      
-      ctx.beginPath();
-      ctx.arc(
-        rightEyeX + pupilOffsetX + highlightOffsetX, 
-        rightEyeY + pupilOffsetY + highlightOffsetY, 
-        highlightSize, 
-        0, Math.PI * 2
-      );
-      ctx.fill();
-      
-      if (player.boosting) {
-        const glowColor = playerColor;
-        
-        const glowRadius = headRadius * 1.5;
-        const boostGradient = ctx.createRadialGradient(
-          player.x, player.y, headRadius,
-          player.x, player.y, glowRadius
-        );
-        
-        boostGradient.addColorStop(0, `${glowColor}40`);
-        boostGradient.addColorStop(0.5, `${glowColor}20`);
-        boostGradient.addColorStop(1, `${glowColor}00`);
-        
-        ctx.fillStyle = boostGradient;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      ctx.restore();
-    };
-    
     const renderFrame = (timestamp: number) => {
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      // Log camera zoom on first frame to debug mobile zoom issues
       if (!previousTimeRef.current) {
         console.log("Rendering first frame with camera zoom:", camera.zoom, "isMobile:", isMobile);
       }
@@ -696,7 +502,6 @@ const GameCanvas = ({
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      // Reduce number of stars on mobile for performance
       const numberOfStars = isMobile ? 50 : 200;
       const time = Date.now() * 0.0004 * 0.4;
       
@@ -739,7 +544,6 @@ const GameCanvas = ({
       ctx.save();
       
       ctx.translate(canvas.width / 2, canvas.height / 2);
-      // Apply the zoom - make sure we're using the current camera zoom
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
       
@@ -748,6 +552,8 @@ const GameCanvas = ({
       allSegments.sort((a, b) => a.zIndex - b.zIndex);
       
       allSegments.forEach(segment => {
+        if (!segment.color) return;
+        
         const gradient = ctx.createRadialGradient(
           segment.x, segment.y, 0,
           segment.x, segment.y, segment.radius
@@ -769,14 +575,13 @@ const GameCanvas = ({
       
       rendererStateRef.current.items.forEach(item => {
         const animation = rendererStateRef.current.itemAnimations[item.id];
-        if (!animation) return;
+        if (!animation || !item.color) return;
         
         const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius * 1.15;
         const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius * 1.15;
         
         animation.rotationAngle += animation.rotationSpeed * 0.01;
         
-        // Keep original item radius from server
         const itemRadius = item.radius || 5;
         
         const itemGradient = ctx.createRadialGradient(
@@ -792,7 +597,6 @@ const GameCanvas = ({
         ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Create glow radius 3x the item size as requested
         const glowGradient = ctx.createRadialGradient(
           itemX, itemY, itemRadius * 0.5,
           itemX, itemY, itemRadius * 3
@@ -814,7 +618,9 @@ const GameCanvas = ({
       });
       
       Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-        drawPlayerHead(player, id === playerId);
+        if (player && player.color) {
+          drawPlayerHead(player, id === playerId);
+        }
       });
       
       ctx.restore();
@@ -832,6 +638,193 @@ const GameCanvas = ({
       window.removeEventListener('resize', resizeCanvas);
     };
   }, [gameState, camera, playerId, isMobile]);
+  
+  const drawPlayerHead = (player: Player, isCurrentPlayer: boolean) => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    
+    const headRadius = getHeadRadius(player);
+    const playerColor = player.color || (isCurrentPlayer ? '#8B5CF6' : '#FFFFFF');
+    
+    let pupilOffsetX = 0;
+    let pupilOffsetY = 0;
+    
+    let directionX = 0;
+    let directionY = -1;
+    
+    if (player.direction) {
+      directionX = player.direction.x;
+      directionY = player.direction.y;
+    } else if (player.queue && player.queue.length > 0) {
+      const firstSegment = player.queue[0];
+      const dx = player.x - firstSegment.x;
+      const dy = player.y - firstSegment.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      if (length > 0) {
+        directionX = dx / length;
+        directionY = dy / length;
+      }
+    }
+    
+    const perpDirX = -directionY;
+    const perpDirY = directionX;
+    
+    const eyeSize = headRadius * 0.5;
+    const pupilSize = eyeSize * 0.6;
+    const eyeDistance = eyeSize * 1.1;
+    const eyeForwardOffset = headRadius * 0.30;
+    
+    ctx.save();
+    
+    const gradient = ctx.createRadialGradient(
+      player.x, player.y, 0,
+      player.x, player.y, headRadius
+    );
+    gradient.addColorStop(0, playerColor);
+    gradient.addColorStop(1, shadeColor(playerColor, -15));
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = shadeColor(playerColor, -30);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    const leftEyeX = player.x + directionX * eyeForwardOffset - perpDirX * eyeDistance;
+    const leftEyeY = player.y + directionY * eyeForwardOffset - perpDirY * eyeDistance;
+    const rightEyeX = player.x + directionX * eyeForwardOffset + perpDirX * eyeDistance;
+    const rightEyeY = player.y + directionY * eyeForwardOffset + perpDirY * eyeDistance;
+    
+    if (isCurrentPlayer) {
+      if (isMobile) {
+        const joystickDir = rendererStateRef.current.joystickDirection;
+        if (joystickDir && (joystickDir.x !== 0 || joystickDir.y !== 0)) {
+          const maxPupilOffset = eyeSize * 0.3;
+          pupilOffsetX = joystickDir.x * maxPupilOffset;
+          pupilOffsetY = joystickDir.y * maxPupilOffset;
+        }
+      } else {
+        const mousePos = rendererStateRef.current.mousePosition;
+        if (mousePos) {
+          const canvasWidth = canvasRef.current?.width || 0;
+          const canvasHeight = canvasRef.current?.height || 0;
+          
+          const worldMouseX = (mousePos.x / canvasWidth) * canvasWidth / camera.zoom + camera.x - canvasWidth / camera.zoom / 2;
+          const worldMouseY = (mousePos.y / canvasHeight) * canvasHeight / camera.zoom + camera.y - canvasHeight / camera.zoom / 2;
+          
+          const dx = worldMouseX - player.x;
+          const dy = worldMouseY - player.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > 0) {
+            const maxPupilOffset = eyeSize * 0.3;
+            pupilOffsetX = (dx / distance) * maxPupilOffset;
+            pupilOffsetY = (dy / distance) * maxPupilOffset;
+          }
+        }
+      }
+    }
+    
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = "#666666";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(leftEyeX, leftEyeY, eyeSize, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = "#666666";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(rightEyeX, rightEyeY, eyeSize, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    if (player.boosting) {
+      const pupilColor = "#ea384c";
+      
+      ctx.fillStyle = pupilColor;
+      ctx.beginPath();
+      ctx.moveTo(leftEyeX + pupilOffsetX - pupilSize, leftEyeY + pupilOffsetY - pupilSize/2);
+      ctx.lineTo(leftEyeX + pupilOffsetX + pupilSize, leftEyeY + pupilOffsetY);
+      ctx.lineTo(leftEyeX + pupilOffsetX - pupilSize, leftEyeY + pupilOffsetY + pupilSize/2);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.moveTo(rightEyeX + pupilOffsetX - pupilSize, rightEyeY + pupilOffsetY - pupilSize/2);
+      ctx.lineTo(rightEyeX + pupilOffsetX + pupilSize, rightEyeY + pupilOffsetY);
+      ctx.lineTo(rightEyeX + pupilOffsetX - pupilSize, rightEyeY + pupilOffsetY + pupilSize/2);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(leftEyeX + pupilOffsetX, leftEyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(rightEyeX + pupilOffsetX, rightEyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    const highlightSize = eyeSize * 0.3;
+    const highlightOffsetX = -pupilSize * 0.5;
+    const highlightOffsetY = -pupilSize * 0.5;
+    
+    ctx.fillStyle = "#FFFFFF";
+    
+    ctx.beginPath();
+    ctx.arc(
+      leftEyeX + pupilOffsetX + highlightOffsetX, 
+      leftEyeY + pupilOffsetY + highlightOffsetY, 
+      highlightSize, 
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(
+      rightEyeX + pupilOffsetX + highlightOffsetX, 
+      rightEyeY + pupilOffsetY + highlightOffsetY, 
+      highlightSize, 
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    if (player.boosting) {
+      const glowColor = playerColor;
+      
+      const glowRadius = headRadius * 1.5;
+      const boostGradient = ctx.createRadialGradient(
+        player.x, player.y, headRadius,
+        player.x, player.y, glowRadius
+      );
+      
+      boostGradient.addColorStop(0, `${glowColor}40`);
+      boostGradient.addColorStop(0.5, `${glowColor}20`);
+      boostGradient.addColorStop(1, `${glowColor}00`);
+      
+      ctx.fillStyle = boostGradient;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  };
   
   return (
     <canvas 
