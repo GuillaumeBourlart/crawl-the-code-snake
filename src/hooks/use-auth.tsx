@@ -164,37 +164,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchProfile, profile]);
 
   useEffect(() => {
-    let isMounted = true;
-    console.log("Auth provider mounted, initializing...");
-    
-    const getSession = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!isMounted) return;
-        
-        if (session?.user) {
-          console.log("Session found with user:", session.user.id);
-          setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else {
-          console.log("No session found");
-          setUser(null);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Session retrieval error:", error);
-        if (isMounted) {
-          setLoading(false);
-          // If there's an error getting the session, force sign out
-          signOut();
-        }
+  let isMounted = true;
+  console.log("Auth provider mounted, initializing...");
+
+  const getSession = async () => {
+    try {
+      setLoading(true);
+      // Réinitialiser le profil pour ne conserver que la session
+      setProfile(null);
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      if (session?.user) {
+        console.log("Session found with user:", session.user.id);
+        setUser(session.user);
+        // Toujours récupérer le profil dès qu'une session est présente.
+        await fetchProfile(session.user.id);
+      } else {
+        console.log("No session found");
+        setUser(null);
+        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Session retrieval error:", error);
+      if (isMounted) {
+        setLoading(false);
+        await signOut();
+      }
+    }
+  };
 
-    getSession();
-
+  getSession();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
