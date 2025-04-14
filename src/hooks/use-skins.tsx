@@ -1,25 +1,13 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin, Profile } from '@/types/supabase';
 import { useAuth } from './use-auth';
 
-const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
-const apiUrl = "https://api.grubz.io"; // Add API URL
-
-let supabaseInstance: any = null;
-
-const getSupabase = () => {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseKey);
-  }
-  return supabaseInstance;
-};
-
+// No need to create a new client, we'll get it from useAuth
 export const useSkins = () => {
-  const supabase = getSupabase();
-  const { user, profile, signOut, updateProfile } = useAuth();
+  const { user, profile, signOut, updateProfile, supabase } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
@@ -166,86 +154,13 @@ export const useSkins = () => {
     }
   }, [allSkins, selectedSkinId]);
 
-  const fetchUserDefaultSkin = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      setFetchError(null);
-      console.log("Attempting to fetch default skin for user:", user.id);
-      
-      // Essayer de récupérer le profil plusieurs fois sur une période de 5 secondes
-      let attempts = 0;
-      const maxAttempts = 10; // 10 tentatives sur 5 secondes (une tentative toutes les 500ms)
-      let profileData = null;
-      
-      while (attempts < maxAttempts) {
-        console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch profile`);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          if (error.code !== 'PGRST116') { // Si c'est une erreur autre que "no rows returned"
-            console.error('Database error fetching profile:', error);
-            throw error;
-          }
-        } else if (data) {
-          // Profil trouvé
-          console.log("Profile retrieved:", data);
-          profileData = data;
-          break;
-        }
-        
-        // Attendre 500ms avant de réessayer
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-      }
-      
-      if (profileData) {
-        // Update local state instead of trying to call a non-existent setProfile
-        console.log("Using profile data:", profileData);
-        if (profileData.default_skin_id) {
-          setSelectedSkinId(profileData.default_skin_id);
-        }
-        if (profileData.skins) {
-          try {
-            let skinIds: number[] = [];
-            if (Array.isArray(profileData.skins)) {
-              skinIds = profileData.skins
-                .filter(skin => skin !== null && skin !== undefined)
-                .map(skin => typeof skin === 'number' ? skin : Number(skin))
-                .filter(id => !isNaN(id));
-            }
-            setOwnedSkinIds(skinIds);
-          } catch (e) {
-            console.error("Error processing skins from profile:", e);
-          }
-        }
-      } else {
-        console.error("Profile not found after maximum attempts");
-        toast.error('Impossible de récupérer votre profil');
-      }
-    } catch (error) {
-      console.error('Critical error handling profile:', error);
-      toast.error('Problème de connexion au profil');
-      
-      // Critical failure, sign out the user
-      await signOut();
-    } finally {
-      setProfileFetchAttempted(true);
-      setLoading(false);
-    }
-  }, [user, supabase, signOut]);
-
   useEffect(() => {
-    if (user) {
-      console.log("User detected, loading user-specific skin data");
-      fetchUserDefaultSkin();
+    if (profile?.default_skin_id && profile.default_skin_id !== selectedSkinId) {
+      console.log("Setting selected skin from profile default:", profile.default_skin_id);
+      setSelectedSkinId(profile.default_skin_id);
+      localStorage.setItem('selected_skin_id', profile.default_skin_id.toString());
     }
-  }, [user, fetchUserDefaultSkin]);
+  }, [profile, selectedSkinId]);
 
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
@@ -275,9 +190,6 @@ export const useSkins = () => {
     } catch (error) {
       console.error("Error saving skin to localStorage:", error);
     }
-
-    // Note: This function no longer updates the profile directly
-    // That should be handled by the component calling this function
   };
 
   const getSkinById = useCallback((id: number | null): GameSkin | null => {
@@ -290,10 +202,7 @@ export const useSkins = () => {
     setSkinsLoaded(false);
     setProfileSkinsProcessed(false);
     fetchAllSkins();
-    if (user) {
-      fetchUserDefaultSkin();
-    }
-  }, [fetchAllSkins, fetchUserDefaultSkin, user]);
+  }, [fetchAllSkins]);
 
   // Debug function to get last update info
   const getDebugInfo = useCallback(() => {

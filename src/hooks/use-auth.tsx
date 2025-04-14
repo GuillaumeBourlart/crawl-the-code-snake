@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -6,6 +7,23 @@ import { Profile } from '@/types/supabase';
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
 const apiUrl = "https://api.grubz.io"; // Using the new API URL
+
+// Create a singleton instance of Supabase client
+let supabaseInstance: SupabaseClient | null = null;
+
+const getSupabase = (): SupabaseClient => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true // Enable session persistence across tabs/refreshes
+      }
+    });
+  }
+  return supabaseInstance;
+};
+
+// Initialize the singleton
+const supabase = getSupabase();
 
 type AuthContextType = {
   user: User | null;
@@ -19,13 +37,6 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Create Supabase client instance with persistSession: true
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true // Enable session persistence across tabs/refreshes
-  }
-});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -88,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut();
     } finally {
       setProfileFetchAttempted(true);
-      setLoading(false);
+      setLoading(false); // Assurons-nous que le chargement se termine toujours
     }
   };
 
@@ -119,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let isMounted = true;
+    console.log("Auth provider mounted, initializing...");
     
     const getSession = async () => {
       try {
@@ -165,6 +177,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setProfileFetchAttempted(false);
           setLoading(false);
+        } else {
+          // Make sure loading is always set to false for other events
+          setLoading(false);
         }
       }
     );
@@ -199,6 +214,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Échec de connexion avec Google');
       setLoading(false);
     }
+    // Note: We don't set loading to false here as the auth state change will handle that
   };
 
   const updateProfile = async (data: Partial<Profile>) => {
