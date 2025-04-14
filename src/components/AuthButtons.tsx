@@ -5,6 +5,7 @@ import { LogOut, LogIn, Loader2, UserRound, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
 
 const AuthButtons = () => {
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -58,7 +60,7 @@ const AuthButtons = () => {
         disabled
       >
         <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-        Loading...
+        {t('loading')}
       </Button>
     );
   }
@@ -86,7 +88,7 @@ const AuthButtons = () => {
           onClick={goToProfile}
         >
           <UserRound className="mr-2 h-4 w-4" />
-          Profil
+          {t('profile')}
         </DropdownMenuItem>
         <DropdownMenuItem 
           className="hover:bg-red-900/30 cursor-pointer"
@@ -98,7 +100,7 @@ const AuthButtons = () => {
           ) : (
             <LogOut className="mr-2 h-4 w-4 text-red-400" />
           )}
-          Déconnexion
+          {t('sign_out')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -115,7 +117,7 @@ const AuthButtons = () => {
       ) : (
         <LogIn className="mr-1 h-4 w-4 text-blue-400" />
       )}
-      {isMobile ? '' : 'Sign In with Google'}
+      {isMobile ? '' : t('sign_in')}
     </Button>
   );
 };

@@ -4,10 +4,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { GameSkin, UserSkin, Profile } from '@/types/supabase';
 import { useAuth } from './use-auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // No need to create a new client, we'll get it from useAuth
 export const useSkins = () => {
-  const { user, profile, signOut, updateProfile, supabase } = useAuth();
+  const { user, profile, signOut, updateProfile, supabase, refreshSession } = useAuth();
+  const { t } = useLanguage();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
@@ -17,13 +19,37 @@ export const useSkins = () => {
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
-  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   
   const availableSkinsRef = useRef<GameSkin[]>([]);
 
   const selectedSkin = useMemo(() => {
     return allSkins.find(skin => skin.id === selectedSkinId) || null;
   }, [allSkins, selectedSkinId]);
+
+  // Gérer la visibilité du document pour actualiser les données quand l'utilisateur revient sur l'onglet
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Document visible, refreshing skins data");
+        if (user) {
+          console.log("User detected, refreshing skins data with user context");
+          // Assure-toi que le profil utilisateur est à jour avant de charger les skins
+          refreshSession().then(() => {
+            setSkinsLoaded(false);
+            setProfileSkinsProcessed(false);
+          });
+        } else {
+          // Pour les utilisateurs non connectés, juste rafraîchir les skins
+          setSkinsLoaded(false);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, refreshSession]);
 
   useEffect(() => {
     if (profile && profile.skins && !profileSkinsProcessed) {
@@ -114,21 +140,31 @@ export const useSkins = () => {
     } catch (error: any) {
       console.error('Error fetching skins:', error);
       setFetchError(error);
-      toast.error('Erreur de chargement des skins');
+      toast.error(t('error') + ': ' + t('loading'));
       setAllSkins([]);
       setSkinsLoaded(true);
     } finally {
       setLoading(false);
     }
-  }, [supabase, skinsLoaded]);
+  }, [supabase, skinsLoaded, t]);
 
   useEffect(() => {
     fetchAllSkins();
   }, [fetchAllSkins]);
 
+  // Effet pour charger ou initialiser le skin sélectionné
   useEffect(() => {
     if (allSkins.length > 0 && !selectedSkinId) {
       try {
+        // D'abord, essayer de récupérer depuis le profil utilisateur
+        if (profile?.default_skin_id && allSkins.some(skin => skin.id === profile.default_skin_id)) {
+          console.log("Loading selected skin ID from profile:", profile.default_skin_id);
+          setSelectedSkinId(profile.default_skin_id);
+          localStorage.setItem('selected_skin_id', profile.default_skin_id.toString());
+          return;
+        }
+        
+        // Sinon, essayer de récupérer depuis localStorage
         const savedSkinId = localStorage.getItem('selected_skin_id');
         if (savedSkinId) {
           const parsedId = parseInt(savedSkinId, 10);
@@ -152,21 +188,23 @@ export const useSkins = () => {
         }
       }
     }
-  }, [allSkins, selectedSkinId]);
+  }, [allSkins, selectedSkinId, profile]);
 
+  // Effet pour mettre à jour le skin sélectionné depuis le profil
   useEffect(() => {
-    if (profile?.default_skin_id && profile.default_skin_id !== selectedSkinId) {
+    if (profile?.default_skin_id && profile.default_skin_id !== selectedSkinId && allSkins.some(skin => skin.id === profile.default_skin_id)) {
       console.log("Setting selected skin from profile default:", profile.default_skin_id);
       setSelectedSkinId(profile.default_skin_id);
       localStorage.setItem('selected_skin_id', profile.default_skin_id.toString());
     }
-  }, [profile, selectedSkinId]);
+  }, [profile, selectedSkinId, allSkins]);
 
+  // Fonction pour sélectionner un skin
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
     if (!skinExists) {
-      toast.error("Ce skin n'existe pas");
+      toast.error(t('error') + ": " + "Ce skin n'existe pas");
       return;
     }
     
@@ -175,7 +213,7 @@ export const useSkins = () => {
     const isPurchasedSkin = skinData && skinData.is_paid && ownedSkinIds.includes(skinId);
     
     if (skinData?.is_paid && !isPurchasedSkin && user) {
-      toast.error("Vous ne possédez pas ce skin");
+      toast.error(t('error') + ": " + "Vous ne possédez pas ce skin");
       return;
     }
     

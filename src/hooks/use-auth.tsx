@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Profile } from '@/types/supabase';
@@ -15,7 +15,9 @@ const getSupabase = (): SupabaseClient => {
   if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        persistSession: true // Enable session persistence across tabs/refreshes
+        persistSession: true, // Enable session persistence across tabs/refreshes
+        autoRefreshToken: true,
+        detectSessionInUrl: true
       }
     });
   }
@@ -34,6 +36,7 @@ type AuthContextType = {
   loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
       console.log("No user ID provided to fetchProfile");
       setLoading(false);
@@ -101,7 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfileFetchAttempted(true);
       setLoading(false); // Assurons-nous que le chargement se termine toujours
     }
-  };
+  }, []);
 
   const signOut = async () => {
     try {
@@ -127,6 +130,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
+
+  const refreshSession = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log("Refreshing auth session...");
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        console.log("Session found on refresh:", session.user.id);
+        setUser(session.user);
+        
+        // Si nous n'avons pas encore de profil ou si c'est un nouvel utilisateur, récupérons le profil
+        if (!profile || profile.id !== session.user.id) {
+          console.log("Fetching profile due to session refresh");
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } else {
+        console.log("No session found during refresh");
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+    }
+  }, [fetchProfile, profile]);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,6 +212,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setProfileFetchAttempted(false);
           setLoading(false);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log("Token refreshed for user:", session.user.id);
+          setUser(session.user);
+          if (!profile) {
+            await fetchProfile(session.user.id);
+          } else {
+            setLoading(false);
+          }
         } else {
           // Make sure loading is always set to false for other events
           setLoading(false);
@@ -184,11 +227,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
+    // Gestion de la visibilité du document pour actualiser la session lorsque l'utilisateur revient sur l'onglet
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Document became visible, refreshing session");
+        refreshSession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchProfile, refreshSession]);
 
   const signInWithGoogle = async () => {
     try {
@@ -337,6 +391,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         updateProfile,
         deleteAccount,
+        refreshSession
       }}
     >
       {children}

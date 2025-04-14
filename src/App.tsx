@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/use-auth";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SkinsPage from "./pages/SkinsPage";
@@ -60,28 +61,30 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <HexBackground />
-          <BrowserRouter>
-            <div className="min-h-screen flex flex-col">
-              <CookieConsent />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/skins" element={<SkinsPage />} />
-                <Route path="/payment-success" element={<PaymentSuccess />} />
-                <Route path="/legal-notice" element={<LegalNotice />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/cookie-policy" element={<CookiePolicy />} />
-                <Route path="/terms-of-sale" element={<TermsOfSale />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </BrowserRouter>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <HexBackground />
+            <BrowserRouter>
+              <div className="min-h-screen flex flex-col">
+                <CookieConsent />
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/skins" element={<SkinsPage />} />
+                  <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/legal-notice" element={<LegalNotice />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/cookie-policy" element={<CookiePolicy />} />
+                  <Route path="/terms-of-sale" element={<TermsOfSale />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </BrowserRouter>
+          </AuthProvider>
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

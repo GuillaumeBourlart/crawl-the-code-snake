@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { useGlobalLeaderboard } from "@/hooks/use-leaderboard";
 import PlayerScore from "@/components/PlayerScore";
 import { useAuth } from "@/hooks/use-auth";
 import { useSkins } from "@/hooks/use-skins";
+import { useLanguage } from "@/contexts/LanguageContext";
 import SkinPreview from "@/components/SkinPreview";
 import { Link } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
@@ -20,6 +22,7 @@ import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 import GlobalLeaderboardButton from "@/components/GlobalLeaderboardButton";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const SOCKET_SERVER_URL = "https://api.grubz.io";
 
@@ -68,6 +71,7 @@ const MAX_ITEM_RADIUS = 10;
 const DEFAULT_ITEM_EATEN_COUNT = 18;
 
 const Index = () => {
+  const { t } = useLanguage();
   const [socket, setSocket] = useState<any>(null);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -95,7 +99,7 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  const { user, profile, loading: authLoading, updateProfile } = useAuth();
+  const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
   const { 
     selectedSkin, 
     selectedSkinId, 
@@ -128,6 +132,23 @@ const Index = () => {
       setUsername(profile.pseudo);
     }
   }, [profile]);
+
+  // Effet pour vérifier et rafraîchir l'état d'authentification quand l'onglet devient visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Rafraîchir l'état d'authentification et de session
+        console.log("Document visible, refreshing session state");
+        refreshSession();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshSession]);
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -497,6 +518,12 @@ const Index = () => {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
       {!gameStarted && (
+        <div className="absolute top-4 left-4 z-50">
+          <LanguageSelector />
+        </div>
+      )}
+      
+      {!gameStarted && (
         <div className="absolute top-4 right-4 z-50">
           <AuthButtons />
         </div>
@@ -517,7 +544,7 @@ const Index = () => {
               </div>
               <Input
                 type="text"
-                placeholder="Entrez votre pseudo"
+                placeholder={t('enter_username')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
@@ -540,8 +567,8 @@ const Index = () => {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center py-4">
-                    <p className="text-gray-400">Aucun skin sélectionné</p>
-                    <p className="text-xs text-indigo-400 mt-2">Cliquez pour en choisir un</p>
+                    <p className="text-gray-400">{t('no_skin_selected')}</p>
+                    <p className="text-xs text-indigo-400 mt-2">{t('click_to_choose')}</p>
                   </div>
                 )
               )}
@@ -592,13 +619,13 @@ const Index = () => {
               onClick={handleQuitGame}
             >
               <LogOut className="mr-1 h-4 w-4 text-red-400" />
-              Quitter
+              {t('quit')}
             </Button>
           </div>
           
           {isSpectator && (
             <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-red-600/70 text-white rounded-lg shadow-md">
-              Mode Spectateur
+              {t('spectator_mode')}
             </div>
           )}
           
