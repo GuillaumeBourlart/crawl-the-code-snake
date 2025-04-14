@@ -29,6 +29,7 @@ export const useSkins = () => {
   const [skinsLoaded, setSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
+  const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
   
   const availableSkinsRef = useRef<GameSkin[]>([]);
 
@@ -170,31 +171,54 @@ export const useSkins = () => {
     
     try {
       setFetchError(null);
-      console.log("Fetching default skin for user:", user.id);
+      console.log("Attempting to fetch default skin for user:", user.id);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('default_skin_id')
-        .eq('id', user.id)
-        .single();
+      // Essayer de récupérer le profil plusieurs fois sur une période de 5 secondes
+      let attempts = 0;
+      const maxAttempts = 10; // 10 tentatives sur 5 secondes (une tentative toutes les 500ms)
+      let profileData = null;
+      
+      while (attempts < maxAttempts) {
+        console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch profile`);
         
-      if (error) {
-        console.error("Error fetching user default skin:", error);
-        throw error;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          if (error.code !== 'PGRST116') { // Si c'est une erreur autre que "no rows returned"
+            console.error('Database error fetching profile:', error);
+            throw error;
+          }
+        } else if (data) {
+          // Profil trouvé
+          console.log("Profile retrieved:", data);
+          profileData = data;
+          break;
+        }
+        
+        // Attendre 500ms avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
       }
       
-      console.log("User profile data:", data);
-      
-      if (data && data.default_skin_id) {
-        console.log("Found user default skin in profile:", data.default_skin_id);
-        setSelectedSkinId(data.default_skin_id);
-        localStorage.setItem('selected_skin_id', data.default_skin_id.toString());
+      if (profileData) {
+        setProfile(profileData as Profile);
       } else {
-        console.log("No default skin in profile");
+        console.error("Profile not found after maximum attempts");
+        toast.error('Impossible de récupérer votre profil');
       }
-    } catch (error: any) {
-      console.error('Error fetching default skin:', error);
-      setFetchError(error);
+    } catch (error) {
+      console.error('Critical error handling profile:', error);
+      toast.error('Problème de connexion au profil');
+      
+      // Critical failure, sign out the user
+      await signOut();
+    } finally {
+      setProfileFetchAttempted(true);
+      setLoading(false);
     }
   }, [user, supabase]);
 
@@ -205,6 +229,7 @@ export const useSkins = () => {
     }
   }, [user, fetchUserDefaultSkin]);
 
+  // Improved setSelectedSkin function with better logging and error handling
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
@@ -225,21 +250,31 @@ export const useSkins = () => {
     console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
     setSelectedSkinId(skinId);
     
-    try {
-      localStorage.setItem('selected_skin_id', skinId.toString());
-    } catch (error) {
-      console.error("Error saving skin to localStorage:", error);
+    if (!user) {
+      // Anonymous user - save to localStorage only
+      console.log("Anonymous user: Saving skin to localStorage only");
+      setLastSavingMethod("localStorage");
+      try {
+        localStorage.setItem('selected_skin_id', skinId.toString());
+        console.log("Skin saved to localStorage successfully");
+      } catch (error) {
+        console.error("Error saving skin to localStorage:", error);
+      }
+      return;
     }
     
+    // Logged-in user - save to database
     if (user && profile) {
+      console.log("Logged-in user: Updating profile in database with selected skin:", skinId);
+      setLastSavingMethod("database");
+      
       try {
-        console.log("Updating user profile with selected skin:", skinId);
-        
         const supabase = getSupabase();
         const sessionResponse = await supabase.auth.getSession();
         const accessToken = sessionResponse.data.session?.access_token;
         
         if (!accessToken) {
+          console.error("No access token available for database update");
           throw new Error('Non authentifié');
         }
         
@@ -252,11 +287,16 @@ export const useSkins = () => {
           skin_id: skinId
         });
         
+        // For debugging: add timestamp to requests to help trace them in network logs
+        const timestamp = new Date().toISOString();
+        console.log(`API request started at ${timestamp}`);
+        
         const response = await fetch(`${apiUrl}/updateProfile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': `Bearer ${accessToken}`,
+            'X-Request-Time': timestamp // Adding custom header for debugging
           },
           body: JSON.stringify({
             userId: user.id,
@@ -266,7 +306,7 @@ export const useSkins = () => {
         });
         
         const responseText = await response.text();
-        console.log("API Response:", response.status, responseText);
+        console.log(`API Response (${timestamp}):`, response.status, responseText);
         
         if (!response.ok) {
           console.error('Error from API:', responseText);
@@ -282,13 +322,32 @@ export const useSkins = () => {
         }
         
         if (!result.success) {
+          console.error("API returned success=false:", result);
           throw new Error(result.message || 'Échec de mise à jour du skin');
+        }
+        
+        console.log("Database update successful, result:", result);
+        
+        // Also save to localStorage as fallback
+        try {
+          localStorage.setItem('selected_skin_id', skinId.toString());
+          console.log("Skin also saved to localStorage as fallback");
+        } catch (error) {
+          console.error("Error saving skin to localStorage (fallback):", error);
         }
         
         toast.success("Skin enregistré dans votre profil");
       } catch (error) {
         console.error('Error updating default skin:', error);
         toast.error('Échec de sauvegarde du skin');
+        
+        // Still update local state
+        try {
+          localStorage.setItem('selected_skin_id', skinId.toString());
+          console.log("Skin saved to localStorage despite API error");
+        } catch (storageError) {
+          console.error("Error saving skin to localStorage after API error:", storageError);
+        }
       }
     }
   };
@@ -308,6 +367,17 @@ export const useSkins = () => {
     }
   }, [fetchAllSkins, fetchUserDefaultSkin, user]);
 
+  // Debug function to get last update info
+  const getDebugInfo = useCallback(() => {
+    return {
+      lastSavingMethod,
+      selectedSkinId,
+      userAuthenticated: !!user,
+      profileAvailable: !!profile,
+      ownedSkins: ownedSkinIds
+    };
+  }, [lastSavingMethod, selectedSkinId, user, profile, ownedSkinIds]);
+
   return {
     allSkins,
     freeSkins,
@@ -322,6 +392,7 @@ export const useSkins = () => {
     refresh,
     fetchError,
     ownedSkinIds,
-    getUnifiedSkinsList
+    getUnifiedSkinsList,
+    getDebugInfo
   };
 };

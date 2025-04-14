@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
-import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Check, Bug } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
@@ -24,13 +25,16 @@ const SkinsPage = () => {
     loading: skinsLoading, 
     refresh: refreshSkins,
     fetchError,
-    ownedSkinIds
+    ownedSkinIds,
+    getDebugInfo
   } = useSkins();
-  const { user, profile, supabase, loading: authLoading } = useAuth();
+  const { user, profile, supabase, loading: authLoading, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
   const isMobile = useIsMobile();
+  const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   console.log("SkinsPage - Render state:", {
     user: !!user,
@@ -60,6 +64,13 @@ const SkinsPage = () => {
       toast.error("Erreur de chargement des données. Veuillez réessayer.");
     }
   }, [fetchError]);
+
+  // Update debug info when needed
+  useEffect(() => {
+    if (getDebugInfo) {
+      setDebugInfo(getDebugInfo());
+    }
+  }, [getDebugInfo, selectedSkin, user, profile]);
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -137,9 +148,27 @@ const SkinsPage = () => {
     }
   };
 
-  const handleSkinSelectAndSave = (skinId: number) => {
-    console.log("Selecting skin in SkinsPage:", skinId);
+  const handleSkinSelectAndSave = async (skinId: number) => {
+    console.log("SkinsPage - handleSkinSelectAndSave called with skinId:", skinId);
+    
+    // Set skin in local state first for immediate UI update
     setSelectedSkin(skinId);
+    
+    // If user is logged in, also update profile in database
+    if (user && profile) {
+      console.log("User is logged in, updating skin in database");
+      try {
+        // Update profile in database
+        await updateProfile({ default_skin_id: skinId });
+        console.log("Skin updated in database successfully");
+      } catch (error) {
+        console.error("Error updating skin in database:", error);
+        // Toast already shown in setSelectedSkin function
+      }
+    } else {
+      console.log("User not logged in, skin only updated locally");
+    }
+    
     toast.success("Skin sélectionné !");
   };
 
@@ -150,9 +179,13 @@ const SkinsPage = () => {
     }
     
     console.log("Confirming skin selection:", selectedSkin.id);
-    setSelectedSkin(selectedSkin.id);
     navigate('/');
     toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
+  };
+
+  const showDebugInfo = () => {
+    setDebugInfo(getDebugInfo());
+    setIsDebugDialogOpen(true);
   };
 
   const isLoading = authLoading || skinsLoading;
@@ -168,7 +201,18 @@ const SkinsPage = () => {
         >
           <ArrowLeft className="h-5 w-5 text-white" />
         </Button>
-        <AuthButtons />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-purple-900/30 border-purple-500/30 text-white hover:bg-purple-800/50 mr-2 scale-75 sm:scale-100"
+            onClick={showDebugInfo}
+          >
+            <Bug className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Debug</span>
+          </Button>
+          <AuthButtons />
+        </div>
       </div>
 
       <main className="flex-1 container mx-auto px-4 py-2 mb-20">
@@ -200,6 +244,58 @@ const SkinsPage = () => {
           )}
         </Button>
       </div>
+
+      {/* Debug Dialog */}
+      <Dialog open={isDebugDialogOpen} onOpenChange={setIsDebugDialogOpen}>
+        <DialogContent className="bg-gray-900 border-purple-500/30 text-white max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Informations de débogage</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Détails techniques pour le débogage des skins et profil
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4 text-sm">
+              <div className="bg-gray-800 p-3 rounded-md">
+                <h3 className="text-purple-400 font-semibold mb-2">État actuel</h3>
+                <ul className="space-y-2">
+                  <li><span className="text-gray-400">User ID:</span> {user?.id || 'Non défini'}</li>
+                  <li><span className="text-gray-400">Authenticated:</span> {user ? 'Oui' : 'Non'}</li>
+                  <li><span className="text-gray-400">Selected Skin ID:</span> {selectedSkin?.id || 'Non défini'}</li>
+                </ul>
+              </div>
+              
+              {debugInfo && (
+                <div className="bg-gray-800 p-3 rounded-md">
+                  <h3 className="text-purple-400 font-semibold mb-2">Debug Info</h3>
+                  <ul className="space-y-2">
+                    <li><span className="text-gray-400">Last Saving Method:</span> {debugInfo.lastSavingMethod}</li>
+                    <li><span className="text-gray-400">User Authenticated:</span> {debugInfo.userAuthenticated ? 'Oui' : 'Non'}</li>
+                    <li><span className="text-gray-400">Profile Available:</span> {debugInfo.profileAvailable ? 'Oui' : 'Non'}</li>
+                    <li><span className="text-gray-400">Owned Skins Count:</span> {debugInfo.ownedSkins?.length || 0}</li>
+                  </ul>
+                </div>
+              )}
+              
+              <div className="bg-gray-800 p-3 rounded-md">
+                <h3 className="text-purple-400 font-semibold mb-2">Profile Data</h3>
+                <pre className="text-xs text-gray-300 overflow-x-auto">
+                  {JSON.stringify(profile, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDebugDialogOpen(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-auto">
         <Footer />
