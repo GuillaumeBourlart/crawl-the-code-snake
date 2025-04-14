@@ -98,17 +98,11 @@
 
   body {
     @apply bg-background text-foreground;
-    overflow-y: auto; /* Allow scrolling by default */
-    touch-action: auto;
+    overflow: hidden;
+    touch-action: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-  }
-
-  /* Add a class to disable scrolling during gameplay */
-  body.game-active {
-    overflow: hidden;
-    touch-action: none;
   }
 }
 

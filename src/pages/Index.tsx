@@ -113,7 +113,7 @@ const Index = () => {
       refreshSkins();
       setSkinLoadAttempted(true);
     }
-  }, [skinLoadAttempted, refreshSkins]);
+  }, [skinLoadAttempted]);
   
   useEffect(() => {
     if (userSkins && userSkins.length > 0 && 
@@ -144,8 +144,6 @@ const Index = () => {
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
       if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
-
-      document.body.classList.remove('game-active');
     };
   }, [socket]);
 
@@ -291,8 +289,6 @@ const Index = () => {
       setRoomId(data.roomId);
       setPlayerId(newSocket.id);
       setGameStarted(true);
-      
-      document.body.classList.add('game-active');
       
       console.log("Sending player info to server with skin:", selectedSkinId);
       console.log("Is Mobile: ", isMobile);
@@ -453,8 +449,6 @@ const Index = () => {
     setPlayerId(null);
     setRoomId(null);
     setIsSpectator(false);
-    
-    document.body.classList.remove('game-active');
   };
 
   const handleRetry = () => {
