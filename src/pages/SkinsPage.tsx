@@ -159,7 +159,7 @@ const SkinsPage = () => {
       console.log("User is logged in, updating skin in database");
       try {
         // Update profile in database
-        await updateProfile({ default_skin_id: skinId });
+        await updateProfile({ skin_id: skinId });
         console.log("Skin updated in database successfully");
       } catch (error) {
         console.error("Error updating skin in database:", error);
