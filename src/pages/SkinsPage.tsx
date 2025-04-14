@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -65,7 +64,6 @@ const SkinsPage = () => {
     }
   }, [fetchError]);
 
-  // Update debug info when needed
   useEffect(() => {
     if (getDebugInfo) {
       setDebugInfo(getDebugInfo());
@@ -159,11 +157,9 @@ const SkinsPage = () => {
       console.log("User is logged in, updating skin in database");
       try {
         // Update profile in database
-        
-          await updateProfile({
-        userId: user.id,
-        skin_id: skinId
-      });
+        await updateProfile({
+          default_skin_id: skinId
+        });
         console.log("Skin updated in database successfully");
       } catch (error) {
         console.error("Error updating skin in database:", error);

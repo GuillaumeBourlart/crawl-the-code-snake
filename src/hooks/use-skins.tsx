@@ -19,7 +19,7 @@ const getSupabase = () => {
 
 export const useSkins = () => {
   const supabase = getSupabase();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, updateProfile } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
@@ -270,6 +270,7 @@ export const useSkins = () => {
     // Save to localStorage for all users (including anonymous)
     try {
       localStorage.setItem('selected_skin_id', skinId.toString());
+      setLastSavingMethod('localStorage');
       console.log("Skin saved to localStorage successfully");
     } catch (error) {
       console.error("Error saving skin to localStorage:", error);
@@ -281,6 +282,7 @@ export const useSkins = () => {
         await updateProfile({
           default_skin_id: skinId
         });
+        setLastSavingMethod('profile-api');
         console.log("Skin updated in profile successfully");
       } catch (error) {
         console.error("Error updating skin in profile:", error);

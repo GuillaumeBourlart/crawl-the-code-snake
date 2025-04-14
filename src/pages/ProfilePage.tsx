@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -46,7 +45,6 @@ const ProfilePage = () => {
     }
   }, [user, loading, navigate]);
 
-  // Update debug info when needed
   useEffect(() => {
     if (getDebugInfo) {
       setDebugInfo(getDebugInfo());
@@ -61,10 +59,8 @@ const ProfilePage = () => {
 
     try {
       await updateProfile({
-        userId: user.id,
         pseudo: pseudo.trim()
       });
-
 
       setIsEditingPseudo(false);
       toast.success("Pseudo mis à jour avec succès");
@@ -81,10 +77,8 @@ const ProfilePage = () => {
       // First update in DB via API
       console.log("Updating profile default_skin_id in database...");
       await updateProfile({
-        userId: user.id,
-        skin_id: skinId
+        default_skin_id: skinId
       });
-
       
       // Then update local state and localStorage
       console.log("Now updating selected skin in local state...");
@@ -296,7 +290,6 @@ const ProfilePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Debug Dialog */}
       <Dialog open={isDebugDialogOpen} onOpenChange={setIsDebugDialogOpen}>
         <DialogContent className="bg-gray-900 border-purple-500/30 text-white max-w-xl">
           <DialogHeader>
