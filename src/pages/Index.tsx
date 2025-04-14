@@ -113,7 +113,7 @@ const Index = () => {
       refreshSkins();
       setSkinLoadAttempted(true);
     }
-  }, [skinLoadAttempted]);
+  }, [skinLoadAttempted, refreshSkins]);
   
   useEffect(() => {
     if (userSkins && userSkins.length > 0 && 
