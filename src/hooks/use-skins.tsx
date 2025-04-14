@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { GameSkin, UserSkin } from '@/types/supabase';
+import { GameSkin, UserSkin, Profile } from '@/types/supabase';
 import { useAuth } from './use-auth';
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
@@ -20,7 +20,7 @@ const getSupabase = () => {
 
 export const useSkins = () => {
   const supabase = getSupabase();
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
@@ -30,6 +30,7 @@ export const useSkins = () => {
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   
   const availableSkinsRef = useRef<GameSkin[]>([]);
 
@@ -205,7 +206,25 @@ export const useSkins = () => {
       }
       
       if (profileData) {
-        setProfile(profileData as Profile);
+        // Update local state instead of trying to call a non-existent setProfile
+        console.log("Using profile data:", profileData);
+        if (profileData.default_skin_id) {
+          setSelectedSkinId(profileData.default_skin_id);
+        }
+        if (profileData.skins) {
+          try {
+            let skinIds: number[] = [];
+            if (Array.isArray(profileData.skins)) {
+              skinIds = profileData.skins
+                .filter(skin => skin !== null && skin !== undefined)
+                .map(skin => typeof skin === 'number' ? skin : Number(skin))
+                .filter(id => !isNaN(id));
+            }
+            setOwnedSkinIds(skinIds);
+          } catch (e) {
+            console.error("Error processing skins from profile:", e);
+          }
+        }
       } else {
         console.error("Profile not found after maximum attempts");
         toast.error('Impossible de récupérer votre profil');
@@ -220,7 +239,7 @@ export const useSkins = () => {
       setProfileFetchAttempted(true);
       setLoading(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, signOut]);
 
   useEffect(() => {
     if (user) {
