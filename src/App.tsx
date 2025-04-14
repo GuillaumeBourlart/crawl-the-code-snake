@@ -31,6 +31,16 @@ const styles = `
   body.game-active {
     overflow: hidden;
   }
+
+  #root, .app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content-wrapper {
+    flex: 1;
+  }
 `;
 
 const queryClient = new QueryClient();

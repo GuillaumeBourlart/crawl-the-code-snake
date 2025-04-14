@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -245,6 +246,12 @@ export const useSkins = () => {
         // Récupérer le pseudo actuel du profil pour l'envoyer avec la mise à jour
         const currentPseudo = profile.pseudo || "";
         
+        console.log("Sending profile update with:", {
+          userId: user.id,
+          pseudo: currentPseudo,
+          skin_id: skinId
+        });
+        
         const response = await fetch(`${apiUrl}/updateProfile`, {
           method: 'PUT',
           headers: {
@@ -258,13 +265,22 @@ export const useSkins = () => {
           })
         });
         
+        const responseText = await response.text();
+        console.log("API Response:", response.status, responseText);
+        
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error from API:', errorText);
+          console.error('Error from API:', responseText);
           throw new Error(`Erreur API: ${response.status}`);
         }
         
-        const result = await response.json();
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Failed to parse API response:", e);
+          throw new Error("Réponse API invalide");
+        }
+        
         if (!result.success) {
           throw new Error(result.message || 'Échec de mise à jour du skin');
         }
