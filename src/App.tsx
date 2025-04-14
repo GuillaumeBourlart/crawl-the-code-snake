@@ -27,21 +27,19 @@ const App = () => (
         <Sonner />
         <HexBackground />
         <BrowserRouter>
-          <div className="min-h-screen flex flex-col overflow-y-auto">
-            <CookieConsent />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/skins" element={<SkinsPage />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/legal-notice" element={<LegalNotice />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/cookie-policy" element={<CookiePolicy />} />
-              <Route path="/terms-of-sale" element={<TermsOfSale />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
+          <CookieConsent />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/skins" element={<SkinsPage />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/legal-notice" element={<LegalNotice />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/terms-of-sale" element={<TermsOfSale />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

@@ -158,8 +158,8 @@ const SkinsPage = () => {
   const isLoading = authLoading || skinsLoading;
 
   return (
-    <div className="min-h-screen flex flex-col text-white overflow-y-auto">
-      <div className="sticky top-0 z-10 flex justify-between items-center w-full p-4 bg-gray-900/80 backdrop-blur-sm">
+    <div className="h-screen flex flex-col text-white overflow-hidden">
+      <div className="flex justify-between items-center w-full p-4">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -171,23 +171,25 @@ const SkinsPage = () => {
         <AuthButtons />
       </div>
 
-      <main className="flex-1 container mx-auto px-4 py-2 mb-20">
+      <main className={`flex-1 container mx-auto px-4 py-2 overflow-hidden ${isMobile ? 'pb-20' : ''}`}>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <SkinSelector 
-            onSelectSkin={handleSkinSelectAndSave}
-            onPurchase={handlePurchase}
-            showPreview={true}
-            previewPattern="snake"
-          />
+          <ScrollArea className={`pr-4 ${isMobile ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-230px)]'}`}>
+            <SkinSelector 
+              onSelectSkin={handleSkinSelectAndSave}
+              onPurchase={handlePurchase}
+              showPreview={true}
+              previewPattern="snake"
+            />
+          </ScrollArea>
         )}
       </main>
 
-      <div className="fixed bottom-16 left-0 right-0 flex justify-center z-50">
+      <div className={`fixed ${isMobile ? 'bottom-16' : 'bottom-6'} left-0 right-0 flex justify-center z-50`}>
         <Button 
           className="bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105 rounded-full w-16 h-16 shadow-lg p-0"
           onClick={handleConfirmSelection}
@@ -201,9 +203,7 @@ const SkinsPage = () => {
         </Button>
       </div>
 
-      <div className="mt-auto">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 };
