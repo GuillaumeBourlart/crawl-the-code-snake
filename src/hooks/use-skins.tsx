@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -248,7 +247,6 @@ export const useSkins = () => {
     }
   }, [user, fetchUserDefaultSkin]);
 
-  // Improved setSelectedSkin function with better logging and error handling
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
@@ -269,104 +267,24 @@ export const useSkins = () => {
     console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
     setSelectedSkinId(skinId);
     
-    if (!user) {
-      // Anonymous user - save to localStorage only
-      console.log("Anonymous user: Saving skin to localStorage only");
-      setLastSavingMethod("localStorage");
-      try {
-        localStorage.setItem('selected_skin_id', skinId.toString());
-        console.log("Skin saved to localStorage successfully");
-      } catch (error) {
-        console.error("Error saving skin to localStorage:", error);
-      }
-      return;
+    // Save to localStorage for all users (including anonymous)
+    try {
+      localStorage.setItem('selected_skin_id', skinId.toString());
+      console.log("Skin saved to localStorage successfully");
+    } catch (error) {
+      console.error("Error saving skin to localStorage:", error);
     }
-    
-    // Logged-in user - save to database
+
+    // If user is logged in, update profile through the API
     if (user && profile) {
-      console.log("Logged-in user: Updating profile in database with selected skin:", skinId);
-      setLastSavingMethod("database");
-      
       try {
-        const supabase = getSupabase();
-        const sessionResponse = await supabase.auth.getSession();
-        const accessToken = sessionResponse.data.session?.access_token;
-        
-        if (!accessToken) {
-          console.error("No access token available for database update");
-          throw new Error('Non authentifié');
-        }
-        
-        // Récupérer le pseudo actuel du profil pour l'envoyer avec la mise à jour
-        const currentPseudo = profile.pseudo || "";
-        
-        console.log("Sending profile update with:", {
-          userId: user.id,
-          pseudo: currentPseudo,
-          skin_id: skinId
+        await updateProfile({
+          default_skin_id: skinId
         });
-        
-        // For debugging: add timestamp to requests to help trace them in network logs
-        const timestamp = new Date().toISOString();
-        console.log(`API request started at ${timestamp}`);
-        
-        const response = await fetch(`${apiUrl}/updateProfile`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'X-Request-Time': timestamp // Adding custom header for debugging
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            pseudo: currentPseudo,
-            skin_id: skinId
-          })
-        });
-        
-        const responseText = await response.text();
-        console.log(`API Response (${timestamp}):`, response.status, responseText);
-        
-        if (!response.ok) {
-          console.error('Error from API:', responseText);
-          throw new Error(`Erreur API: ${response.status}`);
-        }
-        
-        let result;
-        try {
-          result = JSON.parse(responseText);
-        } catch (e) {
-          console.error("Failed to parse API response:", e);
-          throw new Error("Réponse API invalide");
-        }
-        
-        if (!result.success) {
-          console.error("API returned success=false:", result);
-          throw new Error(result.message || 'Échec de mise à jour du skin');
-        }
-        
-        console.log("Database update successful, result:", result);
-        
-        // Also save to localStorage as fallback
-        try {
-          localStorage.setItem('selected_skin_id', skinId.toString());
-          console.log("Skin also saved to localStorage as fallback");
-        } catch (error) {
-          console.error("Error saving skin to localStorage (fallback):", error);
-        }
-        
-        toast.success("Skin enregistré dans votre profil");
+        console.log("Skin updated in profile successfully");
       } catch (error) {
-        console.error('Error updating default skin:', error);
-        toast.error('Échec de sauvegarde du skin');
-        
-        // Still update local state
-        try {
-          localStorage.setItem('selected_skin_id', skinId.toString());
-          console.log("Skin saved to localStorage despite API error");
-        } catch (storageError) {
-          console.error("Error saving skin to localStorage after API error:", storageError);
-        }
+        console.error("Error updating skin in profile:", error);
+        toast.error("Échec de sauvegarde du skin");
       }
     }
   };
