@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -13,7 +12,6 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
@@ -30,7 +28,6 @@ const SkinsPage = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
-  const isMobile = useIsMobile();
 
   console.log("SkinsPage - Render state:", {
     user: !!user,
@@ -171,14 +168,14 @@ const SkinsPage = () => {
         <AuthButtons />
       </div>
 
-      <main className={`flex-1 container mx-auto px-4 py-2 overflow-hidden ${isMobile ? 'pb-20' : ''}`}>
+      <main className="flex-1 container mx-auto px-4 py-2 overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
             <p className="text-lg text-gray-300">Chargement des skins...</p>
           </div>
         ) : (
-          <ScrollArea className={`pr-4 ${isMobile ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-230px)]'}`}>
+          <ScrollArea className="h-[calc(100vh-230px)] pr-4">
             <SkinSelector 
               onSelectSkin={handleSkinSelectAndSave}
               onPurchase={handlePurchase}
@@ -189,7 +186,9 @@ const SkinsPage = () => {
         )}
       </main>
 
-      <div className={`fixed ${isMobile ? 'bottom-16' : 'bottom-6'} left-0 right-0 flex justify-center z-50`}>
+      <Footer />
+
+      <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
         <Button 
           className="bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105 rounded-full w-16 h-16 shadow-lg p-0"
           onClick={handleConfirmSelection}
@@ -202,8 +201,6 @@ const SkinsPage = () => {
           )}
         </Button>
       </div>
-
-      <Footer />
     </div>
   );
 };
