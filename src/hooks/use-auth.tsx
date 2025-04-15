@@ -26,44 +26,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
 
-  const fetchProfile = async (userId: string, retryCount = 0) => {
-    console.log("Fetching profile for user:", userId);
-    const maxRetries = 3;
-    const retryDelay = 2000; // 2 seconds
+  const fetchProfile = async (userId: string, attempt = 1) => {
+    console.log(`Attempt ${attempt}/10 to fetch profile`);
+    const maxAttempts = 10;
+    const retryDelay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff
+
+    if (!userId) {
+      console.error('No user ID provided for profile fetch');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await Promise.race([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
-        )
-      ]);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
       if (error) {
         throw error;
       }
 
       if (data) {
-        console.log("Profile fetched successfully:", data);
+        console.log('Profile fetched successfully:', data);
         setProfile(data);
         setProfileFetchAttempted(true);
         setLoading(false);
-      } else if (retryCount < maxRetries) {
-        console.log(`Profile fetch attempt ${retryCount + 1} failed, retrying...`);
-        setTimeout(() => fetchProfile(userId, retryCount + 1), retryDelay);
+        return;
+      }
+      
+      // No data found but no error
+      if (attempt < maxAttempts) {
+        console.log(`No profile found, attempt ${attempt}/${maxAttempts}, retrying in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return fetchProfile(userId, attempt + 1);
       } else {
-        console.error("Failed to fetch profile after max retries");
+        console.error('Failed to fetch profile after max attempts');
         setProfileFetchAttempted(true);
         setLoading(false);
+        toast.error('Erreur lors de la récupération du profil');
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      if (retryCount < maxRetries) {
-        setTimeout(() => fetchProfile(userId, retryCount + 1), retryDelay);
+      if (attempt < maxAttempts) {
+        console.log(`Error in attempt ${attempt}/${maxAttempts}, retrying in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return fetchProfile(userId, attempt + 1);
       } else {
         setProfileFetchAttempted(true);
         setLoading(false);
@@ -199,18 +208,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Handle document visibility for session refresh
     let visibilityTimeout: NodeJS.Timeout;
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         // Clear any existing timeout
         if (visibilityTimeout) {
           clearTimeout(visibilityTimeout);
         }
+
         // Add a small delay to prevent multiple rapid refreshes
-        visibilityTimeout = setTimeout(() => {
-          console.log("Document became visible, refreshing session");
-          // Only refresh if we have a user
-          if (user) {
-            refreshSession();
+        visibilityTimeout = setTimeout(async () => {
+          console.log("Document became visible, checking session state");
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            // Only refresh if we have a session but no profile
+            if (session?.user) {
+              if (!user || user.id !== session.user.id) {
+                console.log("Session user changed, updating state");
+                setUser(session.user);
+                setProfileFetchAttempted(false);
+                await fetchProfile(session.user.id);
+              } else if (!profile) {
+                console.log("No profile loaded, fetching profile");
+                await fetchProfile(session.user.id);
+              }
+            } else if (user) {
+              // We have a user in state but no session - sign out
+              console.log("No session found but user in state, signing out");
+              signOut();
+            }
+          } catch (error) {
+            console.error('Error in visibility change handler:', error);
+            if (user) signOut(); // Clear state if we can't verify session
           }
         }, 1000);
       }
