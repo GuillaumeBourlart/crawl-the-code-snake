@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ export const useSkins = () => {
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [skinsLoaded, setSkinsLoaded] = useState(false);
+  const [loading, setLoading] = useState(true); // Add loading state
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
@@ -108,6 +110,7 @@ export const useSkins = () => {
     if (skinsLoaded) return;
     
     try {
+      setLoading(true); // Set loading to true when fetching
       setFetchError(null);
       console.log("Fetching all skins...");
       
@@ -136,6 +139,8 @@ export const useSkins = () => {
       toast.error(t('error') + ': ' + t('loading'));
       setAllSkins([]);
       setSkinsLoaded(true);
+    } finally {
+      setLoading(false); // Set loading to false in finally block
     }
   }, [supabase, skinsLoaded, t]);
 
@@ -224,6 +229,7 @@ export const useSkins = () => {
     console.log("Refreshing skins data");
     setSkinsLoaded(false);
     setProfileSkinsProcessed(false);
+    setLoading(true); // Set loading to true when refreshing
     fetchAllSkins();
   }, [fetchAllSkins]);
 
@@ -251,6 +257,7 @@ export const useSkins = () => {
     fetchError,
     ownedSkinIds,
     getUnifiedSkinsList,
-    getDebugInfo
+    getDebugInfo,
+    loading // Add loading to the returned object
   };
 };

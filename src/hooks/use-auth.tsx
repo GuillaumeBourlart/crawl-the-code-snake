@@ -36,6 +36,7 @@ type AuthContextType = {
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   deleteAccount: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  loading: boolean; // Add loading property to the type
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,10 +45,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+  const [loading, setLoading] = useState(true); // Add loading state
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
       console.log("No user ID provided to fetchProfile");
+      setLoading(false); // Make sure to set loading to false
       return;
     }
     
@@ -99,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut();
     } finally {
       setProfileFetchAttempted(true);
+      setLoading(false); // Make sure to set loading to false in finally block
     }
   }, []);
 
@@ -121,11 +125,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
+    } finally {
+      setLoading(false); // Set loading to false after signOut
     }
   };
 
   const refreshSession = useCallback(async () => {
     try {
+      setLoading(true); // Set loading to true when refreshing session
       console.log("Refreshing auth session...");
       
       const { data: { session } } = await supabase.auth.getSession();
@@ -138,22 +145,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!profile || profile.id !== session.user.id) {
           console.log("Fetching profile due to session refresh");
           await fetchProfile(session.user.id);
+        } else {
+          setLoading(false); // Set loading to false if profile is already loaded
         }
       } else {
         console.log("No session found during refresh");
         setUser(null);
         setProfile(null);
+        setLoading(false); // Set loading to false if no session
       }
     } catch (error) {
       console.error("Error refreshing session:", error);
       setUser(null);
       setProfile(null);
+      setLoading(false); // Set loading to false on error
     }
   }, [fetchProfile, profile]);
 
   useEffect(() => {
     let isMounted = true;
     console.log("Auth provider mounted, initializing...");
+    setLoading(true); // Set loading to true when initializing
     
     const getSession = async () => {
       try {
@@ -168,12 +180,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           console.log("No session found");
           setUser(null);
+          setLoading(false); // Set loading to false if no session
         }
       } catch (error) {
         console.error("Session retrieval error:", error);
         if (isMounted) {
           // If there's an error getting the session, force sign out
           signOut();
+          setLoading(false); // Make sure loading is false
         }
       }
     };
@@ -196,11 +210,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
           setProfile(null);
           setProfileFetchAttempted(false);
+          setLoading(false); // Set loading to false when signed out
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log("Token refreshed for user:", session.user.id);
           setUser(session.user);
           if (!profile) {
             await fetchProfile(session.user.id);
+          } else {
+            setLoading(false); // Set loading to false if profile is already loaded
           }
         }
       }
@@ -225,6 +242,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      setLoading(true); // Set loading to true when signing in
       console.log("Attempting to sign in with Google...");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -236,16 +254,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error("Google sign-in error:", error);
+        setLoading(false); // Set loading to false on error
         throw error;
       }
       
       console.log("SignInWithGoogle response:", data);
+      // Loading will be handled by auth state change
 
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
+      setLoading(false); // Set loading to false on error
     }
-    // Note: We don't set loading to false here as the auth state change will handle that
   };
 
   const updateProfile = async (data: Partial<Profile>) => {
@@ -364,7 +384,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         updateProfile,
         deleteAccount,
-        refreshSession
+        refreshSession,
+        loading // Add loading to the context value
       }}
     >
       {children}
