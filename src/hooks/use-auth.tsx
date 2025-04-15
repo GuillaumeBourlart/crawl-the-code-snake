@@ -14,9 +14,34 @@ const getSupabase = (): SupabaseClient => {
   if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        persistSession: true, // Enable session persistence across tabs/refreshes
+        persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        storageKey: 'auth-storage',
+        storage: {
+          getItem: (key) => {
+            try {
+              const item = localStorage.getItem(key);
+              return item;
+            } catch {
+              return null;
+            }
+          },
+          setItem: (key, value) => {
+            try {
+              localStorage.setItem(key, value);
+            } catch (error) {
+              console.error('Error setting auth storage:', error);
+            }
+          },
+          removeItem: (key) => {
+            try {
+              localStorage.removeItem(key);
+            } catch (error) {
+              console.error('Error removing auth storage:', error);
+            }
+          }
+        }
       }
     });
   }
@@ -49,59 +74,84 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
       console.log("No user ID provided to fetchProfile");
-      setLoading(false); // Make sure to set loading to false
+      setLoading(false);
       return;
     }
+    
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('Profile fetch timeout'));
+      }, 10000); // 10 second timeout
+    });
     
     try {
       console.log("Attempting to fetch profile for user:", userId);
       
-      // Essayer de récupérer le profil plusieurs fois sur une période de 5 secondes
-      let attempts = 0;
-      const maxAttempts = 10; // 10 tentatives sur 5 secondes (une tentative toutes les 500ms)
+      const maxAttempts = 3;
+      let attempt = 0;
       let profileData = null;
       
-      while (attempts < maxAttempts) {
-        console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch profile`);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
+      while (attempt < maxAttempts) {
+        try {
+          const { data, error } = await Promise.race([
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single(),
+            timeoutPromise
+          ]);
           
-        if (error) {
-          if (error.code !== 'PGRST116') { // Si c'est une erreur autre que "no rows returned"
-            console.error('Database error fetching profile:', error);
+          if (error) {
+            if (error.code === 'PGRST116') {
+              // Profile doesn't exist, wait before retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              attempt++;
+              continue;
+            }
             throw error;
           }
-        } else if (data) {
-          // Profil trouvé
-          console.log("Profile retrieved:", data);
-          profileData = data;
-          break;
+          
+          if (data) {
+            profileData = data;
+            break;
+          }
+          
+          attempt++;
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          if (error.message === 'Profile fetch timeout') {
+            console.error('Profile fetch timeout');
+            break;
+          }
+          throw error;
         }
-        
-        // Attendre 500ms avant de réessayer
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
       }
+      
+      clearTimeout(timeoutId);
       
       if (profileData) {
         setProfile(profileData as Profile);
       } else {
         console.error("Profile not found after maximum attempts");
         toast.error('Impossible de récupérer votre profil');
+        // Don't sign out here, just set profile to null
+        setProfile(null);
       }
     } catch (error) {
       console.error('Critical error handling profile:', error);
       toast.error('Problème de connexion au profil');
-      
-      // Critical failure, sign out the user
-      await signOut();
+      setProfile(null);
+      // Only sign out for actual auth errors
+      if (error.code === 'PGRST401') {
+        await signOut();
+      }
     } finally {
       setProfileFetchAttempted(true);
-      setLoading(false); // Make sure to set loading to false in finally block
+      setLoading(false);
     }
   }, []);
 
@@ -130,30 +180,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshSession = useCallback(async () => {
+    // Don't refresh if we're already loading
+    if (loading) {
+      console.log('Skipping refresh - already loading');
+      return;
+    }
+
+    let refreshTimeout: NodeJS.Timeout;
+    const timeoutPromise = new Promise((_, reject) => {
+      refreshTimeout = setTimeout(() => {
+        reject(new Error('Session refresh timeout'));
+      }, 5000);
+    });
+
     try {
       setLoading(true);
       console.log("Refreshing auth session...");
       
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await Promise.race([
+        supabase.auth.getSession(),
+        timeoutPromise
+      ]);
+
+      clearTimeout(refreshTimeout);
       
       if (session?.user) {
         console.log("Session found on refresh:", session.user.id);
         setUser(session.user);
-        // Always fetch profile on session refresh
-        await fetchProfile(session.user.id);
+        
+        // Only fetch profile if we don't have it or user changed
+        if (!profile || profile.id !== session.user.id) {
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false); // No need to wait for profile fetch
+        }
       } else {
         console.log("No session found during refresh");
         setUser(null);
         setProfile(null);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error refreshing session:", error);
-      setUser(null);
-      setProfile(null);
-    } finally {
-      setLoading(false); // Always set loading to false in finally block
+      if (error.message === 'Session refresh timeout') {
+        toast.error('Problème de connexion au serveur');
+      }
+      // Don't clear user/profile on network errors
+      if (error.code === 'PGRST401') {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
     }
-  }, [fetchProfile]);
+  }, [fetchProfile, loading, profile]);
 
   useEffect(() => {
     let isMounted = true;
@@ -198,6 +277,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(session.user);
           setProfileFetchAttempted(false); // Reset to allow fetch on new sign in
           await fetchProfile(session.user.id);
+          
+          // Handle redirect after authentication
+          const redirectPath = sessionStorage.getItem('auth_redirect_path');
+          if (redirectPath) {
+            sessionStorage.removeItem('auth_redirect_path');
+            // Only redirect if we're not already on the path
+            if (window.location.pathname !== redirectPath) {
+              window.location.href = redirectPath;
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
           setUser(null);
@@ -217,19 +306,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Handle document visibility for session refresh
+    let visibilityTimeout: NodeJS.Timeout;
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("Document became visible, refreshing session");
-        refreshSession();
+        // Clear any existing timeout
+        if (visibilityTimeout) {
+          clearTimeout(visibilityTimeout);
+        }
+        // Add a small delay to prevent multiple rapid refreshes
+        visibilityTimeout = setTimeout(() => {
+          console.log("Document became visible, refreshing session");
+          // Only refresh if we have a user
+          if (user) {
+            refreshSession();
+          }
+        }, 1000);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Setup periodic session check
+    const sessionCheckInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && user) {
+        refreshSession();
+      }
+    }, 300000); // Check every 5 minutes
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      clearInterval(sessionCheckInterval);
     };
   }, [fetchProfile, refreshSession]);
 
@@ -238,10 +349,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       console.log("Attempting to sign in with Google...");
       
+      const currentPath = window.location.pathname;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}${currentPath}`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
       });
       
@@ -253,6 +369,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       console.log("SignInWithGoogle response:", data);
       // Loading will be handled by auth state change
+      
+      // Store the current path in sessionStorage for redirect after auth
+      sessionStorage.setItem('auth_redirect_path', currentPath);
 
     } catch (error) {
       console.error('Error signing in with Google:', error);
