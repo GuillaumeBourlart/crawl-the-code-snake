@@ -190,19 +190,18 @@ const Index = () => {
   }, [gameStarted, socket, playerId, isSpectator]);
   
   const attemptReconnect = useCallback(() => {
-  if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
-    setReconnectAttempts(prev => prev + 1);
-    toast.info(`Tentative de reconnexion (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
-    reconnectTimerRef.current = window.setTimeout(() => {
-      handlePlay();
-    }, RECONNECTION_DELAY);
-  } else {
-    toast.error("Impossible de se reconnecter au serveur après plusieurs tentatives");
-    setConnecting(false);
-    setReconnectAttempts(0);
-  }
-}, [reconnectAttempts, handlePlay]); // ajoutez handlePlay si nécessaire
-
+    if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
+      setReconnectAttempts(prev => prev + 1);
+      toast.info(`Tentative de reconnexion (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
+      reconnectTimerRef.current = window.setTimeout(() => {
+        handlePlay();
+      }, RECONNECTION_DELAY);
+    } else {
+      toast.error("Impossible de se reconnecter au serveur après plusieurs tentatives");
+      setConnecting(false);
+      setReconnectAttempts(0);
+    }
+  }, [reconnectAttempts]);
   
   const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
     const items: Record<string, GameItem> = {};
@@ -497,7 +496,7 @@ const Index = () => {
     setUsername(e.target.value);
   };
 
-  const isLoading = authLoading || skinsLoading; // plutôt que de forcer false
+  const isLoading = false;
 
   useEffect(() => {
     if (gameStarted) {
