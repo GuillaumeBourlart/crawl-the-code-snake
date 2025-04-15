@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -132,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshSession = useCallback(async () => {
     try {
-      setLoading(true); // Set loading to true when refreshing session
+      setLoading(true);
       console.log("Refreshing auth session...");
       
       const { data: { session } } = await supabase.auth.getSession();
@@ -140,32 +139,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         console.log("Session found on refresh:", session.user.id);
         setUser(session.user);
-        
-        // Si nous n'avons pas encore de profil ou si c'est un nouvel utilisateur, récupérons le profil
-        if (!profile || profile.id !== session.user.id) {
-          console.log("Fetching profile due to session refresh");
-          await fetchProfile(session.user.id);
-        } else {
-          setLoading(false); // Set loading to false if profile is already loaded
-        }
+        // Always fetch profile on session refresh
+        await fetchProfile(session.user.id);
       } else {
         console.log("No session found during refresh");
         setUser(null);
         setProfile(null);
-        setLoading(false); // Set loading to false if no session
       }
     } catch (error) {
       console.error("Error refreshing session:", error);
       setUser(null);
       setProfile(null);
-      setLoading(false); // Set loading to false on error
+    } finally {
+      setLoading(false); // Always set loading to false in finally block
     }
-  }, [fetchProfile, profile]);
+  }, [fetchProfile]);
 
   useEffect(() => {
     let isMounted = true;
     console.log("Auth provider mounted, initializing...");
-    setLoading(true); // Set loading to true when initializing
+    setLoading(true);
     
     const getSession = async () => {
       try {
@@ -223,7 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Gestion de la visibilité du document pour actualiser la session lorsque l'utilisateur revient sur l'onglet
+    // Handle document visibility for session refresh
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log("Document became visible, refreshing session");
@@ -238,11 +231,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchProfile, refreshSession, profile]);
+  }, [fetchProfile, refreshSession]);
 
   const signInWithGoogle = async () => {
     try {
-      setLoading(true); // Set loading to true when signing in
+      setLoading(true);
       console.log("Attempting to sign in with Google...");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -254,7 +247,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error("Google sign-in error:", error);
-        setLoading(false); // Set loading to false on error
+        setLoading(false);
         throw error;
       }
       
@@ -264,7 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
-      setLoading(false); // Set loading to false on error
+      setLoading(false);
     }
   };
 
@@ -339,7 +332,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Call the API endpoint that will trigger deleteUserAccount - Use DELETE method
       const response = await fetch(`${apiUrl}/deleteAccount`, {
-        method: 'DELETE', // Changed from POST to DELETE to match the server endpoint
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
@@ -385,7 +378,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updateProfile,
         deleteAccount,
         refreshSession,
-        loading // Add loading to the context value
+        loading
       }}
     >
       {children}
