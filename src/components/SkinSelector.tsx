@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
@@ -27,7 +28,6 @@ const SkinSelector = ({
     allSkins, 
     selectedSkinId, 
     setSelectedSkin,
-    loading: skinsLoading,
     ownedSkinIds,
     getUnifiedSkinsList
   } = useSkins();
@@ -36,6 +36,7 @@ const SkinSelector = ({
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   const [purchaseConfirmationSkin, setPurchaseConfirmationSkin] = useState<GameSkin | null>(null);
+  const [skinsLoading, setSkinsLoading] = useState(false);
   
   const unifiedSkinsList = useMemo(() => {
     if (!allSkins?.length) return [];

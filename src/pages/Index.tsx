@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,14 +98,13 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
+  const { user, profile, refreshSession } = useAuth();
   const { 
     selectedSkin, 
     selectedSkinId, 
     availableSkins: userSkins, 
-    loading: skinsLoading, 
-    setSelectedSkin,
-    refresh: refreshSkins
+    refresh: refreshSkins,
+    setSelectedSkin
   } = useSkins();
   
   const availableSkinsRef = useRef<any[]>([]);
@@ -133,11 +131,9 @@ const Index = () => {
     }
   }, [profile]);
 
-  // Effet pour vérifier et rafraîchir l'état d'authentification quand l'onglet devient visible
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Rafraîchir l'état d'authentification et de session
         console.log("Document visible, refreshing session state");
         refreshSession();
       }
@@ -501,7 +497,7 @@ const Index = () => {
     setUsername(e.target.value);
   };
 
-  const isLoading = authLoading || skinsLoading;
+  const isLoading = false;
 
   useEffect(() => {
     if (gameStarted) {

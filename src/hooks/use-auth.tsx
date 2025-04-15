@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Call the API endpoint that will trigger deleteUserAccount - Use DELETE method
       const response = await fetch(`${apiUrl}/deleteAccount`, {
-        method: 'DELETE', // Changed from POST to DELETE to match the server endpoint
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`

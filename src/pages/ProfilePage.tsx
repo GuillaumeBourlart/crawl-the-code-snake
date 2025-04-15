@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -10,6 +11,8 @@ import { toast } from "sonner";
 import SkinSelector from "@/components/SkinSelector";
 import { useSkins } from "@/hooks/use-skins";
 import SkinPreview from "@/components/SkinPreview";
+import AuthButtons from "@/components/AuthButtons";
+import Footer from "@/components/Footer";
 
 const ProfilePage = () => {
   const { user, profile, updateProfile, deleteAccount } = useAuth();
