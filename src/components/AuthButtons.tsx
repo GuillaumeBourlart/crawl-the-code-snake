@@ -1,8 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, LogIn, Loader2, UserRound, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { LogOut, LogIn, UserRound, ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,56 +13,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const AuthButtons = () => {
-  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
+  const { user, signInWithGoogle, signOut } = useAuth();
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
-  // Reset loading state if user changes or auth loading state changes
-  useEffect(() => {
-    if (!authLoading) {
-      setIsLoading(false);
-    }
-  }, [user, authLoading]);
 
   const handleSignIn = async () => {
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       await signInWithGoogle();
-      // No need for timeout as the page will redirect
     } catch (error) {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
   const handleSignOut = async () => {
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       await signOut();
     } catch (error) {
       console.error("Sign out error:", error);
+    } finally {
+      setIsProcessing(false);
     }
-    // Loading state will be reset by the useEffect
   };
 
   const goToProfile = () => {
     navigate('/profile');
   };
-
-  if (authLoading) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        className={`bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md ${isMobile ? 'scale-75' : ''}`}
-        disabled
-      >
-        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-        {t('loading')}
-      </Button>
-    );
-  }
 
   return user ? (
     <DropdownMenu>
@@ -93,10 +71,10 @@ const AuthButtons = () => {
         <DropdownMenuItem 
           className="hover:bg-red-900/30 cursor-pointer"
           onClick={handleSignOut}
-          disabled={isLoading}
+          disabled={isProcessing}
         >
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {isProcessing ? (
+            ""
           ) : (
             <LogOut className="mr-2 h-4 w-4 text-red-400" />
           )}
@@ -110,13 +88,9 @@ const AuthButtons = () => {
       size="sm"
       className={`bg-gray-900/70 border-blue-500/30 text-white hover:bg-blue-900/30 rounded-lg shadow-md ${isMobile ? 'scale-75' : ''}`}
       onClick={handleSignIn}
-      disabled={isLoading}
+      disabled={isProcessing}
     >
-      {isLoading ? (
-        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-      ) : (
-        <LogIn className="mr-1 h-4 w-4 text-blue-400" />
-      )}
+      <LogIn className="mr-1 h-4 w-4 text-blue-400" />
       {isMobile ? '' : t('sign_in')}
     </Button>
   );

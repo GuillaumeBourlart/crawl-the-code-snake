@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -6,12 +5,10 @@ import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
-import { Loader2, ArrowLeft, Check, Bug } from "lucide-react";
+import { ArrowLeft, Check, Bug } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -21,55 +18,21 @@ const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 const SkinsPage = () => {
   const { 
     selectedSkin, 
-    setSelectedSkin, 
-    loading: skinsLoading, 
+    setSelectedSkin,
     refresh: refreshSkins,
-    fetchError,
     ownedSkinIds,
     getDebugInfo
   } = useSkins();
-  const { user, profile, supabase, loading: authLoading, updateProfile } = useAuth();
+  const { user, profile, supabase, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
-  const isMobile = useIsMobile();
   const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
-
-  console.log("SkinsPage - Render state:", {
-    user: !!user,
-    profile: !!profile,
-    skinsLoading,
-    authLoading,
-    fetchError: fetchError ? fetchError.message : null,
-    selectedSkin: selectedSkin?.id,
-    ownedSkins: ownedSkinIds
-  });
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (!hasAttemptedRefresh) {
-      console.log("SkinsPage mounted, refreshing skins");
-      refreshSkins();
-      setHasAttemptedRefresh(true);
-    }
-  }, [refreshSkins, hasAttemptedRefresh]);
-
-  useEffect(() => {
-    if (fetchError) {
-      console.error("Fetch error details:", {
-        message: fetchError.message,
-        name: fetchError.name,
-        stack: fetchError.stack
-      });
-      toast.error("Erreur de chargement des données. Veuillez réessayer.");
-    }
-  }, [fetchError]);
-
-  useEffect(() => {
-    if (getDebugInfo) {
-      setDebugInfo(getDebugInfo());
-    }
-  }, [getDebugInfo, selectedSkin, user, profile]);
+    refreshSkins();
+  }, [refreshSkins]);
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -189,8 +152,6 @@ const SkinsPage = () => {
     setIsDebugDialogOpen(true);
   };
 
-  const isLoading = authLoading || skinsLoading;
-
   return (
     <div className="min-h-screen flex flex-col text-white overflow-y-auto">
       <div className="sticky top-0 z-10 flex justify-between items-center w-full p-4 bg-gray-900/80 backdrop-blur-sm">
@@ -217,32 +178,21 @@ const SkinsPage = () => {
       </div>
 
       <main className="flex-1 container mx-auto px-4 py-2 mb-20">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-96">
-            <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
-            <p className="text-lg text-gray-300">Chargement des skins...</p>
-          </div>
-        ) : (
-          <SkinSelector 
-            onSelectSkin={handleSkinSelectAndSave}
-            onPurchase={handlePurchase}
-            showPreview={true}
-            previewPattern="snake"
-          />
-        )}
+        <SkinSelector 
+          onSelectSkin={handleSkinSelectAndSave}
+          onPurchase={handlePurchase}
+          showPreview={true}
+          previewPattern="snake"
+        />
       </main>
 
       <div className="fixed bottom-16 left-0 right-0 flex justify-center z-50">
         <Button 
           className="bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105 rounded-full w-16 h-16 shadow-lg p-0"
           onClick={handleConfirmSelection}
-          disabled={!selectedSkin || isLoading}
+          disabled={!selectedSkin}
         >
-          {isLoading ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
-          ) : (
-            <Check className="h-6 w-6" />
-          )}
+          <Check className="h-6 w-6" />
         </Button>
       </div>
 
