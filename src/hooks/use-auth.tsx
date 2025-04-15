@@ -131,36 +131,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshSession = useCallback(async () => {
-    try {
-      setLoading(true); // Set loading to true when refreshing session
-      console.log("Refreshing auth session...");
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        console.log("Session found on refresh:", session.user.id);
-        setUser(session.user);
-        
-        // Si nous n'avons pas encore de profil ou si c'est un nouvel utilisateur, récupérons le profil
-        if (!profile || profile.id !== session.user.id) {
-          console.log("Fetching profile due to session refresh");
-          await fetchProfile(session.user.id);
-        } else {
-          setLoading(false); // Set loading to false if profile is already loaded
-        }
-      } else {
-        console.log("No session found during refresh");
-        setUser(null);
-        setProfile(null);
-        setLoading(false); // Set loading to false if no session
-      }
-    } catch (error) {
-      console.error("Error refreshing session:", error);
+  try {
+    setLoading(true);
+    console.log("Refreshing auth session...");
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      console.log("Session found on refresh:", session.user.id);
+      setUser(session.user);
+      // On récupère toujours le profil si nécessaire
+      await fetchProfile(session.user.id);
+    } else {
+      console.log("No session found during refresh");
       setUser(null);
       setProfile(null);
-      setLoading(false); // Set loading to false on error
     }
-  }, [fetchProfile, profile]);
+  } catch (error) {
+    console.error("Error refreshing session:", error);
+    setUser(null);
+    setProfile(null);
+  } finally {
+    setLoading(false);
+  }
+}, [fetchProfile]); // <-- Seulement fetchProfile en dépendance
+
 
   useEffect(() => {
     let isMounted = true;
