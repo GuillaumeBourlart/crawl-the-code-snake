@@ -1,7 +1,8 @@
-
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import Footer from "@/components/Footer";
+import AuthButtons from "@/components/AuthButtons";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Trash2, Palette, Bug } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -11,15 +12,14 @@ import { toast } from "sonner";
 import SkinSelector from "@/components/SkinSelector";
 import { useSkins } from "@/hooks/use-skins";
 import SkinPreview from "@/components/SkinPreview";
-import AuthButtons from "@/components/AuthButtons";
-import Footer from "@/components/Footer";
 
 const ProfilePage = () => {
-  const { user, profile, updateProfile, deleteAccount } = useAuth();
+  const { user, profile, loading, updateProfile, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const { 
     selectedSkinId, 
     selectedSkin, 
+    loading: skinsLoading, 
     getDebugInfo, 
     setSelectedSkin 
   } = useSkins();
@@ -40,10 +40,16 @@ const ProfilePage = () => {
   }, [profile]);
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (getDebugInfo) {
+      setDebugInfo(getDebugInfo());
+    }
+  }, [getDebugInfo, selectedSkinId, user, profile]);
 
   const handleUpdatePseudo = async () => {
     if (!pseudo.trim()) {
@@ -107,8 +113,12 @@ const ProfilePage = () => {
     setIsDebugDialogOpen(true);
   };
 
-  if (!user) {
-    return null;
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-white text-lg">Chargement...</p>
+      </div>
+    );
   }
 
   return (

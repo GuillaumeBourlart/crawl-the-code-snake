@@ -1,11 +1,12 @@
-import { createContext, useContext, useState, ReactNode, useCallback, useRef, useEffect } from 'react';
+
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Profile } from '@/types/supabase';
 
 const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
-const apiUrl = "https://api.grubz.io";
+const apiUrl = "https://api.grubz.io"; // Using the new API URL
 
 // Create a singleton instance of Supabase client
 let supabaseInstance: SupabaseClient | null = null;
@@ -14,7 +15,7 @@ const getSupabase = (): SupabaseClient => {
   if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        persistSession: true,
+        persistSession: true, // Enable session persistence across tabs/refreshes
         autoRefreshToken: true,
         detectSessionInUrl: true
       }
@@ -23,6 +24,7 @@ const getSupabase = (): SupabaseClient => {
   return supabaseInstance;
 };
 
+// Initialize the singleton
 const supabase = getSupabase();
 
 type AuthContextType = {
@@ -31,6 +33,7 @@ type AuthContextType = {
   supabase: SupabaseClient;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   deleteAccount: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -41,87 +44,256 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+  
+  // Add a ref to track if a refresh is currently in progress to prevent concurrent calls
   const isRefreshingRef = useRef(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("No user ID provided to fetchProfile");
+      setLoading(false);
+      return;
+    }
     
     try {
-      console.log("Fetching profile for user:", userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      console.log("Attempting to fetch profile for user:", userId);
+      
+      // Essayer de récupérer le profil plusieurs fois sur une période de 5 secondes
+      let attempts = 0;
+      const maxAttempts = 10; // 10 tentatives sur 5 secondes (une tentative toutes les 500ms)
+      let profileData = null;
+      
+      while (attempts < maxAttempts) {
+        console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch profile`);
         
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (error) {
+          if (error.code !== 'PGRST116') { // Si c'est une erreur autre que "no rows returned"
+            console.error('Database error fetching profile:', error);
+            throw error;
+          }
+        } else if (data) {
+          // Profil trouvé
+          console.log("Profile retrieved:", data);
+          profileData = data;
+          break;
+        }
+        
+        // Attendre 500ms avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
       }
       
-      if (data) {
-        console.log("Profile retrieved:", data);
-        setProfile(data as Profile);
+      if (profileData) {
+        setProfile(profileData as Profile);
+      } else {
+        console.error("Profile not found after maximum attempts");
+        toast.error('Impossible de récupérer votre profil');
       }
     } catch (error) {
-      console.error('Error handling profile:', error);
+      console.error('Critical error handling profile:', error);
+      toast.error('Problème de connexion au profil');
+      
+      // Critical failure, sign out the user
+      await signOut();
+    } finally {
+      setProfileFetchAttempted(true);
+      setLoading(false); // Assurons-nous que le chargement se termine toujours
     }
   }, []);
 
+  const signOut = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear user data
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+      
+      toast.success('Déconnexion réussie');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Échec de déconnexion');
+      
+      // Force reset the state even if sign out failed
+      setUser(null);
+      setProfile(null);
+      setProfileFetchAttempted(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Revised refreshSession function without profile dependency and with locking mechanism
   const refreshSession = useCallback(async () => {
+    // Skip if a refresh is already in progress
     if (isRefreshingRef.current) {
-      console.log("Session refresh already in progress");
+      console.log("Session refresh already in progress, skipping");
       return;
     }
     
     try {
       isRefreshingRef.current = true;
+      console.log("Refreshing auth session...");
+      
+      // Only set loading if we're not already loading something else
+      // This helps prevent flickering UI and recursion
+      const wasLoading = loading;
+      if (!wasLoading) {
+        setLoading(true);
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
+        console.log("Session found on refresh:", session.user.id);
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        
+        // Only fetch profile if we need to
+        const currentUserId = session.user.id;
+        const profileUserId = profile?.id;
+        
+        if (!profileUserId || profileUserId !== currentUserId) {
+          console.log("Fetching profile due to session refresh - user changed or no profile");
+          await fetchProfile(currentUserId);
+        } else {
+          console.log("User unchanged, keeping existing profile data");
+          // Make sure to reset loading regardless
+          setLoading(false);
+        }
       } else {
+        console.log("No session found during refresh");
         setUser(null);
         setProfile(null);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error refreshing session:", error);
       setUser(null);
       setProfile(null);
+      setLoading(false);
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [fetchProfile]);
+  }, [fetchProfile, loading]); // Removed profile from deps, only depend on fetchProfile and loading
 
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setUser(null);
-      setProfile(null);
-      toast.success('Déconnexion réussie');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Échec de déconnexion');
-    }
-  };
+  useEffect(() => {
+    let isMounted = true;
+    console.log("Auth provider mounted, initializing...");
+    
+    const getSession = async () => {
+      try {
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        if (session?.user) {
+          console.log("Session found with user:", session.user.id);
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else {
+          console.log("No session found");
+          setUser(null);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Session retrieval error:", error);
+        if (isMounted) {
+          setLoading(false);
+          // If there's an error getting the session, force sign out
+          signOut();
+        }
+      }
+    };
+
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
+        
+        if (!isMounted) return;
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log("User signed in:", session.user.id);
+          setUser(session.user);
+          setProfileFetchAttempted(false); // Reset to allow fetch on new sign in
+          await fetchProfile(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out");
+          setUser(null);
+          setProfile(null);
+          setProfileFetchAttempted(false);
+          setLoading(false);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log("Token refreshed for user:", session.user.id);
+          setUser(session.user);
+          if (!profile) {
+            await fetchProfile(session.user.id);
+          } else {
+            setLoading(false);
+          }
+        } else {
+          // Make sure loading is always set to false for other events
+          setLoading(false);
+        }
+      }
+    );
+
+    // Gestion de la visibilité du document pour actualiser la session lorsque l'utilisateur revient sur l'onglet
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Document became visible, refreshing session");
+        // Use the refreshSession function which now has locking
+        refreshSession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchProfile, refreshSession]);
 
   const signInWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      setLoading(true);
+      console.log("Attempting to sign in with Google...");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Google sign-in error:", error);
+        throw error;
+      }
+      
+      console.log("SignInWithGoogle response:", data);
+
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
+      setLoading(false);
     }
+    // Note: We don't set loading to false here as the auth state change will handle that
   };
 
   const updateProfile = async (data: Partial<Profile>) => {
@@ -185,6 +357,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!user) throw new Error('Non authentifié');
       
+      setLoading(true);
+      
       // Get auth token for the API call
       const sessionResponse = await supabase.auth.getSession();
       const accessToken = sessionResponse.data.session?.access_token;
@@ -195,7 +369,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Call the API endpoint that will trigger deleteUserAccount - Use DELETE method
       const response = await fetch(`${apiUrl}/deleteAccount`, {
-        method: 'DELETE',
+        method: 'DELETE', // Changed from POST to DELETE to match the server endpoint
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
@@ -226,47 +400,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error deleting account:', error);
       toast.error('Échec de la suppression du compte');
+      setLoading(false);
       throw error;
     }
   };
-
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      }
-    };
-
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
-        }
-      }
-    );
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshSession();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [fetchProfile, refreshSession]);
 
   return (
     <AuthContext.Provider
@@ -276,6 +413,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase,
         signInWithGoogle,
         signOut,
+        loading,
         updateProfile,
         deleteAccount,
         refreshSession
