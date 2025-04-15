@@ -2,9 +2,9 @@
 export interface Profile {
   id: string;
   pseudo: string;
-  skins?: number[] | string | null; // Support for both parsed array and string JSON format
+  skins?: any[]; // Pour le champ jsonb skins
   created_at?: string;
-  default_skin_id?: number | null; // Champ ajouté pour la compatibilité
+  default_skin_id?: number; // Champ ajouté pour la compatibilité
 }
 
 export interface GameSkin {
