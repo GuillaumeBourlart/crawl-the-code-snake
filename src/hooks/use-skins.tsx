@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -6,7 +5,6 @@ import { GameSkin, UserSkin, Profile } from '@/types/supabase';
 import { useAuth } from './use-auth';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-// No need to create a new client, we'll get it from useAuth
 export const useSkins = () => {
   const { user, profile, signOut, updateProfile, supabase, refreshSession } = useAuth();
   const { t } = useLanguage();
@@ -14,7 +12,6 @@ export const useSkins = () => {
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [skinsLoaded, setSkinsLoaded] = useState(false);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
@@ -26,20 +23,17 @@ export const useSkins = () => {
     return allSkins.find(skin => skin.id === selectedSkinId) || null;
   }, [allSkins, selectedSkinId]);
 
-  // Gérer la visibilité du document pour actualiser les données quand l'utilisateur revient sur l'onglet
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log("Document visible, refreshing skins data");
         if (user) {
           console.log("User detected, refreshing skins data with user context");
-          // Assure-toi que le profil utilisateur est à jour avant de charger les skins
           refreshSession().then(() => {
             setSkinsLoaded(false);
             setProfileSkinsProcessed(false);
           });
         } else {
-          // Pour les utilisateurs non connectés, juste rafraîchir les skins
           setSkinsLoaded(false);
         }
       }
@@ -114,7 +108,6 @@ export const useSkins = () => {
     if (skinsLoaded) return;
     
     try {
-      setLoading(true);
       setFetchError(null);
       console.log("Fetching all skins...");
       
@@ -143,8 +136,6 @@ export const useSkins = () => {
       toast.error(t('error') + ': ' + t('loading'));
       setAllSkins([]);
       setSkinsLoaded(true);
-    } finally {
-      setLoading(false);
     }
   }, [supabase, skinsLoaded, t]);
 
@@ -152,11 +143,9 @@ export const useSkins = () => {
     fetchAllSkins();
   }, [fetchAllSkins]);
 
-  // Effet pour charger ou initialiser le skin sélectionné
   useEffect(() => {
     if (allSkins.length > 0 && !selectedSkinId) {
       try {
-        // D'abord, essayer de récupérer depuis le profil utilisateur
         if (profile?.default_skin_id && allSkins.some(skin => skin.id === profile.default_skin_id)) {
           console.log("Loading selected skin ID from profile:", profile.default_skin_id);
           setSelectedSkinId(profile.default_skin_id);
@@ -164,7 +153,6 @@ export const useSkins = () => {
           return;
         }
         
-        // Sinon, essayer de récupérer depuis localStorage
         const savedSkinId = localStorage.getItem('selected_skin_id');
         if (savedSkinId) {
           const parsedId = parseInt(savedSkinId, 10);
@@ -190,7 +178,6 @@ export const useSkins = () => {
     }
   }, [allSkins, selectedSkinId, profile]);
 
-  // Effet pour mettre à jour le skin sélectionné depuis le profil
   useEffect(() => {
     if (profile?.default_skin_id && profile.default_skin_id !== selectedSkinId && allSkins.some(skin => skin.id === profile.default_skin_id)) {
       console.log("Setting selected skin from profile default:", profile.default_skin_id);
@@ -199,7 +186,6 @@ export const useSkins = () => {
     }
   }, [profile, selectedSkinId, allSkins]);
 
-  // Fonction pour sélectionner un skin
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
@@ -220,7 +206,6 @@ export const useSkins = () => {
     console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
     setSelectedSkinId(skinId);
     
-    // Save to localStorage for all users (including anonymous)
     try {
       localStorage.setItem('selected_skin_id', skinId.toString());
       setLastSavingMethod('localStorage');
@@ -242,7 +227,6 @@ export const useSkins = () => {
     fetchAllSkins();
   }, [fetchAllSkins]);
 
-  // Debug function to get last update info
   const getDebugInfo = useCallback(() => {
     return {
       lastSavingMethod,
@@ -262,7 +246,6 @@ export const useSkins = () => {
     selectedSkin,
     selectedSkinId,
     setSelectedSkin,
-    loading,
     getSkinById,
     refresh,
     fetchError,

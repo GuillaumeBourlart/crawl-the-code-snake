@@ -33,7 +33,6 @@ type AuthContextType = {
   supabase: SupabaseClient;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  loading: boolean;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   deleteAccount: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -44,13 +43,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
       console.log("No user ID provided to fetchProfile");
-      setLoading(false);
       return;
     }
     
@@ -102,13 +99,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut();
     } finally {
       setProfileFetchAttempted(true);
-      setLoading(false); // Assurons-nous que le chargement se termine toujours
     }
   }, []);
 
   const signOut = async () => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -126,14 +121,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setProfile(null);
       setProfileFetchAttempted(false);
-    } finally {
-      setLoading(false);
     }
   };
 
   const refreshSession = useCallback(async () => {
     try {
-      setLoading(true);
       console.log("Refreshing auth session...");
       
       const { data: { session } } = await supabase.auth.getSession();
@@ -146,20 +138,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!profile || profile.id !== session.user.id) {
           console.log("Fetching profile due to session refresh");
           await fetchProfile(session.user.id);
-        } else {
-          setLoading(false);
         }
       } else {
         console.log("No session found during refresh");
         setUser(null);
         setProfile(null);
-        setLoading(false);
       }
     } catch (error) {
       console.error("Error refreshing session:", error);
       setUser(null);
       setProfile(null);
-      setLoading(false);
     }
   }, [fetchProfile, profile]);
 
@@ -169,7 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const getSession = async () => {
       try {
-        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!isMounted) return;
@@ -181,12 +168,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           console.log("No session found");
           setUser(null);
-          setLoading(false);
         }
       } catch (error) {
         console.error("Session retrieval error:", error);
         if (isMounted) {
-          setLoading(false);
           // If there's an error getting the session, force sign out
           signOut();
         }
@@ -211,18 +196,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
           setProfile(null);
           setProfileFetchAttempted(false);
-          setLoading(false);
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log("Token refreshed for user:", session.user.id);
           setUser(session.user);
           if (!profile) {
             await fetchProfile(session.user.id);
-          } else {
-            setLoading(false);
           }
-        } else {
-          // Make sure loading is always set to false for other events
-          setLoading(false);
         }
       }
     );
@@ -242,11 +221,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchProfile, refreshSession]);
+  }, [fetchProfile, refreshSession, profile]);
 
   const signInWithGoogle = async () => {
     try {
-      setLoading(true);
       console.log("Attempting to sign in with Google...");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -266,7 +244,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Échec de connexion avec Google');
-      setLoading(false);
     }
     // Note: We don't set loading to false here as the auth state change will handle that
   };
@@ -332,8 +309,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (!user) throw new Error('Non authentifié');
       
-      setLoading(true);
-      
       // Get auth token for the API call
       const sessionResponse = await supabase.auth.getSession();
       const accessToken = sessionResponse.data.session?.access_token;
@@ -375,7 +350,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error deleting account:', error);
       toast.error('Échec de la suppression du compte');
-      setLoading(false);
       throw error;
     }
   };
@@ -388,7 +362,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase,
         signInWithGoogle,
         signOut,
-        loading,
         updateProfile,
         deleteAccount,
         refreshSession

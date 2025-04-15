@@ -14,12 +14,11 @@ import { useSkins } from "@/hooks/use-skins";
 import SkinPreview from "@/components/SkinPreview";
 
 const ProfilePage = () => {
-  const { user, profile, loading, updateProfile, deleteAccount } = useAuth();
+  const { user, profile, updateProfile, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const { 
     selectedSkinId, 
     selectedSkin, 
-    loading: skinsLoading, 
     getDebugInfo, 
     setSelectedSkin 
   } = useSkins();
@@ -32,6 +31,7 @@ const ProfilePage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (profile?.pseudo) {
@@ -40,10 +40,10 @@ const ProfilePage = () => {
   }, [profile]);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!user) {
       navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, navigate]);
 
   useEffect(() => {
     if (getDebugInfo) {
@@ -58,6 +58,7 @@ const ProfilePage = () => {
     }
 
     try {
+      setLoading(true);
       await updateProfile({
         pseudo: pseudo.trim()
       });
@@ -67,6 +68,8 @@ const ProfilePage = () => {
     } catch (error) {
       console.error("Error updating pseudo:", error);
       toast.error("Erreur lors de la mise à jour du pseudo");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,6 +77,7 @@ const ProfilePage = () => {
     console.log("ProfilePage - handleUpdateDefaultSkin called with skinId:", skinId);
     
     try {
+      setLoading(true);
       // First update in DB via API
       console.log("Updating profile default_skin_id in database...");
       await updateProfile({
@@ -89,6 +93,8 @@ const ProfilePage = () => {
     } catch (error) {
       console.error("Error updating default skin:", error);
       toast.error("Erreur lors de la mise à jour du skin par défaut");
+    } finally {
+      setLoading(false);
     }
   };
 

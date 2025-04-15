@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,13 +98,11 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
+  const { user, profile, updateProfile, refreshSession } = useAuth();
   const { 
     selectedSkin, 
     selectedSkinId, 
     availableSkins: userSkins, 
-    loading: skinsLoading, 
-    setSelectedSkin,
     refresh: refreshSkins
   } = useSkins();
   
@@ -133,11 +130,9 @@ const Index = () => {
     }
   }, [profile]);
 
-  // Effet pour vérifier et rafraîchir l'état d'authentification quand l'onglet devient visible
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Rafraîchir l'état d'authentification et de session
         console.log("Document visible, refreshing session state");
         refreshSession();
       }
@@ -501,7 +496,7 @@ const Index = () => {
     setUsername(e.target.value);
   };
 
-  const isLoading = authLoading || skinsLoading;
+  const isLoading = false;
 
   useEffect(() => {
     if (gameStarted) {
@@ -556,7 +551,7 @@ const Index = () => {
           
           <div className="w-full mb-6">
             <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
-              {isLoading ? (
+              {false ? (
                 <div className="flex justify-center py-2">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
                 </div>
@@ -579,7 +574,7 @@ const Index = () => {
             <button
               className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handlePlay}
-              disabled={connecting || !username.trim() || !selectedSkinId || isLoading}
+              disabled={connecting || !username.trim() || !selectedSkinId}
             >
               {connecting ? (
                 <div className="p-5">
@@ -591,7 +586,7 @@ const Index = () => {
               ) : (
                 <AnimatedArrow 
                   className="w-full h-32" 
-                  isClickable={Boolean(username.trim() && selectedSkinId && !isLoading)}
+                  isClickable={Boolean(username.trim() && selectedSkinId)}
                 />
               )}
             </button>
