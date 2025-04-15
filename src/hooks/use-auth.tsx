@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../supabase';
+import { supabase } from '../lib/supabase'; // Updated import path
 import { toast } from 'react-hot-toast';
 
 type Profile = {
