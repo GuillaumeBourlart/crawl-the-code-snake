@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Profile } from '@/types/supabase';
@@ -46,6 +46,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+  
+  // Add a ref to track if a refresh is currently in progress to prevent concurrent calls
+  const isRefreshingRef = useRef(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
@@ -131,10 +134,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Revised refreshSession function without profile dependency and with locking mechanism
   const refreshSession = useCallback(async () => {
+    // Skip if a refresh is already in progress
+    if (isRefreshingRef.current) {
+      console.log("Session refresh already in progress, skipping");
+      return;
+    }
+    
     try {
-      setLoading(true);
+      isRefreshingRef.current = true;
       console.log("Refreshing auth session...");
+      
+      // Only set loading if we're not already loading something else
+      // This helps prevent flickering UI and recursion
+      const wasLoading = loading;
+      if (!wasLoading) {
+        setLoading(true);
+      }
       
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -142,11 +159,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Session found on refresh:", session.user.id);
         setUser(session.user);
         
-        // Si nous n'avons pas encore de profil ou si c'est un nouvel utilisateur, récupérons le profil
-        if (!profile || profile.id !== session.user.id) {
-          console.log("Fetching profile due to session refresh");
-          await fetchProfile(session.user.id);
+        // Only fetch profile if we need to
+        const currentUserId = session.user.id;
+        const profileUserId = profile?.id;
+        
+        if (!profileUserId || profileUserId !== currentUserId) {
+          console.log("Fetching profile due to session refresh - user changed or no profile");
+          await fetchProfile(currentUserId);
         } else {
+          console.log("User unchanged, keeping existing profile data");
+          // Make sure to reset loading regardless
           setLoading(false);
         }
       } else {
@@ -160,8 +182,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setProfile(null);
       setLoading(false);
+    } finally {
+      isRefreshingRef.current = false;
     }
-  }, [fetchProfile, profile]);
+  }, [fetchProfile, loading]); // Removed profile from deps, only depend on fetchProfile and loading
 
   useEffect(() => {
     let isMounted = true;
@@ -231,6 +255,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log("Document became visible, refreshing session");
+        // Use the refreshSession function which now has locking
         refreshSession();
       }
     };

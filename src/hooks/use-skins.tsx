@@ -20,6 +20,8 @@ export const useSkins = () => {
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
   
+  // Add a ref to track if a refresh is currently in progress to prevent concurrent calls
+  const isRefreshingRef = useRef(false);
   const availableSkinsRef = useRef<GameSkin[]>([]);
 
   const selectedSkin = useMemo(() => {
@@ -29,18 +31,30 @@ export const useSkins = () => {
   // Gérer la visibilité du document pour actualiser les données quand l'utilisateur revient sur l'onglet
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !isRefreshingRef.current) {
         console.log("Document visible, refreshing skins data");
         if (user) {
           console.log("User detected, refreshing skins data with user context");
-          // Assure-toi que le profil utilisateur est à jour avant de charger les skins
-          refreshSession().then(() => {
-            setSkinsLoaded(false);
-            setProfileSkinsProcessed(false);
-          });
+          // Mark refresh as in progress
+          isRefreshingRef.current = true;
+          
+          // Use a timeout to prevent immediate refresh which could cause issues with other visibility handlers
+          setTimeout(() => {
+            refreshSession().then(() => {
+              setSkinsLoaded(false);
+              setProfileSkinsProcessed(false);
+              isRefreshingRef.current = false;
+            }).catch(() => {
+              isRefreshingRef.current = false;
+            });
+          }, 100);
         } else {
-          // Pour les utilisateurs non connectés, juste rafraîchir les skins
-          setSkinsLoaded(false);
+          // For non-logged in users, just refresh skins
+          isRefreshingRef.current = true;
+          setTimeout(() => {
+            setSkinsLoaded(false);
+            isRefreshingRef.current = false;
+          }, 100);
         }
       }
     };
@@ -111,9 +125,10 @@ export const useSkins = () => {
   }, [user, freeSkins, purchasedSkins, purchasableSkins, allSkins]);
 
   const fetchAllSkins = useCallback(async () => {
-    if (skinsLoaded) return;
+    if (skinsLoaded || isRefreshingRef.current) return;
     
     try {
+      isRefreshingRef.current = true;
       setLoading(true);
       setFetchError(null);
       console.log("Fetching all skins...");
@@ -145,6 +160,7 @@ export const useSkins = () => {
       setSkinsLoaded(true);
     } finally {
       setLoading(false);
+      isRefreshingRef.current = false;
     }
   }, [supabase, skinsLoaded, t]);
 
@@ -236,6 +252,11 @@ export const useSkins = () => {
   }, [allSkins]);
 
   const refresh = useCallback(() => {
+    if (isRefreshingRef.current) {
+      console.log("Refresh already in progress, skipping");
+      return;
+    }
+    
     console.log("Refreshing skins data");
     setSkinsLoaded(false);
     setProfileSkinsProcessed(false);
