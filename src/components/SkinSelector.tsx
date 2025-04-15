@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSkins } from '@/hooks/use-skins';
 import { GameSkin } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
 import SkinPreview from './SkinPreview';
 import { useAuth } from '@/hooks/use-auth';
-import { Lock, CheckCircle2, ShoppingCart } from 'lucide-react';
+import { Lock, CheckCircle2, ShoppingCart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import PurchaseConfirmationDialog from './PurchaseConfirmationDialog';
+import { eventBus, EVENTS } from '@/lib/event-bus';
 
 interface SkinSelectorProps {
   onSelectSkin?: (skinId: number) => void;
@@ -29,18 +30,57 @@ const SkinSelector = ({
     setSelectedSkin,
     ownedSkinIds,
     getUnifiedSkinsList,
-    loading: skinsLoading
+    loading: skinsLoading,
+    refresh: refreshSkins
   } = useSkins();
   
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   const [purchaseConfirmationSkin, setPurchaseConfirmationSkin] = useState<GameSkin | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const unifiedSkinsList = useMemo(() => {
     if (!allSkins?.length) return [];
     return getUnifiedSkinsList();
   }, [allSkins, getUnifiedSkinsList]);
+  
+  const handleManualRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    
+    try {
+      setIsRefreshing(true);
+      console.log("SkinSelector: Manually refreshing skins...");
+      await refreshSkins();
+      toast.success("Les skins ont été actualisés");
+    } catch (error) {
+      console.error("Error manually refreshing skins:", error);
+      toast.error("Impossible d'actualiser les skins");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshSkins, isRefreshing]);
+  
+  useEffect(() => {
+    // Set up event listeners for skin loading events
+    const skinLoadingSubscription = eventBus.subscribe(EVENTS.SKINS_LOADING, () => {
+      console.log("SkinSelector: SKINS_LOADING event received");
+    });
+    
+    const skinLoadedSubscription = eventBus.subscribe(EVENTS.SKINS_LOADED, (data) => {
+      console.log("SkinSelector: SKINS_LOADED event received", data);
+    });
+    
+    const skinErrorSubscription = eventBus.subscribe(EVENTS.SKINS_ERROR, (data) => {
+      console.error("SkinSelector: SKINS_ERROR event received", data);
+    });
+    
+    return () => {
+      skinLoadingSubscription.unsubscribe();
+      skinLoadedSubscription.unsubscribe();
+      skinErrorSubscription.unsubscribe();
+    };
+  }, []);
   
   useEffect(() => {
     if (unifiedSkinsList.length > 0) {
@@ -66,13 +106,19 @@ const SkinSelector = ({
     });
   }, [displaySkins.length, selectedSkinId, allSkins?.length, ownedSkinIds?.length]);
 
-  const handleSkinSelect = (skinId: number) => {
-    console.log("SkinSelector: selecting skin", skinId);
-    
-    setSelectedSkin(skinId);
-    
-    if (onSelectSkin) {
-      onSelectSkin(skinId);
+  const handleSkinSelect = async (skinId: number) => {
+    try {
+      console.log("SkinSelector: selecting skin", skinId);
+      
+      const success = await setSelectedSkin(skinId);
+      
+      if (success && onSelectSkin) {
+        console.log("SkinSelector: selection successful, calling onSelectSkin");
+        onSelectSkin(skinId);
+      }
+    } catch (error) {
+      console.error("Error in handleSkinSelect:", error);
+      toast.error("Impossible de sélectionner ce skin");
     }
   };
 
@@ -108,8 +154,21 @@ const SkinSelector = ({
 
   if (skinsLoading) {
     return (
-      <div className="w-full flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
+      <div className="w-full flex flex-col items-center justify-center py-8 space-y-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-indigo-500"></div>
+        <p className="text-sm text-gray-400">Chargement des skins...</p>
+        {skinsLoading && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="mt-4 bg-gray-800/50 hover:bg-gray-700/50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+          </Button>
+        )}
       </div>
     );
   }
@@ -117,6 +176,18 @@ const SkinSelector = ({
   if (simpleMode) {
     return (
       <div className="w-full">
+        <div className="flex justify-end mb-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="bg-gray-800/50 hover:bg-gray-700/50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+          </Button>
+        </div>
         <div className="flex flex-col space-y-2">
           {displaySkins.map(skin => {
             const isSelected = skin.id === selectedSkinId;
@@ -153,14 +224,40 @@ const SkinSelector = ({
 
   if (displaySkins.length === 0) {
     return (
-      <div className="w-full text-center py-6 text-gray-400">
-        Aucun skin disponible pour le moment
+      <div className="w-full">
+        <div className="flex justify-end mb-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="bg-gray-800/50 hover:bg-gray-700/50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+          </Button>
+        </div>
+        <div className="w-full text-center py-6 text-gray-400">
+          Aucun skin disponible pour le moment
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full">
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleManualRefresh}
+          disabled={isRefreshing}
+          className="bg-gray-800/50 hover:bg-gray-700/50"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+        </Button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6">
         {displaySkins.map(skin => {
           const isSelected = skin.id === selectedSkinId;

@@ -18,6 +18,8 @@ import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
 import ProfilePage from "./pages/ProfilePage";
 import { useEffect } from "react";
+import { eventBus, visibilityManager } from "./lib/event-bus";
+import loadingState from "./lib/loading-states";
 
 // Add CSS to handle scrolling
 const styles = `
@@ -47,14 +49,70 @@ const styles = `
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Add styles dynamically
+  // Add styles dynamically and initialize visibility management
   useEffect(() => {
+    // Add CSS styles
     const styleElement = document.createElement('style');
     styleElement.innerHTML = styles;
     document.head.appendChild(styleElement);
     
+    // Initialize visibility manager
+    visibilityManager.initialize();
+    console.log("App: Visibility manager initialized");
+    
+    // Reset all loading states on visibility change to prevent stuck states
+    const visibilitySubscription = eventBus.subscribe(
+      'documentBecameVisible',
+      () => {
+        console.log("App: Document became visible, resetting any stuck loading states");
+        // Give a short delay to allow any in-progress operations to complete
+        setTimeout(() => {
+          const loadingOps = loadingState.getAllLoadingOperations();
+          if (loadingOps.length > 0) {
+            console.warn("App: Detected stuck loading operations, resetting:", loadingOps);
+            loadingState.resetAllLoadingStates();
+          }
+        }, 2000);
+      }
+    );
+    
+    // Setup global error handler for loading states
+    const loadingErrorSubscription = eventBus.subscribe(
+      'loading:failed', 
+      (data) => console.error("Loading state error:", data)
+    );
+    
+    // Setup debugging for skin events
+    let debugSubscriptions = [];
+    if (process.env.NODE_ENV === 'development') {
+      // Debug event subscriptions
+      debugSubscriptions = [
+        eventBus.subscribe('skins:loading', () => console.debug("DEBUG: Skins loading event")),
+        eventBus.subscribe('skins:loaded', () => console.debug("DEBUG: Skins loaded event")),
+        eventBus.subscribe('skins:error', (data) => console.debug("DEBUG: Skins error event", data)),
+        eventBus.subscribe('skins:refreshing', () => console.debug("DEBUG: Skins refreshing event")),
+        eventBus.subscribe('skins:refresh_complete', () => console.debug("DEBUG: Skins refresh complete event")),
+        eventBus.subscribe('skins:skin_selected', (data) => console.debug("DEBUG: Skin selected event", data))
+      ];
+    }
+    
+    // Clean up function
     return () => {
+      // Remove style element
       document.head.removeChild(styleElement);
+      
+      // Clean up visibility manager
+      visibilityManager.cleanup();
+      
+      // Clean up subscriptions
+      visibilitySubscription.unsubscribe();
+      loadingErrorSubscription.unsubscribe();
+      debugSubscriptions.forEach(sub => sub.unsubscribe());
+      
+      // Clear any pending loading states
+      loadingState.clearLoadingState('fetch_all_skins');
+      loadingState.clearLoadingState('refresh_skins');
+      console.log("App: All resources cleaned up");
     };
   }, []);
   
