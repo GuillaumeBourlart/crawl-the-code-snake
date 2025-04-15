@@ -28,14 +28,14 @@ const SkinSelector = ({
     selectedSkinId, 
     setSelectedSkin,
     ownedSkinIds,
-    getUnifiedSkinsList
+    getUnifiedSkinsList,
+    loading: skinsLoading
   } = useSkins();
   
   const { user } = useAuth();
   const [hoveredSkin, setHoveredSkin] = useState<GameSkin | null>(null);
   const [displaySkins, setDisplaySkins] = useState<GameSkin[]>([]);
   const [purchaseConfirmationSkin, setPurchaseConfirmationSkin] = useState<GameSkin | null>(null);
-  const [skinsLoading, setSkinsLoading] = useState(false);
   
   const unifiedSkinsList = useMemo(() => {
     if (!allSkins?.length) return [];

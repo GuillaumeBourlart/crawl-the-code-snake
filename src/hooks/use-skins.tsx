@@ -34,9 +34,11 @@ export const useSkins = () => {
           refreshSession().then(() => {
             setSkinsLoaded(false);
             setProfileSkinsProcessed(false);
+            fetchAllSkins(); // Immediately fetch skins after resetting states
           });
         } else {
           setSkinsLoaded(false);
+          fetchAllSkins(); // Fetch skins even when not logged in
         }
       }
     };
@@ -45,7 +47,7 @@ export const useSkins = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, refreshSession]);
+  }, [user, refreshSession, fetchAllSkins]);
 
   useEffect(() => {
     if (profile && profile.skins && !profileSkinsProcessed) {
@@ -149,8 +151,9 @@ export const useSkins = () => {
   }, [fetchAllSkins]);
 
   useEffect(() => {
-    if (allSkins.length > 0 && !selectedSkinId) {
+    if (allSkins.length > 0) {
       try {
+        // First priority: use profile's default skin if available and valid
         if (profile?.default_skin_id && allSkins.some(skin => skin.id === profile.default_skin_id)) {
           console.log("Loading selected skin ID from profile:", profile.default_skin_id);
           setSelectedSkinId(profile.default_skin_id);
@@ -158,19 +161,20 @@ export const useSkins = () => {
           return;
         }
         
+        // Second priority: use localStorage if available and valid
         const savedSkinId = localStorage.getItem('selected_skin_id');
         if (savedSkinId) {
           const parsedId = parseInt(savedSkinId, 10);
           if (!isNaN(parsedId) && allSkins.some(skin => skin.id === parsedId)) {
             console.log("Loading selected skin ID from localStorage:", parsedId);
             setSelectedSkinId(parsedId);
-          } else if (allSkins[0]) {
-            console.log("Invalid saved skin ID, selecting first available:", allSkins[0].id);
-            setSelectedSkinId(allSkins[0].id);
-            localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
+            return;
           }
-        } else if (allSkins[0]) {
-          console.log("No skin selected, selecting first available:", allSkins[0].id);
+        }
+
+        // Last resort: use first available skin
+        if (allSkins[0]) {
+          console.log("No valid skin selected, selecting first available:", allSkins[0].id);
           setSelectedSkinId(allSkins[0].id);
           localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
         }
@@ -178,10 +182,11 @@ export const useSkins = () => {
         console.error("Error setting initial skin:", error);
         if (allSkins[0]) {
           setSelectedSkinId(allSkins[0].id);
+          localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
         }
       }
     }
-  }, [allSkins, selectedSkinId, profile]);
+  }, [allSkins, profile]);
 
   useEffect(() => {
     if (profile?.default_skin_id && profile.default_skin_id !== selectedSkinId && allSkins.some(skin => skin.id === profile.default_skin_id)) {
