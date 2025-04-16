@@ -19,7 +19,6 @@ const ProfilePage = () => {
   const { 
     selectedSkinId, 
     selectedSkin, 
-    getDebugInfo, 
     setSelectedSkin 
   } = useSkins();
   
@@ -29,8 +28,7 @@ const ProfilePage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -46,11 +44,7 @@ const ProfilePage = () => {
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    if (getDebugInfo) {
-      setDebugInfo(getDebugInfo());
-    }
-  }, [getDebugInfo, selectedSkinId, user, profile]);
+ 
 
   const handleUpdatePseudo = async () => {
     if (!pseudo.trim()) {
@@ -115,10 +109,7 @@ const ProfilePage = () => {
     navigate('/skins');
   };
 
-  const showDebugInfo = () => {
-    setDebugInfo(getDebugInfo());
-    setIsDebugDialogOpen(true);
-  };
+  
 
   if (loading || !user) {
     return (
