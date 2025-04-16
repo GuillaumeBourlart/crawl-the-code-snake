@@ -6,9 +6,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 export const useSkins = () => {
-  const { user, profile, supabase, refreshSession } = useAuth();
+  const { user, profile, supabase, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   
+  // State
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
@@ -18,49 +19,16 @@ export const useSkins = () => {
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
   
+  // Refs
   const availableSkinsRef = useRef<GameSkin[]>([]);
   const isRefreshingSkinsRef = useRef(false);
+  const visibilityListenerAttachedRef = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Computed values
   const selectedSkin = useMemo(() => {
     return allSkins.find(skin => skin.id === selectedSkinId) || null;
   }, [allSkins, selectedSkinId]);
-
-  // Handle visibility change - with ref to prevent multiple concurrent executions
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("[useSkins] Document visible, refreshing skins data");
-        
-        // Prevent multiple concurrent refreshes
-        if (isRefreshingSkinsRef.current) {
-          console.log("[useSkins] Skins refresh already in progress, skipping");
-          return;
-        }
-        
-        isRefreshingSkinsRef.current = true;
-        
-        if (user) {
-          console.log("[useSkins] User detected, refreshing skins data with user context");
-          refreshSession().then(() => {
-            setSkinsLoaded(false);
-            setProfileSkinsProcessed(false);
-            isRefreshingSkinsRef.current = false;
-          }).catch(error => {
-            console.error("[useSkins] Error refreshing session:", error);
-            isRefreshingSkinsRef.current = false;
-          });
-        } else {
-          setSkinsLoaded(false);
-          isRefreshingSkinsRef.current = false;
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, refreshSession]);
 
   // Process profile skins when profile changes
   useEffect(() => {
@@ -89,6 +57,7 @@ export const useSkins = () => {
     }
   }, [profile, profileSkinsProcessed]);
 
+  // Computed skin collections
   const freeSkins = useMemo(() => {
     return allSkins.filter(skin => !skin.is_paid)
       .sort((a, b) => a.id - b.id);
@@ -112,6 +81,7 @@ export const useSkins = () => {
     ).sort((a, b) => a.id - b.id);
   }, [allSkins, ownedSkinIds]);
 
+  // Get unified skin list for UI
   const getUnifiedSkinsList = useCallback((): GameSkin[] => {
     if (user) {
       return [...freeSkins, ...purchasedSkins, ...purchasableSkins];
@@ -122,17 +92,33 @@ export const useSkins = () => {
     }
   }, [user, freeSkins, purchasedSkins, purchasableSkins, allSkins]);
 
+  // Fetch all skins from Supabase
   const fetchAllSkins = useCallback(async () => {
     if (skinsLoaded) return;
+    
+    // Prevent concurrent fetches
+    if (isRefreshingSkinsRef.current) {
+      console.log("[useSkins] Skins refresh already in progress, skipping fetch");
+      return;
+    }
+    
+    isRefreshingSkinsRef.current = true;
     
     try {
       setLoading(true);
       setFetchError(null);
       console.log("[useSkins] Fetching all skins...");
       
-      const { data, error } = await supabase
-        .from('game_skins')
-        .select('*');
+      // Use Promise.race with timeout to prevent hanging
+      const fetchPromise = supabase.from('game_skins').select('*');
+      const timeoutPromise = new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error("Skins fetch timeout")), 5000)
+      );
+      
+      const { data, error } = await Promise.race([
+        fetchPromise,
+        timeoutPromise.then(() => ({ data: null, error: new Error("Timeout") }))
+      ]);
 
       if (error) {
         console.error("[useSkins] Supabase error fetching skins:", error);
@@ -157,13 +143,24 @@ export const useSkins = () => {
       setSkinsLoaded(true);
     } finally {
       setLoading(false);
+      isRefreshingSkinsRef.current = false;
     }
   }, [supabase, skinsLoaded, t]);
 
   // Fetch skins when needed
   useEffect(() => {
-    fetchAllSkins();
-  }, [fetchAllSkins]);
+    if (!skinsLoaded && !isRefreshingSkinsRef.current) {
+      fetchAllSkins();
+    }
+  }, [fetchAllSkins, skinsLoaded]);
+
+  // Reset skins loaded state when auth state changes
+  useEffect(() => {
+    if (!authLoading) {
+      setSkinsLoaded(false);
+      setProfileSkinsProcessed(false);
+    }
+  }, [user, authLoading]);
 
   // Set initial selected skin
   useEffect(() => {
@@ -210,6 +207,7 @@ export const useSkins = () => {
     }
   }, [profile, selectedSkinId, allSkins]);
 
+  // Handle setting a selected skin
   const setSelectedSkin = async (skinId: number) => {
     const skinExists = allSkins.some(skin => skin.id === skinId);
     
@@ -239,11 +237,13 @@ export const useSkins = () => {
     }
   };
 
+  // Utility to get a skin by ID
   const getSkinById = useCallback((id: number | null): GameSkin | null => {
     if (!id) return null;
     return allSkins.find(skin => skin.id === id) || null;
   }, [allSkins]);
 
+  // Manual refresh function
   const refresh = useCallback(() => {
     console.log("[useSkins] Manually refreshing skins data");
     
@@ -263,6 +263,7 @@ export const useSkins = () => {
     });
   }, [fetchAllSkins]);
 
+  // Debug info for troubleshooting
   const getDebugInfo = useCallback(() => {
     return {
       lastSavingMethod,
@@ -274,6 +275,16 @@ export const useSkins = () => {
       skinsLoaded
     };
   }, [lastSavingMethod, selectedSkinId, user, profile, ownedSkinIds, skinsLoaded]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     allSkins,

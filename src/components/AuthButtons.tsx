@@ -22,7 +22,6 @@ const AuthButtons = () => {
   
   // Reset loading state if user changes or auth loading state changes
   useEffect(() => {
-    console.log("[AuthButtons] Auth state updated - User:", !!user, "Loading:", authLoading);
     if (!authLoading) {
       setIsLoading(false);
     }
