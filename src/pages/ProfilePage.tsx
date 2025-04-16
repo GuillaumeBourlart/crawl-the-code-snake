@@ -12,8 +12,6 @@ import { toast } from "sonner";
 import SkinSelector from "@/components/SkinSelector";
 import { useSkins } from "@/hooks/use-skins";
 import SkinPreview from "@/components/SkinPreview";
-import { useLanguage } from "@/contexts/LanguageContext";
-const { t } = useLanguage();
 
 const ProfilePage = () => {
   const { user, profile, updateProfile, deleteAccount } = useAuth();
@@ -32,7 +30,6 @@ const ProfilePage = () => {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
     if (profile?.pseudo) {
