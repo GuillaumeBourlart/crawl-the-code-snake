@@ -63,7 +63,7 @@ interface PlayerLeaderboardEntry {
 }
 
 const MAX_RECONNECTION_ATTEMPTS = 5;
-const RECONNECTION_DELAY = 2000;
+const RECONNECTION_DELAY = 300;
 
 const MIN_ITEM_RADIUS = 4;
 const MAX_ITEM_RADIUS = 10;
