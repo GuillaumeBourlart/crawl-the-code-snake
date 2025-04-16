@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 
@@ -42,7 +41,6 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   // Charger les traductions au démarrage
   useEffect(() => {
     const loadTranslations = async () => {
-      // Charger les traductions depuis les fichiers JSON
       const translationsData = {
         // Système
         "loading": {
@@ -132,24 +130,124 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
           es: "Haz clic para cambiar tu skin",
           de: "Klicke um deinen Skin zu ändern"
         },
-        // Profil
+        // Cookie consent
+        "cookie_title": {
+          fr: "Utilisation de cookies",
+          en: "Cookie Usage",
+          es: "Uso de cookies",
+          de: "Cookie-Nutzung"
+        },
+        "cookie_message": {
+          fr: "Nous utilisons des cookies nécessaires au fonctionnement du site.",
+          en: "We use cookies necessary for the site to function.",
+          es: "Utilizamos cookies necesarias para el funcionamiento del sitio.",
+          de: "Wir verwenden Cookies, die für die Funktionalität der Website erforderlich sind."
+        },
+        "cookie_accept": {
+          fr: "OK",
+          en: "OK",
+          es: "OK",
+          de: "OK"
+        },
+        
+        // Footer
+        "legal_notice": {
+          fr: "Mentions légales",
+          en: "Legal Notice",
+          es: "Aviso Legal",
+          de: "Rechtliche Hinweise"
+        },
+        "privacy_policy": {
+          fr: "Politique de confidentialité",
+          en: "Privacy Policy",
+          es: "Política de Privacidad",
+          de: "Datenschutzerklärung"
+        },
+        "cookie_policy": {
+          fr: "Politique relative aux cookies",
+          en: "Cookie Policy",
+          es: "Política de Cookies",
+          de: "Cookie-Richtlinie"
+        },
+        "terms_of_sale": {
+          fr: "Conditions de vente",
+          en: "Terms of Sale",
+          es: "Condiciones de Venta",
+          de: "Verkaufsbedingungen"
+        },
+        
+        // Profile page
         "user_profile": {
           fr: "Profil Utilisateur",
           en: "User Profile",
-          es: "Perfil del Usuario",
+          es: "Perfil de Usuario",
           de: "Benutzerprofil"
         },
-        "edit": {
+        "modify": {
           fr: "Modifier",
-          en: "Edit",
-          es: "Editar",
-          de: "Bearbeiten"
-        },
-        "change": {
-          fr: "Changer",
-          en: "Change",
-          es: "Cambiar",
+          en: "Modify",
+          es: "Modificar",
           de: "Ändern"
+        },
+        "delete_account_button": {
+          fr: "Supprimer",
+          en: "Delete",
+          es: "Eliminar",
+          de: "Löschen"
+        },
+        "delete_account_title": {
+          fr: "Supprimer votre compte",
+          en: "Delete your account",
+          es: "Eliminar tu cuenta",
+          de: "Konto löschen"
+        },
+        "delete_account_description": {
+          fr: "Supprimer définitivement votre compte et toutes vos données associées.",
+          en: "Permanently delete your account and all associated data.",
+          es: "Eliminar permanentemente tu cuenta y todos los datos asociados.",
+          de: "Lösche dein Konto und alle zugehörigen Daten dauerhaft."
+        },
+        "delete_account_warning": {
+          fr: "En supprimant votre compte, vous perdrez définitivement :",
+          en: "By deleting your account, you will permanently lose:",
+          es: "Al eliminar tu cuenta, perderás permanentemente:",
+          de: "Durch das Löschen deines Kontos verlierst du dauerhaft:"
+        },
+        "delete_account_items": {
+          fr: "Tous vos skins achetés",
+          en: "All your purchased skins",
+          es: "Todas tus skins compradas",
+          de: "Alle gekauften Skins"
+        },
+        "delete_account_history": {
+          fr: "Votre historique de jeu",
+          en: "Your game history",
+          es: "Tu historial de juego",
+          de: "Deine Spielhistorie"
+        },
+        "delete_account_rankings": {
+          fr: "Votre place dans les classements",
+          en: "Your place in the rankings",
+          es: "Tu posición en las clasificaciones",
+          de: "Deine Position in den Ranglisten"
+        },
+        "delete_account_data": {
+          fr: "Toutes vos données personnelles",
+          en: "All your personal data",
+          es: "Todos tus datos personales",
+          de: "Alle deine persönlichen Daten"
+        },
+        "please_enter_pseudo": {
+          fr: "Veuillez entrer un pseudo",
+          en: "Please enter a username",
+          es: "Por favor, introduce un nombre de usuario",
+          de: "Bitte gib einen Benutzernamen ein"
+        },
+        "please_select_skin": {
+          fr: "Veuillez sélectionner un skin",
+          en: "Please select a skin",
+          es: "Por favor, selecciona un skin",
+          de: "Bitte wähle einen Skin aus"
         },
         "save": {
           fr: "Enregistrer",
@@ -163,73 +261,43 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
           es: "Cancelar",
           de: "Abbrechen"
         },
-        "back": {
-          fr: "Retour",
-          en: "Back",
-          es: "Atrás",
-          de: "Zurück"
-        },
-        "delete_account": {
-          fr: "Supprimer le compte",
-          en: "Delete account",
-          es: "Eliminar cuenta",
-          de: "Konto löschen"
-        },
-        "default_skin": {
-          fr: "Skin par défaut",
-          en: "Default skin",
-          es: "Skin predeterminada",
-          de: "Standard-Skin"
-        },
-        // Suppression de compte
-        "delete_account_confirm": {
-          fr: "Êtes-vous sûr de vouloir supprimer votre compte ?",
-          en: "Are you sure you want to delete your account?",
-          es: "¿Estás seguro de que quieres eliminar tu cuenta?",
-          de: "Bist du sicher, dass du dein Konto löschen möchtest?"
-        },
-        "delete_forever": {
-          fr: "Supprimer définitivement",
-          en: "Delete permanently",
-          es: "Eliminar permanentemente",
-          de: "Dauerhaft löschen"
+        "continue": {
+          fr: "Continuer",
+          en: "Continue",
+          es: "Continuar",
+          de: "Weiter"
         },
         "deleting": {
-          fr: "Suppression...",
+          fr: "Suppression en cours...",
           en: "Deleting...",
           es: "Eliminando...",
           de: "Wird gelöscht..."
         },
-        // Langue
-        "language": {
-          fr: "Langue",
-          en: "Language",
-          es: "Idioma",
-          de: "Sprache"
+        
+        // Game elements
+        "connecting": {
+          fr: "Connexion en cours...",
+          en: "Connecting...",
+          es: "Conectando...",
+          de: "Verbindung wird hergestellt..."
         },
-        "french": {
-          fr: "Français",
-          en: "French",
-          es: "Francés",
-          de: "Französisch"
+        "connected": {
+          fr: "Connecté au serveur",
+          en: "Connected to server",
+          es: "Conectado al servidor",
+          de: "Mit Server verbunden"
         },
-        "english": {
-          fr: "Anglais",
-          en: "English",
-          es: "Inglés",
-          de: "Englisch"
+        "connection_error": {
+          fr: "Erreur de connexion au serveur",
+          en: "Server connection error",
+          es: "Error de conexión al servidor",
+          de: "Serververbindungsfehler"
         },
-        "spanish": {
-          fr: "Espagnol",
-          en: "Spanish",
-          es: "Español",
-          de: "Spanisch"
-        },
-        "german": {
-          fr: "Allemand",
-          en: "German",
-          es: "Alemán",
-          de: "Deutsch"
+        "disconnected": {
+          fr: "Déconnecté du serveur",
+          en: "Disconnected from server",
+          es: "Desconectado del servidor",
+          de: "Vom Server getrennt"
         }
       };
       

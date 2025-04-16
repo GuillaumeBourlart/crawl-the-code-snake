@@ -3,19 +3,19 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Cookie } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const COOKIE_CONSENT_KEY = "cookie-consent-accepted";
 
 const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
   const isMobile = useIsMobile();
+  const { t } = useLanguage();
 
   useEffect(() => {
-    // Check if the user has already given consent
     const hasConsented = localStorage.getItem(COOKIE_CONSENT_KEY) === "true";
     
     if (!hasConsented) {
-      // Show the banner after a small delay for better UX
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 1000);
@@ -38,19 +38,19 @@ const CookieConsent = () => {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center">
               <Cookie className="h-4 w-4 text-indigo-400 mr-2 flex-shrink-0" />
-              <h3 className="text-sm font-medium text-white">Utilisation de cookies</h3>
+              <h3 className="text-sm font-medium text-white">{t('cookie_title')}</h3>
             </div>
           </div>
           
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-300 mr-4">
-              Nous utilisons des cookies nécessaires au fonctionnement du site.
+              {t('cookie_message')}
             </p>
             <Button 
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 px-3"
               onClick={acceptCookies}
             >
-              OK
+              {t('cookie_accept')}
             </Button>
           </div>
         </div>
