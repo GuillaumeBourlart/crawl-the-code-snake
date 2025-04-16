@@ -7,6 +7,10 @@ const supabaseUrl = "https://ckvbjbclofykscigudjs.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrdmJqYmNsb2Z5a3NjaWd1ZGpzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Mzc4NjAxNCwiZXhwIjoyMDU5MzYyMDE0fQ.K68E3MUX8mU7cnyoHVBHWvy9oVmeaRttsLjhERyenbQ";
 const apiUrl = "https://api.grubz.io"; // Using the new API URL
 
+
+
+
+
 // Create a singleton instance of Supabase client
 let supabaseInstance: SupabaseClient | null = null;
 
@@ -45,65 +49,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   const [loading, setLoading] = useState(true); // Add loading state
+  const isRefreshingRef = useRef(false);
+  
 
   const fetchProfile = useCallback(async (userId: string) => {
-    if (!userId) {
-      console.log("No user ID provided to fetchProfile");
-      setLoading(false); // Make sure to set loading to false
-      return;
+  if (!userId) {
+    console.log("[fetchProfile] Aucun userId fourni.");
+    setLoading(false);
+    return;
+  }
+  
+  let attempts = 0;
+  const maxAttempts = 10;
+  let profileData = null;
+  
+  while (attempts < maxAttempts) {
+    console.log(`[fetchProfile] Tentative ${attempts + 1}/${maxAttempts} pour récupérer le profil de ${userId}.`);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      if (error.code !== 'PGRST116') {
+        console.error("[fetchProfile] Erreur récup profil (tentative):", error);
+        break;
+      }
+    } else if (data) {
+      profileData = data;
+      console.log("[fetchProfile] Profil récupéré:", data);
+      break;
     }
     
-    try {
-      console.log("Attempting to fetch profile for user:", userId);
-      
-      // Essayer de récupérer le profil plusieurs fois sur une période de 5 secondes
-      let attempts = 0;
-      const maxAttempts = 10; // 10 tentatives sur 5 secondes (une tentative toutes les 500ms)
-      let profileData = null;
-      
-      while (attempts < maxAttempts) {
-        console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch profile`);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-          
-        if (error) {
-          if (error.code !== 'PGRST116') { // Si c'est une erreur autre que "no rows returned"
-            console.error('Database error fetching profile:', error);
-            throw error;
-          }
-        } else if (data) {
-          // Profil trouvé
-          console.log("Profile retrieved:", data);
-          profileData = data;
-          break;
-        }
-        
-        // Attendre 500ms avant de réessayer
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-      }
-      
-      if (profileData) {
-        setProfile(profileData as Profile);
-      } else {
-        console.error("Profile not found after maximum attempts");
-        toast.error('Impossible de récupérer votre profil');
-      }
-    } catch (error) {
-      console.error('Critical error handling profile:', error);
-      toast.error('Problème de connexion au profil');
-      
-      // Critical failure, sign out the user
-      await signOut();
-    } finally {
-      setProfileFetchAttempted(true);
-      setLoading(false); // Make sure to set loading to false in finally block
-    }
-  }, []);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    attempts++;
+  }
+  
+  if (profileData) {
+    setProfile(profileData as Profile);
+  } else {
+    console.error("[fetchProfile] Échec après maximum de tentatives pour récupérer le profil.");
+    // Option : au lieu d'appeler signOut(), vous pouvez définir un flag d'erreur et laisser l'utilisateur décider de réessayer.
+    toast.error('Impossible de récupérer votre profil après plusieurs tentatives.');
+  }
+  
+  setLoading(false);
+}, [supabase]);
+
+  const debounce = (func: Function, delay: number) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: any[]) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
+const debouncedRefreshSession = useMemo(() => debounce(refreshSession, 500), [refreshSession]);
+
+
+
 
   const signOut = async () => {
     try {
@@ -129,31 +134,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  
   const refreshSession = useCallback(async () => {
-    try {
-      setLoading(true);
-      console.log("Refreshing auth session...");
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        console.log("Session found on refresh:", session.user.id);
-        setUser(session.user);
-        // Always fetch profile on session refresh
-        await fetchProfile(session.user.id);
-      } else {
-        console.log("No session found during refresh");
-        setUser(null);
-        setProfile(null);
-      }
-    } catch (error) {
-      console.error("Error refreshing session:", error);
+  // Empêcher un double appel
+  if (isRefreshingRef.current) {
+    console.log("[refreshSession] Un rafraîchissement est déjà en cours, annulation de l'appel.");
+    return;
+  }
+  isRefreshingRef.current = true;
+  console.log("[refreshSession] Démarrage du rafraîchissement de la session.");
+  try {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log("[refreshSession] Session récupérée:", session);
+
+    if (session?.user) {
+      console.log("[refreshSession] Utilisateur authentifié:", session.user.id);
+      setUser(session.user);
+      // Log avant l'appel à fetchProfile
+      console.log("[refreshSession] Appel à fetchProfile pour l'utilisateur:", session.user.id);
+      await fetchProfile(session.user.id);
+    } else {
+      console.log("[refreshSession] Aucune session trouvée.");
       setUser(null);
       setProfile(null);
-    } finally {
-      setLoading(false); // Always set loading to false in finally block
     }
-  }, [fetchProfile]);
+  } catch (error: any) {
+    console.error("[refreshSession] Erreur lors du rafraîchissement de la session:", error);
+    setUser(null);
+    setProfile(null);
+  } finally {
+    setLoading(false);
+    isRefreshingRef.current = false; // Libération du verrou
+    console.log("[refreshSession] Rafraîchissement terminé, verrou libéré.");
+  }
+}, [fetchProfile]);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -190,6 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
+        console.log("[onAuthStateChange] Événement :", event, "Session :", session?.user?.id);
         
         if (!isMounted) return;
         
@@ -225,6 +242,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    console.log("[visibilitychange] Onglet visible, appel dé-bounced de refreshSession");
+    debouncedRefreshSession();
+  }
+});
 
     return () => {
       isMounted = false;

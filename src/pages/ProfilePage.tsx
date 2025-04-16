@@ -41,6 +41,7 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (!user) {
+      console.log("[ProfilePage] Aucun utilisateur connecté, redirection vers '/'.");
       navigate('/');
     }
   }, [user, navigate]);

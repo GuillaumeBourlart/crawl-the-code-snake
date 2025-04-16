@@ -130,20 +130,21 @@ const Index = () => {
     }
   }, [profile]);
 
+  
+
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("Document visible, refreshing session state");
-        refreshSession();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refreshSession]);
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      console.log("[Index] Onglet visible, demande de refreshSession");
+      refreshSession();
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, [refreshSession]);
+
   
   useEffect(() => {
     const handleBeforeUnload = () => {
