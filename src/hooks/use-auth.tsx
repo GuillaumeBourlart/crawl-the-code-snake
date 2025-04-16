@@ -46,49 +46,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const isRefreshingRef = useRef(false);
+  const profileFetchInProgressRef = useRef(false);
   
-  // Fetch profile function - attempts multiple times to handle race conditions
+  // Fetch profile function with better error handling and completion logging
   const fetchProfile = useCallback(async (userId: string) => {
     if (!userId) {
       console.log("[fetchProfile] No userId provided.");
-      return;
+      return null;
     }
+    
+    // Check if a fetch is already in progress to prevent duplicate calls
+    if (profileFetchInProgressRef.current) {
+      console.log("[fetchProfile] A profile fetch is already in progress for", userId);
+      return null;
+    }
+    
+    profileFetchInProgressRef.current = true;
+    console.log("[fetchProfile] Attempting to fetch profile for user:", userId);
     
     let attempts = 0;
     const maxAttempts = 10;
     let profileData = null;
     
-    while (attempts < maxAttempts) {
-      console.log(`[fetchProfile] Attempt ${attempts + 1}/${maxAttempts} to get profile for ${userId}.`);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        if (error.code !== 'PGRST116') {
-          console.error("[fetchProfile] Error fetching profile (attempt):", error);
+    try {
+      while (attempts < maxAttempts) {
+        attempts++;
+        console.log(`[fetchProfile] Attempt ${attempts}/${maxAttempts} to fetch profile`);
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            console.error("[fetchProfile] Error fetching profile:", error);
+            break;
+          }
+          console.log("[fetchProfile] Profile not found yet (PGRST116), will retry");
+        } else if (data) {
+          profileData = data;
+          console.log("[fetchProfile] Profile successfully retrieved:", data);
+          setProfile(data as Profile);
           break;
         }
-      } else if (data) {
-        profileData = data;
-        console.log("[fetchProfile] Profile retrieved:", data);
-        break;
+        
+        if (attempts < maxAttempts) {
+          console.log(`[fetchProfile] Waiting before retry ${attempts + 1}`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
       
-      await new Promise(resolve => setTimeout(resolve, 500));
-      attempts++;
+      if (!profileData && attempts >= maxAttempts) {
+        console.error("[fetchProfile] Failed after maximum attempts to retrieve profile.");
+        toast.error('Failed to retrieve your profile after multiple attempts.');
+      }
+      
+      return profileData;
+    } catch (error) {
+      console.error("[fetchProfile] Unexpected error during profile fetch:", error);
+      return null;
+    } finally {
+      profileFetchInProgressRef.current = false;
+      console.log("[fetchProfile] Profile fetch process completed");
     }
-    
-    if (profileData) {
-      setProfile(profileData as Profile);
-    } else {
-      console.error("[fetchProfile] Failed after maximum attempts to retrieve profile.");
-      toast.error('Failed to retrieve your profile after multiple attempts.');
-    }
-    
-    return profileData;
   }, []);
 
   // Debounce function to prevent multiple rapid calls
@@ -104,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshSession = useCallback(async () => {
     // Prevent concurrent refreshes
     if (isRefreshingRef.current) {
-      console.log("[refreshSession] A refresh is already in progress, cancelling this call.");
+      console.log("[refreshSession] A refresh is already in progress, skipping this call.");
       return;
     }
     
@@ -114,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("[refreshSession] Session retrieved:", session);
+      console.log("[refreshSession] Session retrieved:", session?.user?.id || "No session");
 
       if (session?.user) {
         console.log("[refreshSession] Authenticated user:", session.user.id);

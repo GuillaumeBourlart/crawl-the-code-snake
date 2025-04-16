@@ -22,23 +22,26 @@ const AuthButtons = () => {
   
   // Reset loading state if user changes or auth loading state changes
   useEffect(() => {
-    console.log("[AuthButtons] User updated:", user);
+    console.log("[AuthButtons] Auth state updated - User:", !!user, "Loading:", authLoading);
     if (!authLoading) {
       setIsLoading(false);
     }
   }, [user, authLoading]);
 
   const handleSignIn = async () => {
+    console.log("[AuthButtons] Sign in initiated");
     setIsLoading(true);
     try {
       await signInWithGoogle();
       // No need for timeout as the page will redirect
     } catch (error) {
+      console.error("[AuthButtons] Sign in error:", error);
       setIsLoading(false);
     }
   };
 
   const handleSignOut = async () => {
+    console.log("[AuthButtons] Sign out initiated");
     setIsLoading(true);
     try {
       await signOut();

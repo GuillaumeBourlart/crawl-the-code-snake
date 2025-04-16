@@ -1,42 +1,57 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { toast } from 'sonner';
 import { GameSkin, UserSkin, Profile } from '@/types/supabase';
 import { useAuth } from './use-auth';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 export const useSkins = () => {
-  const { user, profile, signOut, updateProfile, supabase, refreshSession } = useAuth();
+  const { user, profile, supabase, refreshSession } = useAuth();
   const { t } = useLanguage();
   
   const [allSkins, setAllSkins] = useState<GameSkin[]>([]);
   const [ownedSkinIds, setOwnedSkinIds] = useState<number[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<number | null>(null);
   const [skinsLoaded, setSkinsLoaded] = useState(false);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [profileSkinsProcessed, setProfileSkinsProcessed] = useState(false);
   const [lastSavingMethod, setLastSavingMethod] = useState<string>('none');
   
   const availableSkinsRef = useRef<GameSkin[]>([]);
+  const isRefreshingSkinsRef = useRef(false);
 
   const selectedSkin = useMemo(() => {
     return allSkins.find(skin => skin.id === selectedSkinId) || null;
   }, [allSkins, selectedSkinId]);
 
+  // Handle visibility change - with ref to prevent multiple concurrent executions
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("Document visible, refreshing skins data");
+        console.log("[useSkins] Document visible, refreshing skins data");
+        
+        // Prevent multiple concurrent refreshes
+        if (isRefreshingSkinsRef.current) {
+          console.log("[useSkins] Skins refresh already in progress, skipping");
+          return;
+        }
+        
+        isRefreshingSkinsRef.current = true;
+        
         if (user) {
-          console.log("User detected, refreshing skins data with user context");
+          console.log("[useSkins] User detected, refreshing skins data with user context");
           refreshSession().then(() => {
             setSkinsLoaded(false);
             setProfileSkinsProcessed(false);
+            isRefreshingSkinsRef.current = false;
+          }).catch(error => {
+            console.error("[useSkins] Error refreshing session:", error);
+            isRefreshingSkinsRef.current = false;
           });
         } else {
           setSkinsLoaded(false);
+          isRefreshingSkinsRef.current = false;
         }
       }
     };
@@ -47,9 +62,10 @@ export const useSkins = () => {
     };
   }, [user, refreshSession]);
 
+  // Process profile skins when profile changes
   useEffect(() => {
     if (profile && profile.skins && !profileSkinsProcessed) {
-      console.log("Processing skins from profile:", profile.skins);
+      console.log("[useSkins] Processing skins from profile:", profile.skins);
       try {
         let skinIds: number[] = [];
         
@@ -60,11 +76,11 @@ export const useSkins = () => {
             .filter(id => !isNaN(id));
         }
         
-        console.log("Extracted skin IDs from profile:", skinIds);
+        console.log("[useSkins] Extracted skin IDs from profile:", skinIds);
         setOwnedSkinIds(skinIds);
         setProfileSkinsProcessed(true);
       } catch (error) {
-        console.error("Error processing profile skins:", error);
+        console.error("[useSkins] Error processing profile skins:", error);
         setOwnedSkinIds([]);
         setProfileSkinsProcessed(true);
       }
@@ -110,49 +126,51 @@ export const useSkins = () => {
     if (skinsLoaded) return;
     
     try {
-      setLoading(true); // Set loading to true when fetching
+      setLoading(true);
       setFetchError(null);
-      console.log("Fetching all skins...");
+      console.log("[useSkins] Fetching all skins...");
       
       const { data, error } = await supabase
         .from('game_skins')
         .select('*');
 
       if (error) {
-        console.error("Supabase error fetching skins:", error);
+        console.error("[useSkins] Supabase error fetching skins:", error);
         throw error;
       }
       
-      console.log("Fetched all skins, response data:", data);
+      console.log("[useSkins] Fetched all skins, count:", data?.length || 0);
       
       if (!data || data.length === 0) {
-        console.warn("No skins found in database");
+        console.warn("[useSkins] No skins found in database");
         setAllSkins([]);
       } else {
-        console.log("First skin data structure:", JSON.stringify(data[0], null, 2));
+        console.log("[useSkins] First skin data structure:", JSON.stringify(data[0], null, 2));
         setAllSkins(data as GameSkin[]);
       }
       setSkinsLoaded(true);
     } catch (error: any) {
-      console.error('Error fetching skins:', error);
+      console.error('[useSkins] Error fetching skins:', error);
       setFetchError(error);
       toast.error(t('error') + ': ' + t('loading'));
       setAllSkins([]);
       setSkinsLoaded(true);
     } finally {
-      setLoading(false); // Set loading to false in finally block
+      setLoading(false);
     }
   }, [supabase, skinsLoaded, t]);
 
+  // Fetch skins when needed
   useEffect(() => {
     fetchAllSkins();
   }, [fetchAllSkins]);
 
+  // Set initial selected skin
   useEffect(() => {
     if (allSkins.length > 0 && !selectedSkinId) {
       try {
         if (profile?.default_skin_id && allSkins.some(skin => skin.id === profile.default_skin_id)) {
-          console.log("Loading selected skin ID from profile:", profile.default_skin_id);
+          console.log("[useSkins] Loading selected skin ID from profile:", profile.default_skin_id);
           setSelectedSkinId(profile.default_skin_id);
           localStorage.setItem('selected_skin_id', profile.default_skin_id.toString());
           return;
@@ -162,20 +180,20 @@ export const useSkins = () => {
         if (savedSkinId) {
           const parsedId = parseInt(savedSkinId, 10);
           if (!isNaN(parsedId) && allSkins.some(skin => skin.id === parsedId)) {
-            console.log("Loading selected skin ID from localStorage:", parsedId);
+            console.log("[useSkins] Loading selected skin ID from localStorage:", parsedId);
             setSelectedSkinId(parsedId);
           } else if (allSkins[0]) {
-            console.log("Invalid saved skin ID, selecting first available:", allSkins[0].id);
+            console.log("[useSkins] Invalid saved skin ID, selecting first available:", allSkins[0].id);
             setSelectedSkinId(allSkins[0].id);
             localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
           }
         } else if (allSkins[0]) {
-          console.log("No skin selected, selecting first available:", allSkins[0].id);
+          console.log("[useSkins] No skin selected, selecting first available:", allSkins[0].id);
           setSelectedSkinId(allSkins[0].id);
           localStorage.setItem('selected_skin_id', allSkins[0].id.toString());
         }
       } catch (error) {
-        console.error("Error setting initial skin:", error);
+        console.error("[useSkins] Error setting initial skin:", error);
         if (allSkins[0]) {
           setSelectedSkinId(allSkins[0].id);
         }
@@ -183,9 +201,10 @@ export const useSkins = () => {
     }
   }, [allSkins, selectedSkinId, profile]);
 
+  // Update selected skin from profile when it changes
   useEffect(() => {
     if (profile?.default_skin_id && profile.default_skin_id !== selectedSkinId && allSkins.some(skin => skin.id === profile.default_skin_id)) {
-      console.log("Setting selected skin from profile default:", profile.default_skin_id);
+      console.log("[useSkins] Setting selected skin from profile default:", profile.default_skin_id);
       setSelectedSkinId(profile.default_skin_id);
       localStorage.setItem('selected_skin_id', profile.default_skin_id.toString());
     }
@@ -208,15 +227,15 @@ export const useSkins = () => {
       return;
     }
     
-    console.log("Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
+    console.log("[useSkins] Setting selected skin to:", skinId, "Previous skin was:", selectedSkinId);
     setSelectedSkinId(skinId);
     
     try {
       localStorage.setItem('selected_skin_id', skinId.toString());
       setLastSavingMethod('localStorage');
-      console.log("Skin saved to localStorage successfully");
+      console.log("[useSkins] Skin saved to localStorage successfully");
     } catch (error) {
-      console.error("Error saving skin to localStorage:", error);
+      console.error("[useSkins] Error saving skin to localStorage:", error);
     }
   };
 
@@ -226,11 +245,22 @@ export const useSkins = () => {
   }, [allSkins]);
 
   const refresh = useCallback(() => {
-    console.log("Refreshing skins data");
+    console.log("[useSkins] Manually refreshing skins data");
+    
+    // Prevent concurrent refreshes
+    if (isRefreshingSkinsRef.current) {
+      console.log("[useSkins] Refresh already in progress, skipping manual refresh");
+      return;
+    }
+    
+    isRefreshingSkinsRef.current = true;
     setSkinsLoaded(false);
     setProfileSkinsProcessed(false);
-    setLoading(true); // Set loading to true when refreshing
-    fetchAllSkins();
+    setLoading(true);
+    
+    fetchAllSkins().finally(() => {
+      isRefreshingSkinsRef.current = false;
+    });
   }, [fetchAllSkins]);
 
   const getDebugInfo = useCallback(() => {
@@ -239,9 +269,11 @@ export const useSkins = () => {
       selectedSkinId,
       userAuthenticated: !!user,
       profileAvailable: !!profile,
-      ownedSkins: ownedSkinIds
+      ownedSkins: ownedSkinIds,
+      isRefreshing: isRefreshingSkinsRef.current,
+      skinsLoaded
     };
-  }, [lastSavingMethod, selectedSkinId, user, profile, ownedSkinIds]);
+  }, [lastSavingMethod, selectedSkinId, user, profile, ownedSkinIds, skinsLoaded]);
 
   return {
     allSkins,
@@ -258,6 +290,6 @@ export const useSkins = () => {
     ownedSkinIds,
     getUnifiedSkinsList,
     getDebugInfo,
-    loading // Add loading to the returned object
+    loading
   };
 };
