@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import AuthButtons from "@/components/AuthButtons";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Trash2, Palette, Bug } from "lucide-react";
+import { ArrowLeft, User, Trash2, Palette } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -141,15 +141,6 @@ const ProfilePage = () => {
           Retour
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-purple-900/30 border-purple-500/30 text-white hover:bg-purple-800/50 mr-2"
-            onClick={showDebugInfo}
-          >
-            <Bug className="h-4 w-4 mr-1" />
-            Debug
-          </Button>
           <AuthButtons />
         </div>
       </header>
@@ -297,56 +288,7 @@ const ProfilePage = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isDebugDialogOpen} onOpenChange={setIsDebugDialogOpen}>
-        <DialogContent className="bg-gray-900 border-purple-500/30 text-white max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Informations de débogage</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Détails techniques pour le débogage des skins et profil
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-4 text-sm">
-              <div className="bg-gray-800 p-3 rounded-md">
-                <h3 className="text-purple-400 font-semibold mb-2">État actuel</h3>
-                <ul className="space-y-2">
-                  <li><span className="text-gray-400">User ID:</span> {user?.id || 'Non défini'}</li>
-                  <li><span className="text-gray-400">Authenticated:</span> {user ? 'Oui' : 'Non'}</li>
-                  <li><span className="text-gray-400">Selected Skin ID:</span> {selectedSkinId || 'Non défini'}</li>
-                </ul>
-              </div>
-              
-              {debugInfo && (
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <h3 className="text-purple-400 font-semibold mb-2">Debug Info</h3>
-                  <ul className="space-y-2">
-                    <li><span className="text-gray-400">Last Saving Method:</span> {debugInfo.lastSavingMethod}</li>
-                    <li><span className="text-gray-400">User Authenticated:</span> {debugInfo.userAuthenticated ? 'Oui' : 'Non'}</li>
-                    <li><span className="text-gray-400">Profile Available:</span> {debugInfo.profileAvailable ? 'Oui' : 'Non'}</li>
-                    <li><span className="text-gray-400">Owned Skins Count:</span> {debugInfo.ownedSkins?.length || 0}</li>
-                  </ul>
-                </div>
-              )}
-              
-              <div className="bg-gray-800 p-3 rounded-md">
-                <h3 className="text-purple-400 font-semibold mb-2">Profile Data</h3>
-                <pre className="text-xs text-gray-300 overflow-x-auto">
-                  {JSON.stringify(profile, null, 2)}
-                </pre>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDebugDialogOpen(false)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-            >
-              Fermer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-gray-900 border-red-500/30 text-white">
