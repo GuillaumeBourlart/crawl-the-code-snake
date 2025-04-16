@@ -55,14 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const sessionInitializedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Simple debounce utility
-  const debounce = useCallback((func: Function, wait: number) => {
-    return (...args: any[]) => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => func(...args), wait);
-    };
-  }, []);
-  
   // Profile fetching with locks and timeouts
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     if (!userId) {
@@ -162,14 +154,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fetchProfile]);
 
-  // Create debounced version
-  const debouncedRefreshSession = useCallback(
-    debounce(() => {
-      console.log("[debouncedRefreshSession] Calling refresh after debounce");
-      refreshSession();
-    }, 300),
-    [refreshSession]
-  );
+  // Fixed: Make the debounced function return a Promise
+  const debouncedRefreshSession = useCallback(async (): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      
+      console.log("[debouncedRefreshSession] Setting up debounced refresh");
+      timeoutRef.current = setTimeout(async () => {
+        console.log("[debouncedRefreshSession] Calling refresh after debounce");
+        try {
+          await refreshSession();
+          resolve();
+        } catch (error) {
+          console.error("[debouncedRefreshSession] Error in debounced refresh:", error);
+          resolve(); // Resolve anyway to prevent hanging promises
+        }
+      }, 300);
+    });
+  }, [refreshSession]);
 
   // Sign out function
   const signOut = async (): Promise<void> => {
