@@ -175,19 +175,30 @@ const Index = () => {
     };
   }, [gameStarted, socket, playerId, isSpectator]);
   
+  
+
   const attemptReconnect = useCallback(() => {
-    if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
-      setReconnectAttempts(prev => prev + 1);
-      toast.info(`Reconnection attempt (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
+  if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
+    // Incrémentez le compteur
+    setReconnectAttempts(prev => prev + 1);
+    toast.info(`Reconnection attempt (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
+
+    if (reconnectAttempts === 0) {
+      // Première tentative : appel immédiat
+      handlePlay();
+    } else {
+      // Pour les tentatives suivantes, attendez 2000 ms
       reconnectTimerRef.current = window.setTimeout(() => {
         handlePlay();
       }, RECONNECTION_DELAY);
-    } else {
-      toast.error("Unable to reconnect to server after multiple attempts");
-      setConnecting(false);
-      setReconnectAttempts(0);
     }
-  }, [reconnectAttempts]);
+  } else {
+    toast.error("Unable to reconnect to server after multiple attempts");
+    setConnecting(false);
+    setReconnectAttempts(0);
+  }
+}, [reconnectAttempts, handlePlay]);
+
   
   const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
     const items: Record<string, GameItem> = {};
