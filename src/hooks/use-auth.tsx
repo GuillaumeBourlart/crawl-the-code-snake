@@ -412,12 +412,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     console.log("[AuthProvider] Setting up visibility change listener");
     
+   
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("[visibilitychange] Document became visible, refreshing session");
-        debouncedRefreshSession();
-      }
-    };
+  if (document.visibilityState === 'visible') {
+    console.log("[visibilitychange] Document became visible, waiting 2000 ms before refreshing");
+    setTimeout(() => {
+      debouncedRefreshSession();
+    }, 2000);
+  }
+};
+
 
     // Add the event listener
     document.addEventListener('visibilitychange', handleVisibilityChange);
