@@ -486,6 +486,7 @@ const Index = () => {
 
   useEffect(() => {
     if (gameStarted) {
+      window.scrollTo({ top: 0, behavior: "instant" });
       document.body.classList.add('game-active');
     } else {
       document.body.classList.remove('game-active');
