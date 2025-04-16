@@ -22,7 +22,7 @@ const AuthButtons = () => {
   
   // Reset loading state if user changes or auth loading state changes
   useEffect(() => {
-    console.log("[AuthButtons] Utilisateur mis à jour :", user);
+    console.log("[AuthButtons] User updated:", user);
     if (!authLoading) {
       setIsLoading(false);
     }
@@ -43,7 +43,7 @@ const AuthButtons = () => {
     try {
       await signOut();
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error("[AuthButtons] Sign out error:", error);
     }
     // Loading state will be reset by the useEffect
   };

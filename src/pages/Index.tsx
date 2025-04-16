@@ -98,19 +98,20 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  const { user, profile, updateProfile, refreshSession } = useAuth();
+  const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
   const { 
     selectedSkin, 
     selectedSkinId, 
     availableSkins: userSkins, 
-    refresh: refreshSkins
+    refresh: refreshSkins,
+    loading: skinsLoading
   } = useSkins();
   
   const availableSkinsRef = useRef<any[]>([]);
   
   useEffect(() => {
     if (!skinLoadAttempted) {
-      console.log("Initial skins refresh");
+      console.log("[Index] Initial skins refresh");
       refreshSkins();
       setSkinLoadAttempted(true);
     }
@@ -119,7 +120,7 @@ const Index = () => {
   useEffect(() => {
     if (userSkins && userSkins.length > 0 && 
         JSON.stringify(availableSkinsRef.current) !== JSON.stringify(userSkins)) {
-      console.log("Setting available skins from userSkins:", userSkins.length);
+      console.log("[Index] Setting available skins from userSkins:", userSkins.length);
       availableSkinsRef.current = userSkins;
     }
   }, [userSkins]);
@@ -129,22 +130,6 @@ const Index = () => {
       setUsername(profile.pseudo);
     }
   }, [profile]);
-
-  
-
-  useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-      console.log("[Index] Onglet visible, demande de refreshSession");
-      refreshSession();
-    }
-  };
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  return () => {
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
-}, [refreshSession]);
-
   
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -193,12 +178,12 @@ const Index = () => {
   const attemptReconnect = useCallback(() => {
     if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
       setReconnectAttempts(prev => prev + 1);
-      toast.info(`Tentative de reconnexion (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
+      toast.info(`Reconnection attempt (${reconnectAttempts + 1}/${MAX_RECONNECTION_ATTEMPTS})...`);
       reconnectTimerRef.current = window.setTimeout(() => {
         handlePlay();
       }, RECONNECTION_DELAY);
     } else {
-      toast.error("Impossible de se reconnecter au serveur après plusieurs tentatives");
+      toast.error("Unable to reconnect to server after multiple attempts");
       setConnecting(false);
       setReconnectAttempts(0);
     }
@@ -226,7 +211,7 @@ const Index = () => {
   
   const handlePlay = () => {
     if (!username.trim()) {
-      toast.error("Veuillez entrer un pseudo avant de jouer");
+      toast.error("Please enter a pseudo before playing");
       return;
     }
     
@@ -235,7 +220,7 @@ const Index = () => {
     }
     
     if (!selectedSkinId) {
-      toast.error("Veuillez sélectionner un skin avant de jouer");
+      toast.error("Please select a skin before playing");
       return;
     }
     
@@ -265,13 +250,13 @@ const Index = () => {
       setConnected(true);
       setConnecting(false);
       setReconnectAttempts(0);
-      toast.success("Connecté au serveur");
+      toast.success("Connected to server");
     });
     
     newSocket.on("connect_error", (err) => {
       console.error("Connection error:", err);
       setConnecting(false);
-      toast.error("Erreur de connexion au serveur");
+      toast.error("Server connection error");
       attemptReconnect();
     });
     
@@ -282,21 +267,21 @@ const Index = () => {
       setRoomId(null);
       
       if (reason === "io server disconnect") {
-        toast.error("Déconnecté par le serveur");
+        toast.error("Disconnected by server");
       } else if (reason === "transport close") {
-        toast.error("Connexion perdue");
+        toast.error("Connection lost");
         attemptReconnect();
       } else if (reason === "ping timeout") {
-        toast.error("Délai d'attente serveur dépassé");
+        toast.error("Server timeout exceeded");
         attemptReconnect();
       } else {
-        toast.error("Déconnecté du serveur");
+        toast.error("Disconnected from server");
       }
     });
     
     newSocket.on("error", (error) => {
       console.error("Socket error:", error);
-      toast.error("Erreur de socket: " + error);
+      toast.error("Socket error: " + error);
       
       if (!connected) {
         attemptReconnect();
@@ -328,7 +313,7 @@ const Index = () => {
         worldSize
       }));
       
-      toast.success("Vous avez rejoint la partie");
+      toast.success("You have joined the game");
     });
     
     newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
@@ -355,7 +340,7 @@ const Index = () => {
     
     newSocket.on("player_eliminated", () => {
       console.log("You were eliminated!");
-      toast.error("Vous avez été éliminé!");
+      toast.error("You were eliminated!");
       setIsSpectator(true);
       setShowGameOverDialog(true);
     });
@@ -367,7 +352,7 @@ const Index = () => {
     
     newSocket.on("player_grew", (data: { growth: number }) => {
       console.log("You ate another player! Growing by:", data.growth);
-      toast.success(`Vous avez mangé un joueur! +${data.growth} points`);
+      toast.success(`You ate another player! +${data.growth} points`);
       if (playerId) {
         setGameState(prevState => {
           const currentPlayer = prevState.players[playerId];
@@ -401,7 +386,7 @@ const Index = () => {
     });
     
     newSocket.on("no_room_available", () => {
-      toast.error("Aucune salle disponible");
+      toast.error("No room available");
       setConnecting(false);
       newSocket.disconnect();
     });
@@ -445,7 +430,7 @@ const Index = () => {
         const otherQueueLength = otherPlayer.queue?.length || 0;
         if (currentQueueLength <= otherQueueLength) {
           socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-          toast.error("Vous avez été éliminé!");
+          toast.error("You were eliminated!");
           setIsSpectator(true);
           setShowGameOverDialog(true);
         } else {
@@ -453,7 +438,7 @@ const Index = () => {
         }
       } else {
         socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-        toast.error("Vous avez été éliminé par la queue d'un autre joueur!");
+        toast.error("You were eliminated by the queue of another player!");
         setIsSpectator(true);
         setShowGameOverDialog(true);
       }
@@ -497,7 +482,7 @@ const Index = () => {
     setUsername(e.target.value);
   };
 
-  const isLoading = false;
+  const isLoading = authLoading || skinsLoading;
 
   useEffect(() => {
     if (gameStarted) {
@@ -599,7 +584,7 @@ const Index = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Tentative de reconnexion {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
+              Reconnection attempt {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
             </p>
           )}
         </div>
