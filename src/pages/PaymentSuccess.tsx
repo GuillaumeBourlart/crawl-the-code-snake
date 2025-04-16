@@ -10,17 +10,40 @@ import { toast } from "sonner";
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, supabase } = useAuth();
+  const { user, supabase, refreshSession } = useAuth();
   const { refresh } = useSkins();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSessionRefreshed, setIsSessionRefreshed] = useState(false);
 
+  // Première étape: rafraîchir explicitement la session d'authentification
   useEffect(() => {
+    const initSession = async () => {
+      console.log("PaymentSuccess - Rafraîchissement explicite de la session après retour de Stripe");
+      try {
+        // Forcer un rafraîchissement de session pour s'assurer que l'utilisateur est toujours connecté
+        await refreshSession();
+        setIsSessionRefreshed(true);
+      } catch (err) {
+        console.error("Erreur lors du rafraîchissement de la session:", err);
+        // Continuer quand même, car le traitement principal se fera dans l'effet suivant
+        setIsSessionRefreshed(true);
+      }
+    };
+
+    initSession();
+  }, [refreshSession]);
+
+  // Deuxième étape: traiter le paiement une fois la session rafraîchie
+  useEffect(() => {
+    if (!isSessionRefreshed) return;
+
     // Parse query parameters to get session_id
     const queryParams = new URLSearchParams(location.search);
     const sessionId = queryParams.get("session_id");
 
     console.log("Page PaymentSuccess - Session ID reçu:", sessionId);
+    console.log("État de l'authentification:", user ? "Connecté" : "Non connecté");
 
     const processPurchase = async () => {
       if (!sessionId) {
@@ -31,7 +54,7 @@ const PaymentSuccess = () => {
       }
 
       if (!user) {
-        console.error("Utilisateur non authentifié");
+        console.error("Utilisateur non authentifié après rafraîchissement de session");
         setError("Veuillez vous connecter pour vérifier votre achat");
         setIsLoading(false);
         return;
@@ -57,7 +80,7 @@ const PaymentSuccess = () => {
     };
 
     processPurchase();
-  }, [user, location.search, refresh]);
+  }, [user, location.search, refresh, isSessionRefreshed]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
