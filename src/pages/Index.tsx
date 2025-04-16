@@ -211,7 +211,7 @@ const Index = () => {
   
   const handlePlay = () => {
     if (!username.trim()) {
-      toast.error("Please enter a pseudo before playing");
+      toast.error(t("please_enter_pseudo"));
       return;
     }
     
@@ -220,9 +220,11 @@ const Index = () => {
     }
     
     if (!selectedSkinId) {
-      toast.error("Please select a skin before playing");
+      toast.error(t("please_select_skin"));
       return;
     }
+    
+    window.scrollTo(0, 0);
     
     console.log("Starting game with skin ID:", selectedSkinId);
     
