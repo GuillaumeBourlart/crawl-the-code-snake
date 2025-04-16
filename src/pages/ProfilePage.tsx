@@ -19,6 +19,7 @@ const ProfilePage = () => {
   const { 
     selectedSkinId, 
     selectedSkin, 
+    getDebugInfo, 
     setSelectedSkin 
   } = useSkins();
   
@@ -43,6 +44,11 @@ const ProfilePage = () => {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (getDebugInfo) {
+      setDebugInfo(getDebugInfo());
+    }
+  }, [getDebugInfo, selectedSkinId, user, profile]);
 
   const handleUpdatePseudo = async () => {
     if (!pseudo.trim()) {
