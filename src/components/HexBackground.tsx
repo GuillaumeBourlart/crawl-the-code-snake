@@ -30,24 +30,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       // Draw background
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
-      
-      // Draw stars
-      const numberOfStars = 200;
-      for (let i = 0; i < numberOfStars; i++) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        const size = Math.random() * 1.5;
-        const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
-        
-        const timeOffset = Math.random() * 2 * Math.PI;
-        const twinkleOpacity = 0.12 + 0.28 * 0.4 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
-        
-        ctx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
+     
       // Draw center glow
       const centerGlow = ctx.createRadialGradient(
         width/2, height/2, 0,
@@ -60,7 +43,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       ctx.fillRect(0, 0, width, height);
       
       // Draw hexagons
-      const hexSize = 40;
+      const hexSize = 120;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
       
