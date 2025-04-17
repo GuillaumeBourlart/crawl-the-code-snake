@@ -49,7 +49,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
       [0,0,0,0,0],
       [0,0,0,0,0],
       [0,0,0,0,0],
-      [0,0,1,0,0],
+      [0,0,0,0,0],
       [0,0,1,0,0],
     ],
     I: [
