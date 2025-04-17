@@ -77,6 +77,8 @@ const Index = () => {
   const [tickMs, setTickMs] = useState(0);
 const [rtt,    setRtt]    = useState(0);
 const [fps,    setFps]    = useState(0);
+  const [ping, setPing] = useState(0);
+
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
@@ -136,6 +138,27 @@ const [fps,    setFps]    = useState(0);
     socket.off("update_entities", onUpdate);
   };
 }, [socket]);
+
+  useEffect(() => {
+  if (!socket) return;
+  const PING_INTERVAL = 2000; // en ms
+
+  const measurePing = () => {
+    const t0 = performance.now();
+    // émet ping_test avec callback ack
+    socket.emit("ping_test", null, () => {
+      const rtt = performance.now() - t0;
+      setPing(rtt);
+    });
+  };
+
+  // premier ping tout de suite, puis intervalle
+  measurePing();
+  const id = window.setInterval(measurePing, PING_INTERVAL);
+
+  return () => window.clearInterval(id);
+}, [socket]);
+
 
 
 
@@ -687,6 +710,7 @@ const [fps,    setFps]    = useState(0);
       <div>FPS  : {fps}</div>
       <div>Tick : {tickMs.toFixed(1)} ms</div>
       <div>RTT  : {rtt.toFixed(1)} ms</div>
+      <div>Ping : {ping.toFixed(1)} ms</div>
     </div>
           
           <GameCanvas
