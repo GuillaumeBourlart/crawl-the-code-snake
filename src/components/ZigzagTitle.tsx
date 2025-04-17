@@ -6,42 +6,49 @@ interface ZigzagTitleProps {
 }
 
 const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
-  // Configuration des couleurs des cercles avec de meilleures couleurs pour la visibilité
+  // 1) nombre max de cercles par lettre
+  const MAX_CIRCLES_PER_LETTER = 25;
+
+  // 2) utilitaire pour échantillonner
+  function samplePoints<T>(points: T[], max: number): T[] {
+    if (points.length <= max) return points;
+    const step = Math.floor(points.length / max);
+    return points.filter((_, i) => i % step === 0).slice(0, max);
+  }
+
+  // Couleurs alternées
   const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
   
-  // Définir les propriétés de base pour tous les cercles
+  // 3) rayon réduit à 20
   const baseCircleProps = {
-    cx: 0,
-    cy: 0,
-    r: 54, // Taille des cercles 9 fois plus grande (6 * 9 = 54)
+    r: 20,
     fill: "currentColor"
   };
   
   // Fonction pour générer les cercles formant chaque lettre
+ // Génère un <g> de cercles pour une lettre
   const generateLetter = (points: [number, number][], color: string, index: number) => {
+    // on échantillonne
+    const pts = samplePoints(points, MAX_CIRCLES_PER_LETTER);
+
     return (
       <g key={index} className="letter-group">
-        {points.map((point, i) => {
-          // Utiliser la coordonnée Y pour créer un délai progressif vers le bas
-          // Tous les cercles d'une même lettre auront le même type d'animation
-          // Plus on descend dans la lettre, plus l'animation est décalée
-          const yPosition = point[1];
-          const yFactor = (yPosition - 180) / 540; // Normalize Y position (180-720) to get a factor between 0-1
-          const animationDelay = `${yFactor * 0.5}s`; // Délai progressif basé sur la position verticale
-          
+        {pts.map(([cx, cy], i) => {
+          const yFactor = (cy - 180) / 540;
+          const animationDelay = `${yFactor * 0.5}s`;
           return (
             <circle
-              key={`letter-${index}-circle-${i}`}
+              key={`ltr-${index}-c-${i}`}
               {...baseCircleProps}
-              cx={point[0]}
-              cy={point[1]}
+              cx={cx}
+              cy={cy}
               fill={color}
               className="animate-pulse"
-              style={{ 
+              style={{
                 animationDelay,
                 animationDuration: "2s",
                 animationIterationCount: "infinite",
-                filter: "drop-shadow(0px 27px 45px rgba(0, 0, 0, 0.7))" // Shadow plus grand pour un titre plus grand
+                filter: "drop-shadow(0px 15px 25px rgba(0,0,0,0.5))"
               }}
             />
           );
@@ -119,16 +126,14 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
 
   return (
     <div className={`flex justify-center overflow-x-auto ${className}`}>
-      <svg 
-        viewBox="0 0 3600 900" 
-        className="w-full max-w-[1600px] mx-auto" 
-        style={{ 
-          filter: "drop-shadow(0px 36px 72px rgba(0, 0, 0, 0.5))"
-        }}
+      <svg
+        viewBox="0 0 3600 900"
+        className="w-full max-w-[1600px] mx-auto"
+        style={{ filter: "drop-shadow(0px 30px 60px rgba(0,0,0,0.5))" }}
       >
-        {letterCoordinates.map((letterPoints, index) => {
-          const color = colors[index % colors.length];
-          return generateLetter(letterPoints, color, index);
+        {letterCoordinates.map((pts, idx) => {
+          const color = colors[idx % colors.length];
+          return generateLetter(pts, color, idx);
         })}
       </svg>
     </div>
