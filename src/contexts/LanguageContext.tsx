@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 
@@ -324,7 +323,56 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
           en: "Continue",
           es: "Continuar",
           de: "Fortfahren"
-        }
+        },
+        // Ajout des traductions pour le leaderboard
+        "top_10_global": {
+          fr: "Top 10 Global",
+          en: "Global Top 10",
+          es: "Top 10 Global",
+          de: "Global Top 10"
+        },
+        "rank": {
+          fr: "Rang",
+          en: "Rank",
+          es: "Rango",
+          de: "Rang"
+        },
+        "player": {
+          fr: "Joueur",
+          en: "Player",
+          es: "Jugador",
+          de: "Spieler"
+        },
+        "score": {
+          fr: "Score",
+          en: "Score",
+          es: "Puntuación",
+          de: "Punktzahl"
+        },
+        "no_players": {
+          fr: "Aucun joueur dans le classement",
+          en: "No players in the leaderboard",
+          es: "No hay jugadores en la clasificación",
+          de: "Keine Spieler in der Rangliste"
+        },
+        "loading_leaderboard": {
+          fr: "Chargement du classement...",
+          en: "Loading leaderboard...",
+          es: "Cargando clasificación...",
+          de: "Rangliste wird geladen..."
+        },
+        "leaderboard_error": {
+          fr: "Impossible de charger le classement",
+          en: "Unable to load leaderboard",
+          es: "No se pudo cargar la clasificación",
+          de: "Rangliste konnte nicht geladen werden"
+        },
+        "local_data": {
+          fr: "(Données locales)",
+          en: "(Local data)",
+          es: "(Datos locales)",
+          de: "(Lokale Daten)"
+        },
       };
       
       setTranslations(translationsData);

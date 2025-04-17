@@ -7,12 +7,14 @@ type ToasterProps = React.ComponentProps<typeof Sonner>
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
+  // Définir une durée très courte ou désactiver complètement en positionnant hors-écran
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      className="toaster group hidden" // Masquer le toaster avec hidden
       position="top-center"
       toastOptions={{
+        duration: 1, // Durée très courte
         classNames: {
           toast:
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
