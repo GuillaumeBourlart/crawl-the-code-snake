@@ -9,8 +9,10 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   const r = 300;
   // 2) Pas centre‑à‑centre ×1.6 (20% de chevauchement)
   const STEP = r * 1.6; // 480 px
+  // 3) Marge fixe entre lettres (en plus de leur propre largeur)
+  const LETTER_SPACING = STEP * 0.5; // ajustable
 
-  // Bitmap 5×5 pour chaque caractère de “GRUBZ.IO”
+  // Bitmap 5×5 (sauf "." à 3×5)
   const letterBitmaps: Record<string, number[][]> = {
     G: [
       [1,1,1,1,1],
@@ -48,11 +50,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
       [1,1,1,1,1],
     ],
     ".": [
-      [0,0,0],
-      [0,0,0],
-      [0,0,0],
-      [0,0,0],
-      [0,1,0],
+      [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,1,0]
     ],
     I: [
       [1,1,1,1,1],
@@ -71,8 +69,22 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   };
 
   const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
+  const letters = ["G", "R", "U", "B", "Z", ".", "I", "O"];
 
-  // génère un <g> animé pour chaque lettre
+  // 4) On calcule la largeur de chaque lettre en px (nombre de colonnes × STEP)
+  const letterWidths = letters.map((ltr) => {
+    const bmp = letterBitmaps[ltr];
+    return (bmp?.[0].length || 5) * STEP;
+  });
+
+  // 5) On génère les offsets cumulés
+  const offsets: number[] = [];
+  letterWidths.reduce((acc, w, i) => {
+    offsets[i] = acc;
+    return acc + w + LETTER_SPACING;
+  }, 0);
+
+  // Génère un <g> animé pour chaque lettre
   const renderLetter = (chr: string, color: string, offsetX: number) => {
     const bmp = letterBitmaps[chr];
     if (!bmp) return null;
@@ -82,7 +94,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
         {bmp.flatMap((row, rowIdx) =>
           row.map((cell, colIdx) => {
             if (cell === 0) return null;
-            // délai progressif selon la ligne (rowIdx de 0 à 4 → 0s à 0.5s)
+            // délai progressif selon la ligne (0 → 0.5s)
             const delay = (rowIdx / (rows - 1)) * 0.5;
             return (
               <circle
@@ -106,18 +118,17 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
     );
   };
 
-  const letters = ["G","R","U","B","Z",".","I","O"];
-
+  // 6) On rend tout
   return (
     <svg
-      viewBox={`0 0 ${letters.length * STEP * 6} ${STEP * 6}`}
+      viewBox={`0 0 ${offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1] } ${
+        STEP * 6
+      }`}
       className={className}
     >
       {letters.map((ltr, i) => {
         const color = colors[i % colors.length];
-        // espace chaque lettre de STEP*6 px pour respirer
-        const offsetX = i * STEP * 6;
-        return renderLetter(ltr, color, offsetX);
+        return renderLetter(ltr, color, offsets[i]);
       })}
     </svg>
   );
