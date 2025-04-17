@@ -31,7 +31,7 @@ const supabase = getSupabase();
 // Define constants for profile fetching - moved outside functions
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 2000; // 2 seconds between retries
-const FETCH_TIMEOUT = 8000; // Increase timeout to 8 seconds
+const FETCH_TIMEOUT = 2000; // Increase timeout to 8 seconds
 const FETCH_COOLDOWN = 10000; // 10 seconds between fetch attempts
 
 type AuthContextType = {
@@ -418,34 +418,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("[AuthProvider] Setting up auth state change listener");
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-     async (event, session) => {
-       const uid = session?.user?.id;
-       console.log("[onAuthStateChange]", event, uid);
-       if (event === 'SIGNED_IN' && uid) {
-         setUser(session.user);
-         // si on n'a pas encore chargé le profil, ou s'il a changé
-         if (!profile || profile.id !== uid) {
-           console.log("[onAuthStateChange] fetching profile for", uid);
-           setLoading(true);
-           await fetchProfile(uid);
-           setLoading(false);
-         } else {
-           console.log("[onAuthStateChange] profile already in memory, skip fetch");
-         }
-       }
-       else if (event === 'SIGNED_OUT') {
-         setUser(null);
-         setProfile(null);
-       }
-       else if (event === 'TOKEN_REFRESHED' && uid) {
-         setUser(session.user);
-         if (!profile || profile.id !== uid) {
-           setLoading(true);
-           await fetchProfile(uid);
-           setLoading(false);
-         }
-       }
-     }
+      async (event, session) => {
+        console.log("[onAuthStateChange] Event:", event, "User:", session?.user?.id);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log("[onAuthStateChange] User signed in:", session.user.id);
+          setLoading(true);
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+          setLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          console.log("[onAuthStateChange] User signed out");
+          setUser(null);
+          setProfile(null);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log("[onAuthStateChange] Token refreshed for user:", session.user.id);
+          setUser(session.user);
+          // Only fetch profile if needed
+          if (!profile) {
+            setLoading(true);
+            await fetchProfile(session.user.id);
+            setLoading(false);
+          }
+        }
+      }
     );
 
     return () => {
