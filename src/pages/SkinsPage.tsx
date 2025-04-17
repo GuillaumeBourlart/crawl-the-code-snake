@@ -228,57 +228,7 @@ const SkinsPage = () => {
         </Button>
       </div>
 
-      {/* Debug Dialog */}
-      <Dialog open={isDebugDialogOpen} onOpenChange={setIsDebugDialogOpen}>
-        <DialogContent className="bg-gray-900 border-purple-500/30 text-white max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Informations de débogage</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Détails techniques pour le débogage des skins et profil
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-4 text-sm">
-              <div className="bg-gray-800 p-3 rounded-md">
-                <h3 className="text-purple-400 font-semibold mb-2">État actuel</h3>
-                <ul className="space-y-2">
-                  <li><span className="text-gray-400">User ID:</span> {user?.id || 'Non défini'}</li>
-                  <li><span className="text-gray-400">Authenticated:</span> {user ? 'Oui' : 'Non'}</li>
-                  <li><span className="text-gray-400">Selected Skin ID:</span> {selectedSkin?.id || 'Non défini'}</li>
-                </ul>
-              </div>
-              
-              {debugInfo && (
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <h3 className="text-purple-400 font-semibold mb-2">Debug Info</h3>
-                  <ul className="space-y-2">
-                    <li><span className="text-gray-400">Last Saving Method:</span> {debugInfo.lastSavingMethod}</li>
-                    <li><span className="text-gray-400">User Authenticated:</span> {debugInfo.userAuthenticated ? 'Oui' : 'Non'}</li>
-                    <li><span className="text-gray-400">Profile Available:</span> {debugInfo.profileAvailable ? 'Oui' : 'Non'}</li>
-                    <li><span className="text-gray-400">Owned Skins Count:</span> {debugInfo.ownedSkins?.length || 0}</li>
-                  </ul>
-                </div>
-              )}
-              
-              <div className="bg-gray-800 p-3 rounded-md">
-                <h3 className="text-purple-400 font-semibold mb-2">Profile Data</h3>
-                <pre className="text-xs text-gray-300 overflow-x-auto">
-                  {JSON.stringify(profile, null, 2)}
-                </pre>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDebugDialogOpen(false)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-            >
-              Fermer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
 
       <div className="mt-auto">
         <Footer />
