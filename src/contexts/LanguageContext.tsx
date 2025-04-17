@@ -230,6 +230,100 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
           en: "German",
           es: "Alemán",
           de: "Deutsch"
+        },
+        // Footer
+        "legal_notice": {
+          fr: "Mentions légales",
+          en: "Legal Notice",
+          es: "Avisos legales",
+          de: "Impressum"
+        },
+        "privacy_policy": {
+          fr: "Politique de confidentialité",
+          en: "Privacy Policy",
+          es: "Política de privacidad",
+          de: "Datenschutzrichtlinie"
+        },
+        "cookie_policy": {
+          fr: "Politique relative aux cookies",
+          en: "Cookie Policy",
+          es: "Política de cookies",
+          de: "Cookie-Richtlinie"
+        },
+        "terms_of_sale": {
+          fr: "Conditions de vente",
+          en: "Terms of Sale",
+          es: "Condiciones de venta",
+          de: "Verkaufsbedingungen"
+        },
+        // Cookie Consent
+        "cookie_usage": {
+          fr: "Utilisation de cookies",
+          en: "Cookie Usage",
+          es: "Uso de cookies",
+          de: "Cookie-Nutzung"
+        },
+        "cookie_message": {
+          fr: "Nous utilisons des cookies nécessaires au fonctionnement du site.",
+          en: "We use cookies necessary for the operation of the site.",
+          es: "Utilizamos cookies necesarias para el funcionamiento del sitio.",
+          de: "Wir verwenden Cookies, die für den Betrieb der Website erforderlich sind."
+        },
+        // Purchase Dialog
+        "purchase_confirmation": {
+          fr: "Confirmation d'achat",
+          en: "Purchase Confirmation",
+          es: "Confirmación de compra",
+          de: "Kaufbestätigung"
+        },
+        "about_to_purchase": {
+          fr: "Vous êtes sur le point d'acheter le skin",
+          en: "You are about to purchase the skin",
+          es: "Estás a punto de comprar la skin",
+          de: "Du bist dabei, den Skin zu kaufen"
+        },
+        "for": {
+          fr: "pour",
+          en: "for",
+          es: "por",
+          de: "für"
+        },
+        "purchase_agreement": {
+          fr: "En achetant ce skin, vous acceptez expressément qu'il soit immédiatement disponible et renoncez à votre droit légal de rétractation. Aucun remboursement ne pourra être effectué.",
+          en: "By purchasing this skin, you expressly agree that it will be immediately available and waive your legal right of withdrawal. No refunds can be made.",
+          es: "Al comprar esta skin, aceptas expresamente que estará disponible de inmediato y renuncias a tu derecho legal de desistimiento. No se pueden realizar reembolsos.",
+          de: "Mit dem Kauf dieses Skins stimmst du ausdrücklich zu, dass er sofort verfügbar ist, und verzichtest auf dein gesetzliches Widerrufsrecht. Es können keine Rückerstattungen vorgenommen werden."
+        },
+        "age_agreement": {
+          fr: "Si vous avez moins de 16 ans, vous devez obtenir l'accord d'un parent avant d'effectuer tout achat sur notre site.",
+          en: "If you are under 16, you must obtain parental consent before making any purchases on our site.",
+          es: "Si tienes menos de 16 años, debes obtener el consentimiento de tus padres antes de realizar cualquier compra en nuestro sitio.",
+          de: "Wenn du unter 16 Jahre alt bist, musst du die Zustimmung deiner Eltern einholen, bevor du Käufe auf unserer Website tätigst."
+        },
+        "continue_payment": {
+          fr: "Continuer le paiement",
+          en: "Continue to payment",
+          es: "Continuar con el pago",
+          de: "Weiter zur Zahlung"
+        },
+        // Game Over Dialog
+        "game_over": {
+          fr: "Vous avez perdu",
+          en: "Game Over",
+          es: "Has perdido",
+          de: "Spiel vorbei"
+        },
+        "retry": {
+          fr: "Réessayer",
+          en: "Retry",
+          es: "Reintentar",
+          de: "Erneut versuchen"
+        },
+        "continue": {
+          fr: "Continuer",
+          en: "Continue",
+          es: "Continuar",
+          de: "Fortfahren"
         }
       };
       

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface GameOverDialogProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ const GameOverDialog = ({
 }: GameOverDialogProps) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const isMobile = useIsMobile();
+  const { t } = useLanguage();
   
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -124,7 +126,7 @@ const GameOverDialog = ({
           </div>
           
           <DialogTitle className="text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-            Vous avez perdu
+            {t("game_over")}
           </DialogTitle>
         </DialogHeader>
         
@@ -134,7 +136,7 @@ const GameOverDialog = ({
             className="bg-black/30 hover:bg-black/50 text-lg font-medium text-red-500 hover:text-red-400"
             onClick={onQuit}
           >
-            Quitter
+            {t("quit")}
           </Button>
           <Button
             className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg font-medium border-0"
@@ -144,7 +146,7 @@ const GameOverDialog = ({
             }}
             onClick={onRetry}
           >
-            Réessayer
+            {t("retry")}
           </Button>
         </div>
       </DialogContent>
