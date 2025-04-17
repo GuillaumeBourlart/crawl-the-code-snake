@@ -52,7 +52,7 @@ const PlayerScore = ({ playerId, players, roomLeaderboard = [] }: PlayerScorePro
       <Trophy className="h-5 w-5 mr-2 text-yellow-400" />
       <div className="flex flex-col">
         <div className="text-xs text-gray-300">Votre score</div>
-        <div className="text-lg font-bold">{score}</div>
+        <div className="text-lg font-bold">{score - 40}</div>
         {rank !== null && (
           <div className="text-xs text-indigo-300 mt-0.5">
             Rang #{rank} sur {roomLeaderboard.length}
