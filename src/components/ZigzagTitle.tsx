@@ -1,18 +1,15 @@
 import React from "react";
 
-interface ZigzagTitleProps {
-  className?: string;
-}
-
+interface ZigzagTitleProps { className?: string; }
 const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
-  // 1) Choisissez votre rayon ici
-  const r = 100;
+  // 1) Rayon des cercles
+  const r = 80;
+  // 2) Pas centre-à-centre pour un chevauchement de ~20%
+  const STEP = r * 1.3; // 96 px
 
-  // 2) STEP définit l'espacement entre les centres des cercles
-  const STEP = r * 1.8;
-
-  // 3) Masques de lettres : 1 = point, 0 = vide
-  const LETTER_MASKS: Record<string, number[][]> = {
+  // Bitmap 5×5 pour chaque caractère de “GRUBZ.IO”
+  // 1 = on dessine un cercle, 0 = on ne dessine pas
+  const letterBitmaps: Record<string, number[][]> = {
     G: [
       [1,1,1,1,1],
       [1,0,0,0,0],
@@ -21,121 +18,96 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
       [1,1,1,1,1],
     ],
     R: [
-      [1,1,1],
-      [1,0,1],
-      [1,1,1],
-      [1,1,0],
-      [1,0,1],
+      [1,1,1,1,0],
+      [1,0,0,0,1],
+      [1,1,1,1,0],
+      [1,0,1,0,0],
+      [1,0,0,1,0],
     ],
     U: [
-      [1,0,1],
-      [1,0,1],
-      [1,0,1],
-      [1,0,1],
-      [1,1,1],
+      [1,0,0,0,1],
+      [1,0,0,0,1],
+      [1,0,0,0,1],
+      [1,0,0,0,1],
+      [1,1,1,1,1],
     ],
     B: [
-      [1,1,0],
-      [1,0,1],
-      [1,1,0],
-      [1,0,1],
-      [1,1,0],
+      [1,1,1,1,0],
+      [1,0,0,0,1],
+      [1,1,1,1,0],
+      [1,0,0,0,1],
+      [1,1,1,1,0],
     ],
     Z: [
-      [1,1,1],
-      [0,0,1],
-      [0,1,0],
-      [1,0,0],
-      [1,1,1],
+      [1,1,1,1,1],
+      [0,0,0,1,0],
+      [0,0,1,0,0],
+      [0,1,0,0,0],
+      [1,1,1,1,1],
     ],
     ".": [
-      [0,0,0],
-      [0,0,0],
-      [0,1,0],
-      [0,0,0],
-      [0,1,0],
+      [0,0,0,0,0],
+      [0,0,0,0,0],
+      [0,0,0,0,0],
+      [0,0,1,0,0],
+      [0,0,1,0,0],
     ],
     I: [
-      [1,1,1],
-      [0,1,0],
-      [0,1,0],
-      [0,1,0],
-      [1,1,1],
+      [1,1,1,1,1],
+      [0,0,1,0,0],
+      [0,0,1,0,0],
+      [0,0,1,0,0],
+      [1,1,1,1,1],
     ],
     O: [
-      [1,1,1],
-      [1,0,1],
-      [1,0,1],
-      [1,0,1],
-      [1,1,1],
+      [1,1,1,1,1],
+      [1,0,0,0,1],
+      [1,0,0,0,1],
+      [1,0,0,0,1],
+      [1,1,1,1,1],
     ],
   };
 
-  // L'ordre des lettres
-  const TEXT = "GRUBZ.IO".split("");
+  const colors = ["#1EAEDB","#F97316","#8B5CF6","#FFFFFF"];
 
-  // 4) Génération des coordonnées
-  const letterCoordinates: [number, number][][] = TEXT.map((chr, idx) => {
-    const mask = LETTER_MASKS[chr]!;
-    const coords: [number, number][] = [];
-    const offsetX = idx * (mask[0].length * STEP + STEP); // décallage horizontal par lettre
-    mask.forEach((row, y) => {
-      row.forEach((cell, x) => {
-        if (cell) {
-          coords.push([
-            offsetX + x * STEP,
-            y * STEP
-          ]);
-        }
-      });
-    });
-    return coords;
-  });
+  // Pour un caractère, on parcours sa bitmap et on génère les <circle>
+  const renderLetter = (chr: string, color: string, offsetX: number) => {
+    const bmp = letterBitmaps[chr];
+    if (!bmp) return null;
 
-  const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
-
-  // 5) Le cercle de base
-  const baseCircleProps = {
-    r,
-    fill: "currentColor"
+    return (
+      <g key={chr} transform={`translate(${offsetX},0)`}>
+        {bmp.flatMap((row, rowIdx) =>
+          row.map((cell, colIdx) => {
+            if (cell === 0) return null;
+            return (
+              <circle
+                key={`${chr}-${rowIdx}-${colIdx}`}
+                cx={colIdx * STEP}
+                cy={rowIdx * STEP}
+                r={r}
+                fill={color}
+              />
+            );
+          })
+        )}
+      </g>
+    );
   };
 
-  const generateLetter = (points: [number, number][], color: string, index: number) => (
-    <g key={index}>
-      {points.map(([cx, cy], i) => (
-        <circle
-          key={i}
-          {...baseCircleProps}
-          cx={cx}
-          cy={cy}
-          fill={color}
-          className="animate-pulse"
-          style={{
-            animationDelay: `${(cy / (letterCoordinates[0].length*STEP)) * 0.5}s`,
-            animationDuration: "2s",
-            animationIterationCount: "infinite",
-            filter: "drop-shadow(0px 15px 25px rgba(0,0,0,0.5))",
-          }}
-        />
-      ))}
-    </g>
-  );
-
+  const letters = ["G","R","U","B","Z",".","I","O"];
   return (
-    <div className={`flex justify-center overflow-x-auto ${className}`}>
-      <svg
-        // on adapte le viewBox à la taille totale
-        viewBox={`0 0 ${
-          TEXT.length * (LETTER_MASKS["G"][0].length * STEP + STEP)
-        } ${LETTER_MASKS["G"].length * STEP}`}
-        className="w-full max-w-[1600px] mx-auto"
-        style={{ filter: "drop-shadow(0px 30px 60px rgba(0,0,0,0.5))" }}
-      >
-        {letterCoordinates.map((pts, idx) =>
-          generateLetter(pts, colors[idx % colors.length], idx)
-        )}
-      </svg>
-    </div>
+    <svg
+      viewBox={`0 0 ${letters.length * STEP * 6} ${STEP * 6}`}
+      className={className}
+    >
+      {letters.map((ltr, i) => {
+        const color = colors[i % colors.length];
+        // on espace chaque lettre de STEP*6 px pour laisser l’œil respirer
+        const offsetX = i * STEP * 6;
+        return renderLetter(ltr, color, offsetX);
+      })}
+    </svg>
   );
 };
 
