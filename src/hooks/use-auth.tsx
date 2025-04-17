@@ -54,11 +54,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const visibilityListenerAttachedRef = useRef(false);
   const sessionInitializedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track profile fetch retries
+  const profileFetchRetriesRef = useRef(0);
+  const lastFetchAttemptRef = useRef(0);
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY = 2000; // 2 seconds between retries
+  const FETCH_TIMEOUT = 8000; // Increase timeout to 8 seconds
+  const FETCH_COOLDOWN = 10000; // 10 seconds between fetch attempts
   
-  // Profile fetching with locks and timeouts
+  // Profile fetching with locks, timeouts, and retries
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     if (!userId) {
       console.log("[fetchProfile] No userId provided");
+      return null;
+    }
+    
+    // Check if we've tried recently to avoid hammering the server
+    const now = Date.now();
+    if (now - lastFetchAttemptRef.current < FETCH_COOLDOWN && profileFetchRetriesRef.current > 0) {
+      console.log(`[fetchProfile] Cooling down, last attempt was ${(now - lastFetchAttemptRef.current) / 1000}s ago`);
       return null;
     }
     
@@ -69,7 +83,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     profileFetchInProgressRef.current = true;
-    console.log("[fetchProfile] Starting profile fetch for user:", userId);
+    lastFetchAttemptRef.current = now;
+    console.log("[fetchProfile] Starting profile fetch for user:", userId, `(Attempt ${profileFetchRetriesRef.current + 1}/${MAX_RETRIES + 1})`);
     
     try {
       // Use Promise.race with timeout to prevent hanging
@@ -80,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
         
       const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 5000)
+        setTimeout(() => reject(new Error("Profile fetch timeout")), FETCH_TIMEOUT)
       );
       
       const { data, error } = await Promise.race([
@@ -90,8 +105,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error("[fetchProfile] Error fetching profile:", error);
+        
+        // If we got a timeout or network error, try again up to MAX_RETRIES
+        if (profileFetchRetriesRef.current < MAX_RETRIES) {
+          profileFetchRetriesRef.current++;
+          profileFetchInProgressRef.current = false;
+          console.log(`[fetchProfile] Will retry in ${RETRY_DELAY / 1000}s (Retry ${profileFetchRetriesRef.current}/${MAX_RETRIES})`);
+          
+          return new Promise((resolve) => {
+            setTimeout(async () => {
+              const result = await fetchProfile(userId);
+              resolve(result);
+            }, RETRY_DELAY);
+          });
+        }
+        
         return null;
       }
+      
+      // Reset retry counter on success
+      profileFetchRetriesRef.current = 0;
       
       if (data) {
         console.log("[fetchProfile] Profile successfully fetched:", data);
@@ -104,8 +137,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("[fetchProfile] Unexpected error during profile fetch:", error);
       return null;
     } finally {
-      profileFetchInProgressRef.current = false;
-      console.log("[fetchProfile] Profile fetch completed, lock released");
+      // Only release the lock if we're not retrying
+      if (profileFetchRetriesRef.current === 0 || profileFetchRetriesRef.current >= MAX_RETRIES) {
+        profileFetchInProgressRef.current = false;
+        console.log("[fetchProfile] Profile fetch completed, lock released");
+      }
     }
   }, []);
 
@@ -126,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Use Promise.race with timeout to prevent hanging
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error("Session refresh timeout")), 5000)
+        setTimeout(() => reject(new Error("Session refresh timeout")), FETCH_TIMEOUT)
       );
       
       const { data: { session } } = await Promise.race([
@@ -138,7 +174,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (session?.user) {
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        
+        // Only fetch profile if needed (not already loaded for this user)
+        if (!profile || profile.id !== session.user.id) {
+          await fetchProfile(session.user.id);
+        } else {
+          console.log("[refreshSession] Profile already loaded for user:", session.user.id);
+        }
       } else {
         setUser(null);
         setProfile(null);
@@ -152,7 +194,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isRefreshingRef.current = false;
       console.log("[refreshSession] Refresh completed, lock released");
     }
-  }, [fetchProfile]);
+  }, [fetchProfile, profile]);
 
   // Fixed: Make the debounced function return a Promise
   const debouncedRefreshSession = useCallback(async (): Promise<void> => {
@@ -405,25 +447,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [fetchProfile, profile]);
 
-  // Set up a single visibility change listener
+  // Set up a single visibility change listener with improved debouncing
   useEffect(() => {
     if (visibilityListenerAttachedRef.current) return;
     visibilityListenerAttachedRef.current = true;
     
     console.log("[AuthProvider] Setting up visibility change listener");
     
+    // Track when the tab was last made visible to prevent excessive refreshes
+    const lastVisibleRef = useRef(0);
+    const MIN_VISIBILITY_INTERVAL = 5000; // Minimum 5 seconds between visibility-triggered refreshes
    
-
     const handleVisibilityChange = () => {
-  if (document.visibilityState === 'visible') {
-    console.log("[visibilitychange] Document became visible, waiting 2000 ms before refreshing");
-    setTimeout(() => {
-      debouncedRefreshSession();
-    }, 2000);
-  }
-};
-
-
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        const timeSinceLastVisible = now - lastVisibleRef.current;
+        
+        // Only refresh if it's been at least 5 seconds since the last visibility change
+        if (timeSinceLastVisible > MIN_VISIBILITY_INTERVAL) {
+          console.log(`[visibilitychange] Document became visible after ${timeSinceLastVisible/1000}s, refreshing in 1s`);
+          lastVisibleRef.current = now;
+          
+          // Wait a second before refreshing to let the browser stabilize
+          setTimeout(() => {
+            debouncedRefreshSession();
+          }, 1000);
+        } else {
+          console.log(`[visibilitychange] Document became visible after only ${timeSinceLastVisible/1000}s, skipping refresh`);
+        }
+      }
+    };
+    
     // Add the event listener
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
