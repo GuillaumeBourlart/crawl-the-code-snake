@@ -3,7 +3,7 @@ import React from "react";
 interface ZigzagTitleProps { className?: string; }
 const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   // 1) Rayon des cercles
-  const r = 300;
+  const r = 10000;
   // 2) Pas centre-à-centre ×5 (pour 20% de chevauchement)
   const STEP = r * 1.6; // 480 px
 
