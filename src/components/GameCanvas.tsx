@@ -393,21 +393,7 @@ const GameCanvas = ({
       gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
-      const numberOfStars = 300;
-      for (let i = 0; i < numberOfStars; i++) {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        const size = Math.random() * 1.5;
-        const brightness = (Math.random() * 0.7 + 0.3) * 0.4;
-        
-        const timeOffset = Math.random() * 2 * Math.PI;
-        const twinkleOpacity = 0.12 + 0.28 * 0.4 * Math.sin(Date.now() * 0.0004 * 0.4 + timeOffset);
-        
-        gridCtx.fillStyle = `rgba(255, 255, 255, ${brightness * twinkleOpacity})`;
-        gridCtx.beginPath();
-        gridCtx.arc(x, y, size, 0, Math.PI * 2);
-        gridCtx.fill();
-      }
+      
       
       const centerGlow = gridCtx.createRadialGradient(
         width/2, height/2, 0,
@@ -425,7 +411,7 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      const hexSize = 40;
+      const hexSize = 120;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
       
@@ -510,26 +496,7 @@ const GameCanvas = ({
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      const numberOfStars = isMobile ? 50 : 200;
-      const time = Date.now() * 0.0004 * 0.4;
-      
-      for (let i = 0; i < numberOfStars; i++) {
-        const seed = i * 5237;
-        const x = ((Math.sin(seed) + 1) / 2) * width;
-        const y = ((Math.cos(seed * 1.5) + 1) / 2) * height;
-        
-        const twinkleSpeed = (0.5 + (seed % 2) * 0.5) * 0.4 * 0.4;
-        const twinklePhase = time * twinkleSpeed + seed;
-        const twinkleAmount = 0.12 + 0.28 * 0.4 * Math.sin(twinklePhase);
-        
-        const size = (0.5 + Math.sin(seed * 3) * 0.5) * 1.5;
-        const opacity = twinkleAmount * 0.28;
-        
-        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
+     
       
       const centerGlow = ctx.createRadialGradient(
         width/2, height/2, 0,
