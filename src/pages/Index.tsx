@@ -25,6 +25,8 @@ import LanguageSelector from "@/components/LanguageSelector";
 
 const SOCKET_SERVER_URL = "https://api.grubz.io";
 
+
+
 interface ServerPlayer {
   id?: string;
   x: number;
@@ -72,6 +74,9 @@ const DEFAULT_ITEM_EATEN_COUNT = 18;
 const Index = () => {
   const { t } = useLanguage();
   const [socket, setSocket] = useState<any>(null);
+  const [tickMs, setTickMs] = useState(0);
+const [rtt,    setRtt]    = useState(0);
+const [fps,    setFps]    = useState(0);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
@@ -108,6 +113,45 @@ const Index = () => {
   } = useSkins();
   
   const availableSkinsRef = useRef<any[]>([]);
+
+  useEffect(() => {
+  if (!socket) return;                    // n’exécute que si le socket est prêt
+  let last = performance.now();
+
+  const onUpdate = (payload: any) => {
+    const now = performance.now();
+    setTickMs(now - last);                // intervalle entre deux ticks
+    last = now;
+    if (payload.serverTs) {
+      setRtt(now - payload.serverTs);     // RTT approximatif
+    }
+  };
+
+  socket.on("update_entities", onUpdate);
+  return () => {
+    socket.off("update_entities", onUpdate);
+  };
+}, [socket]);
+
+
+  useEffect(() => {
+  let frames = 0;
+  let t0 = performance.now();
+
+  const loop = (t: number) => {
+    frames++;
+    if (t - t0 >= 1000) {
+      setFps(frames);
+      frames = 0;
+      t0 = t;
+    }
+    requestAnimationFrame(loop);
+  };
+
+  const rafId = requestAnimationFrame(loop);
+  return () => cancelAnimationFrame(rafId);
+}, []);
+
   
   useEffect(() => {
     if (!skinLoadAttempted) {
@@ -621,6 +665,24 @@ const Index = () => {
             roomLeaderboard={roomLeaderboard}
             currentPlayerId={playerId}
           />
+
+           {/* ─── Mini‑HUD perf ─── */}
+    <div style={{
+      position: "absolute",
+      top: 8,
+      left: 8,
+      padding: "4px 8px",
+      background: "rgba(0,0,0,0.5)",
+      color: "#0f0",
+      fontFamily: "monospace",
+      zIndex: 50,
+      fontSize: 12,
+      lineHeight: "1.2"
+    }}>
+      <div>FPS  : {fps}</div>
+      <div>Tick : {tickMs.toFixed(1)} ms</div>
+      <div>RTT  : {rtt.toFixed(1)} ms</div>
+    </div>
           
           <GameCanvas
             gameState={{
