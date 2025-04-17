@@ -14,12 +14,14 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-input bg-background/80 backdrop-blur-sm hover:bg-accent hover:text-accent-foreground",
+          "border border-input bg-background/80 backdrop-blur-sm hover:bg-accent hover:text-accent-foreground text-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         pill: "bg-gray-900/70 border border-gray-700/30 text-white hover:bg-gray-800/90 shadow-md backdrop-blur-lg",
+        cancel: "bg-gray-100 text-gray-800 border border-gray-300 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600", // Nouvelle variante pour les boutons "annuler"
+        validate: "bg-green-600 text-white hover:bg-green-700 border border-green-700/30", // Nouvelle variante pour les boutons "valider"
       },
       size: {
         default: "h-10 px-4 py-2",
