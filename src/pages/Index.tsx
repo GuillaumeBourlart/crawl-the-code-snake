@@ -586,7 +586,7 @@ const [fps,    setFps]    = useState(0);
       {!gameStarted && <GlobalLeaderboardButton />}
 
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-none animate-fade-in">
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
           <div className="flex items-center mb-6">
             <ZigzagTitle className="w-full" />
           </div>
