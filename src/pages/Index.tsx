@@ -572,180 +572,112 @@ const [fps,    setFps]    = useState(0);
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
       {!gameStarted && (
-        <div className="absolute top-4 left-4 z-50">
-          <LanguageSelector />
-        </div>
-      )}
-      
-      {!gameStarted && (
-        <div className="absolute top-4 right-4 z-50">
-          <AuthButtons />
-        </div>
-      )}
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full animate-fade-in space-y-8">
 
-      {!gameStarted && <GlobalLeaderboardButton />}
-
-      {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
-          <div className="flex items-center mb-6">
+          {/* ─── Gros titre ─── */}
+          <div className="w-full max-w-4xl mx-auto">
             <ZigzagTitle className="w-full" />
           </div>
-          
-          <div className="w-full max-w-sm mb-6">
+
+          {/* ─── Champ pseudo ─── */}
+          <div className="w-full max-w-md mx-auto">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
                 <User className="h-5 w-5" />
               </div>
               <Input
                 type="text"
-                placeholder={t('enter_username')}
+                placeholder={t("enter_username")}
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="text-white bg-gray-800/60 border-gray-700/70 pl-10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 py-6 rounded-full"
+                onChange={e => setUsername(e.target.value)}
+                className="w-full bg-gray-800/60 border-gray-700/70 pl-10 py-6 rounded-full text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
                 maxLength={16}
-                required
               />
             </div>
           </div>
-          
-          <div className="w-full mb-6">
-            <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
-              {false ? (
-                <div className="flex justify-center py-2">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-indigo-500"></div>
-                </div>
-              ) : (
-                selectedSkin ? (
-                  <div className="flex flex-col items-center">
-                    <SkinPreview skin={selectedSkin} size="medium" animate={true} pattern="snake" />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center py-4">
-                    <p className="text-gray-400">{t('no_skin_selected')}</p>
-                    <p className="text-xs text-indigo-400 mt-2">{t('click_to_choose')}</p>
+
+          {/* ─── Preview de skin ─── */}
+          <div className="w-full max-w-sm mx-auto">
+            <Link
+              to="/skins"
+              className="block w-full bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors"
+            >
+              {selectedSkin
+                ? <SkinPreview skin={selectedSkin} size="medium" animate pattern="snake" />
+                : (
+                  <div className="py-4 text-center text-gray-400">
+                    {t("no_skin_selected")}<br/>
+                    <span className="text-xs text-indigo-400">{t("click_to_choose")}</span>
                   </div>
                 )
-              )}
+              }
             </Link>
           </div>
-          
-          <div className="flex flex-col w-full gap-3">
+
+          {/* ─── Bouton Jouer ─── */}
+          <div className="w-full max-w-md mx-auto">
             <button
-              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handlePlay}
               disabled={connecting || !username.trim() || !selectedSkinId}
+              className="relative w-full h-32 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {connecting ? (
-                <div className="p-5">
-                  <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              ) : (
-                <AnimatedArrow 
-                  className="w-full h-32" 
-                  isClickable={Boolean(username.trim() && selectedSkinId)}
-                />
-              )}
+              {connecting
+                ? <div className="p-5"><svg className="animate-spin h-12 w-12 text-white" …/></div>
+                : <AnimatedArrow className="w-full h-32" isClickable />
+              }
             </button>
           </div>
-          
-          {reconnectAttempts > 0 && (
-            <p className="mt-4 text-amber-400 flex items-center">
-              <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Reconnection attempt {reconnectAttempts}/{MAX_RECONNECTION_ATTEMPTS}
-            </p>
-          )}
+
         </div>
       )}
-      
+
       {gameStarted && (
         <>
+          {/* ─── En‑jeu ─── */}
           <div className="absolute top-4 right-4 z-20 flex space-x-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              className="bg-gray-900/70 border-red-500/30 text-white hover:bg-red-900/30 rounded-lg shadow-md"
+              className="bg-gray-900/70 border-red-500/30 text-red-500 hover:bg-red-900/30 rounded-lg shadow-md"
               onClick={handleQuitGame}
             >
-              <LogOut className="mr-1 h-4 w-4 text-red-400" />
-              {t('quit')}
+              <LogOut className="mr-1 h-4 w-4 text-red-400"/> {t("cancel")}
             </Button>
           </div>
-          
-          {isSpectator && (
-            <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-red-600/70 text-white rounded-lg shadow-md">
-              {t('spectator_mode')}
-            </div>
-          )}
-          
-          <PlayerScore 
-            playerId={playerId} 
-            players={gameState.players}
-            roomLeaderboard={roomLeaderboard} 
-          />
-          
-          <LeaderboardPanel 
+
+          <PlayerScore playerId={playerId} players={gameState.players} roomLeaderboard={roomLeaderboard}/>
+          <LeaderboardPanel
             roomLeaderboard={roomLeaderboard}
             currentPlayerId={playerId}
+            columns={{ rank: t("rang"), player: t("joueurs"), score: t("score") }}
           />
 
-           {/* ─── Mini‑HUD perf ─── */}
-    <div style={{
-      position: "absolute",
-      top: 8,
-      left: 8,
-      padding: "4px 8px",
-      background: "rgba(0,0,0,0.5)",
-      color: "#0f0",
-      fontFamily: "monospace",
-      zIndex: 50,
-      fontSize: 12,
-      lineHeight: "1.2"
-    }}>
-      <div>FPS  : {fps}</div>
-      <div>Tick : {tickMs.toFixed(1)} ms</div>
-      <div>RTT  : {rtt.toFixed(1)} ms</div>
-      <div>Ping : {ping.toFixed(1)} ms</div>
-    </div>
-          
           <GameCanvas
             gameState={{
-              ...gameState,
-              players: gameState.players || {},
-              items: gameState.items ? Object.values(gameState.items) : [],
+              players: gameState.players,
+              items: Object.values(gameState.items || {}),
               worldSize: gameState.worldSize || { width: 4000, height: 4000 }
             }}
             playerId={playerId}
             onMove={handleMove}
             onBoostStart={handleBoostStart}
             onBoostStop={handleBoostStop}
-            onPlayerCollision={handlePlayerCollision}
             isSpectator={isSpectator}
           />
-          
-          {isMobile && !isSpectator && (
-            <MobileControls 
-              onMove={handleMove} 
-              onBoostStart={handleBoostStart} 
-              onBoostStop={handleBoostStop}
-              onJoystickMove={handleJoystickMove}
-            />
-          )}
+
+          {isMobile && !isSpectator &&
+            <MobileControls onMove={handleMove} onBoostStart={handleBoostStart} onBoostStop={handleBoostStop}/>
+          }
+
+          <GameOverDialog
+            isOpen={showGameOverDialog}
+            onClose={() => setShowGameOverDialog(false)}
+            onRetry={handleRetry}
+            onQuit={handleQuitGame}
+            playerColor={playerId && gameState.players[playerId]?.color}
+          />
         </>
       )}
-
-      <GameOverDialog 
-        isOpen={showGameOverDialog}
-        onClose={() => setShowGameOverDialog(false)}
-        onRetry={handleRetry}
-        onQuit={handleQuitGame}
-        playerColor={playerId && gameState.players[playerId]?.color}
-      />
 
       {!gameStarted && <Footer />}
     </div>
