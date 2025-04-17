@@ -18,6 +18,7 @@ import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
 import ProfilePage from "./pages/ProfilePage";
 import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 
 // Add CSS to handle scrolling
 const styles = `
@@ -41,6 +42,11 @@ const styles = `
 
   .content-wrapper {
     flex: 1;
+  }
+  
+  /* Hide Lovable Badge */
+  .gptengineer-badge {
+    display: none !important;
   }
 `;
 

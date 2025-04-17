@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useSkins } from "@/hooks/use-skins";
@@ -6,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
-import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Check, Bug } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
@@ -15,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Footer from "@/components/Footer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Helmet } from "react-helmet-async";
 
 const stripePromise = loadStripe("pk_live_N6Rg1MNzwQz7XW5Y4XfSFxaB00a88aqKEq");
 
@@ -33,6 +33,7 @@ const SkinsPage = () => {
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
   const isMobile = useIsMobile();
   const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   console.log("SkinsPage - Render state:", {
     user: !!user,
@@ -63,7 +64,15 @@ const SkinsPage = () => {
     }
   }, [fetchError]);
 
-
+  const showDebugInfo = () => {
+    setDebugInfo({
+      lastSavingMethod: "local",
+      userAuthenticated: !!user,
+      profileAvailable: !!profile,
+      ownedSkins: ownedSkinIds
+    });
+    setIsDebugDialogOpen(true);
+  };
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -144,21 +153,18 @@ const SkinsPage = () => {
   const handleSkinSelectAndSave = async (skinId: number) => {
     console.log("SkinsPage - handleSkinSelectAndSave called with skinId:", skinId);
     
-    // Set skin in local state first for immediate UI update
     setSelectedSkin(skinId);
     
-    // If user is logged in, also update profile in database
     if (user && profile) {
       console.log("User is logged in, updating skin in database");
       try {
-        // Update profile in database using the API
         await updateProfile({
           default_skin_id: skinId
         });
         console.log("Skin updated in database successfully");
       } catch (error) {
         console.error("Error updating skin in database:", error);
-        // Toast already shown in setSelectedSkin function
+        toast.error("Erreur lors de la sauvegarde du skin");
       }
     } else {
       console.log("User not logged in, skin only updated locally");
@@ -178,12 +184,17 @@ const SkinsPage = () => {
     toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
   };
 
-
-
   const isLoading = authLoading || skinsLoading;
 
   return (
     <div className="min-h-screen flex flex-col text-white overflow-y-auto">
+      <Helmet>
+        <title>Personnalisation du serpent | grubz.io</title>
+        <meta name="description" content="Personnalisez l'apparence de votre serpent avec des skins uniques. Débloquez de nouveaux skins et démontrez votre style dans grubz.io!" />
+        <meta name="keywords" content="skins de serpent, personnalisation, grubz.io, jeu snake, débloquer skins" />
+        <link rel="canonical" href="https://grubz.io/skins" />
+      </Helmet>
+      
       <div className="sticky top-0 z-10 flex justify-between items-center w-full p-4 bg-gray-900/80 backdrop-blur-sm">
         <Button 
           variant="ghost" 

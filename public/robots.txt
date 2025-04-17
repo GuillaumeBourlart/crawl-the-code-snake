@@ -1,3 +1,14 @@
+
+# robots.txt for grubz.io
+
+# Allow all robots full access
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://grubz.io/sitemap.xml
+
+# Specific rules for major bots
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +21,6 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Disallow paths (uncomment if needed)
+# Disallow: /admin/
+# Disallow: /private/
