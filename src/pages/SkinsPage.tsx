@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import SkinSelector from "@/components/SkinSelector";
 import { GameSkin } from "@/types/supabase";
 import { loadStripe } from "@stripe/stripe-js";
-import { Loader2, ArrowLeft, Check, Bug } from "lucide-react";
+import { Loader2, ArrowLeft, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthButtons from "@/components/AuthButtons";
 import { toast } from "sonner";
@@ -25,8 +25,7 @@ const SkinsPage = () => {
     loading: skinsLoading, 
     refresh: refreshSkins,
     fetchError,
-    ownedSkinIds,
-    getDebugInfo
+    ownedSkinIds
   } = useSkins();
   const { user, profile, supabase, loading: authLoading, updateProfile } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +33,6 @@ const SkinsPage = () => {
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
   const isMobile = useIsMobile();
   const [isDebugDialogOpen, setIsDebugDialogOpen] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   console.log("SkinsPage - Render state:", {
     user: !!user,
@@ -65,11 +63,7 @@ const SkinsPage = () => {
     }
   }, [fetchError]);
 
-  useEffect(() => {
-    if (getDebugInfo) {
-      setDebugInfo(getDebugInfo());
-    }
-  }, [getDebugInfo, selectedSkin, user, profile]);
+
 
   const handlePurchase = async (skin: GameSkin) => {
     if (!user) {
@@ -184,10 +178,7 @@ const SkinsPage = () => {
     toast.success("Skin confirmé ! Vous pouvez maintenant jouer.");
   };
 
-  const showDebugInfo = () => {
-    setDebugInfo(getDebugInfo());
-    setIsDebugDialogOpen(true);
-  };
+
 
   const isLoading = authLoading || skinsLoading;
 
