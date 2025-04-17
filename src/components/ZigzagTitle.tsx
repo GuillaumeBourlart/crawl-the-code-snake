@@ -17,7 +17,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   
   // ← Ici : on augmente r de 20 → 40
   const baseCircleProps = {
-    r: 40,
+    r: 60,
     fill: "currentColor"
   };
   
