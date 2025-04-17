@@ -43,7 +43,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       ctx.fillRect(0, 0, width, height);
       
       // Draw hexagons
-      const hexSize = 120;
+      const hexSize = 140;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
       
@@ -51,7 +51,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
       
       // Increased border width to match the canvas style
-      ctx.lineWidth = 20;
+      ctx.lineWidth = 40;
       
       for (let row = -2; row < rows; row++) {
         for (let col = -2; col < cols; col++) {

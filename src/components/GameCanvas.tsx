@@ -411,14 +411,14 @@ const GameCanvas = ({
       gridCtx.scale(camera.zoom, camera.zoom);
       gridCtx.translate(-camera.x, -camera.y);
       
-      const hexSize = 120;
+      const hexSize = 140;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
       
       const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
       const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
       
-      gridCtx.lineWidth = 20;
+      gridCtx.lineWidth = 40;
       
       for (let row = -2; row < worldRows; row++) {
         for (let col = -2; col < worldCols; col++) {
