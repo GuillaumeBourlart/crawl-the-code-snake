@@ -114,16 +114,20 @@ const [fps,    setFps]    = useState(0);
   
   const availableSkinsRef = useRef<any[]>([]);
 
-  useEffect(() => {
-  if (!socket) return;                    // n’exécute que si le socket est prêt
-  let last = performance.now();
+ useEffect(() => {
+  if (!socket) return;
+  // horloge haute‑précision pour le tick
+  let lastPerf = performance.now();
 
-  const onUpdate = (payload: any) => {
-    const now = performance.now();
-    setTickMs(now - last);                // intervalle entre deux ticks
-    last = now;
+  const onUpdate = (payload: { serverTs?: number }) => {
+    // 1) tick en ms (delta perf.now)
+    const nowPerf = performance.now();
+    setTickMs(nowPerf - lastPerf);
+    lastPerf = nowPerf;
+
+    // 2) RTT en ms (delta Date.now)
     if (payload.serverTs) {
-      setRtt(now - payload.serverTs);     // RTT approximatif
+      setRtt(Date.now() - payload.serverTs);
     }
   };
 
@@ -132,6 +136,7 @@ const [fps,    setFps]    = useState(0);
     socket.off("update_entities", onUpdate);
   };
 }, [socket]);
+
 
 
   useEffect(() => {
