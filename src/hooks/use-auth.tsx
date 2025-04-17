@@ -28,6 +28,12 @@ const getSupabase = (): SupabaseClient => {
 // Initialize the singleton
 const supabase = getSupabase();
 
+// Define constants for profile fetching - moved outside functions
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 2000; // 2 seconds between retries
+const FETCH_TIMEOUT = 8000; // Increase timeout to 8 seconds
+const FETCH_COOLDOWN = 10000; // 10 seconds between fetch attempts
+
 type AuthContextType = {
   user: User | null;
   profile: Profile | null;
@@ -57,10 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Track profile fetch retries
   const profileFetchRetriesRef = useRef(0);
   const lastFetchAttemptRef = useRef(0);
-  const MAX_RETRIES = 2;
-  const RETRY_DELAY = 2000; // 2 seconds between retries
-  const FETCH_TIMEOUT = 8000; // Increase timeout to 8 seconds
-  const FETCH_COOLDOWN = 10000; // 10 seconds between fetch attempts
   
   // Profile fetching with locks, timeouts, and retries
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
@@ -455,18 +457,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("[AuthProvider] Setting up visibility change listener");
     
     // Track when the tab was last made visible to prevent excessive refreshes
-    const lastVisibleRef = useRef(0);
+    const lastVisibleTime = Date.now();
     const MIN_VISIBILITY_INTERVAL = 5000; // Minimum 5 seconds between visibility-triggered refreshes
    
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const now = Date.now();
-        const timeSinceLastVisible = now - lastVisibleRef.current;
+        const timeSinceLastVisible = now - lastVisibleTime;
         
         // Only refresh if it's been at least 5 seconds since the last visibility change
         if (timeSinceLastVisible > MIN_VISIBILITY_INTERVAL) {
           console.log(`[visibilitychange] Document became visible after ${timeSinceLastVisible/1000}s, refreshing in 1s`);
-          lastVisibleRef.current = now;
           
           // Wait a second before refreshing to let the browser stabilize
           setTimeout(() => {
