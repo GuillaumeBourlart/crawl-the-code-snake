@@ -6,10 +6,10 @@ interface ZigzagTitleProps {
 
 const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   // 1) Choisissez votre rayon ici
-  const r = 60;
+  const r = 100;
 
   // 2) STEP définit l'espacement entre les centres des cercles
-  const STEP = r * 0.8;
+  const STEP = r * 0.95;
 
   // 3) Masques de lettres : 1 = point, 0 = vide
   const LETTER_MASKS: Record<string, number[][]> = {
