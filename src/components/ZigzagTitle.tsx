@@ -9,7 +9,7 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   const r = 100;
 
   // 2) STEP définit l'espacement entre les centres des cercles
-  const STEP = r * 0.95;
+  const STEP = r * 1.8;
 
   // 3) Masques de lettres : 1 = point, 0 = vide
   const LETTER_MASKS: Record<string, number[][]> = {
