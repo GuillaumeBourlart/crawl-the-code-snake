@@ -76,35 +76,40 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
   const letters = ["G", "R", "U", "B", "Z", ".", "I", "O"];
 
-  // 4) Calcul de la largeur en px de chaque lettre (colonnes × STEP)
-  const letterWidths = letters.map((ltr) => {
-    const bmp = letterBitmaps[ltr];
-    return (bmp?.[0].length || 5) * STEP;
-  });
-
-  // 5) Offsets cumulés
+  // largeur de chaque lettre
+  const letterWidths = letters.map(l =>
+    (letterBitmaps[l]?.[0].length || 5) * STEP
+  );
+  // offsets cumulés
   const offsets: number[] = [];
   letterWidths.reduce((acc, w, i) => {
     offsets[i] = acc;
     return acc + w + LETTER_SPACING;
   }, 0);
 
-  // Génère un <g> animé pour chaque lettre
-  const renderLetter = (chr: string, color: string, offsetX: number) => {
-    const bmp = letterBitmaps[chr];
-    if (!bmp) return null;
-    const rows = bmp.length;
+  // calcule la taille brute du dessin sans marge
+  const rawWidth = offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1];
+  const rawHeight = (letterBitmaps.G.length - 1) * STEP + r; // dernière ligne à (rows-1)*STEP + rayon
+
+  // margins égales à r tout autour
+  const vbX = -r;
+  const vbY = -r;
+  const vbW = rawWidth + 2 * r;
+  const vbH = rawHeight + 2 * r;
+
+  const renderLetter = (ltr: string, color: string, x: number) => {
+    const bmp = letterBitmaps[ltr];
     return (
-      <g key={chr} transform={`translate(${offsetX},0)`}>
-        {bmp.flatMap((row, rowIdx) =>
-          row.map((cell, colIdx) => {
-            if (cell === 0) return null;
-            const delay = (rowIdx / (rows - 1)) * 0.5;
+      <g key={ltr} transform={`translate(${x},0)`}>
+        {bmp.flatMap((row, y) =>
+          row.map((cell, x2) => {
+            if (!cell) return null;
+            const delay = (y / (bmp.length - 1)) * 0.5;
             return (
               <circle
-                key={`${chr}-${rowIdx}-${colIdx}`}
-                cx={colIdx * STEP}
-                cy={rowIdx * STEP}
+                key={`${ltr}-${y}-${x2}`}
+                cx={x2 * STEP}
+                cy={y * STEP}
                 r={r}
                 fill={color}
                 className="animate-pulse"
@@ -123,18 +128,17 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   };
 
   return (
-    <div className={`flex justify-center items-center w-full h-full mx-auto overflow-visible ${className}`}>
+    <div
+      className={`flex items-center justify-center w-full h-full overflow-visible ${className}`}
+    >
       <svg
-        viewBox={`-${r * 0.2} -${r * 0.2} ${
-          offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1] + r * 0.4
-        } ${STEP * 6}`}
-        className="w-full h-full"
+        viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
         preserveAspectRatio="xMidYMid meet"
+        className="w-full h-full"
       >
-        {letters.map((ltr, i) => {
-          const color = colors[i % colors.length];
-          return renderLetter(ltr, color, offsets[i]);
-        })}
+        {letters.map((ltr, i) =>
+          renderLetter(ltr, colors[i % colors.length], offsets[i])
+        )}
       </svg>
     </div>
   );
