@@ -730,9 +730,17 @@ const Index = () => {
         onQuit={handleQuitGame}
         playerColor={playerId && gameState.players[playerId]?.color}
       />
-{!gameStarted && <GlobalLeaderboardButton />}
+      {!gameStarted && (
+  <div className="relative w-full">
+    {/* bouton juste au‑dessus du footer */}
+    <div className="absolute left-[5px] bottom-full mb-2 z-50">
+      <GlobalLeaderboardButton />
+    </div>
 
-      {!gameStarted && <Footer />}
+    {/* ton footer */}
+    <Footer />
+  </div>
+)}
     </div>
   );
 };
