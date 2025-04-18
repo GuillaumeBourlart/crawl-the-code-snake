@@ -17,11 +17,11 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   // 3) Matrice 5×7 représentant la flèche "→"
   // 1 = point dessiné, 0 = rien
   const arrowMatrix: number[][] = [
-    [0,0,0,0,0,0,1],
-    [0,0,0,0,0,1,1],
+    [0,0,0,0,1,0,0],
+    [0,0,0,0,0,1,0],
     [1,1,1,1,1,1,1],
-    [0,0,0,0,0,1,1],
-    [0,0,0,0,0,0,1],
+    [0,0,0,0,0,1,0],
+    [0,0,0,0,1,0,0],
   ];
 
   const rows = arrowMatrix.length;
