@@ -1,3 +1,4 @@
+
 import React from "react";
 
 interface AnimatedArrowProps {
@@ -32,11 +33,15 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   let dotIndex = 0;
   const getAnimationDelay = (idx: number) => `${(idx / totalDots) * 0.5}s`;
 
+  // Calculate padding for the viewBox to ensure circles aren't cut off
+  const padding = r * 1.2;
+
   return (
-    <div className={`flex justify-center items-center w-[80%] h-[80%] mx-auto ${className}`}>
+    <div className={`flex justify-center items-center w-full h-full mx-auto overflow-visible ${className}`}>
       <svg
-        viewBox={`0 0 ${cols * STEP} ${rows * STEP}`}
+        viewBox={`-${padding} -${padding} ${cols * STEP + padding * 2} ${rows * STEP + padding * 2}`}
         className="w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
       >
         {arrowMatrix.map((row, rowIdx) =>
           row.map((cell, colIdx) => {

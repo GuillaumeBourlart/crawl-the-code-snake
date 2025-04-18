@@ -1,3 +1,4 @@
+
 import React from "react";
 
 interface ZigzagTitleProps {
@@ -122,12 +123,13 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   };
 
   return (
-    <div className={`flex justify-center items-center w-[80%] h-[80%] mx-auto ${className}`}>
+    <div className={`flex justify-center items-center w-full h-full mx-auto overflow-visible ${className}`}>
       <svg
-        viewBox={`0 0 ${
-          offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1]
+        viewBox={`-${r * 0.2} -${r * 0.2} ${
+          offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1] + r * 0.4
         } ${STEP * 6}`}
         className="w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
       >
         {letters.map((ltr, i) => {
           const color = colors[i % colors.length];

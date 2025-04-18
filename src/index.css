@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -182,5 +183,12 @@ canvas {
 @media (max-width: 480px) {
   .zigzag-container {
     transform: scale(0.6);
+  }
+}
+
+/* Added to fix the responsive top spacing for mobile */
+@media (max-width: 640px) {
+  .home-content-container {
+    margin-top: 10px !important;
   }
 }

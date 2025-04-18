@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -575,9 +576,11 @@ const Index = () => {
       {!gameStarted && <GlobalLeaderboardButton />}
 
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in mt-24">
-          <div className="flex items-center mb-8 w-full max-w-[600px] sm:max-w-[800px] lg:max-w-[1000px]">
-            <ZigzagTitle className="w-full h-auto sm:h-[120px] lg:h-[180px]" />
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in mt-12 sm:mt-24">
+          <div className="flex items-center justify-center mb-8 w-full overflow-visible">
+            <div className="w-[120%] sm:w-[110%] max-w-[1200px] overflow-visible">
+              <ZigzagTitle className="w-full h-auto" />
+            </div>
           </div>
           
           <div className="w-full max-w-sm mb-8">
@@ -620,7 +623,7 @@ const Index = () => {
           
           <div className="flex flex-col w-full max-w-sm gap-3">
             <button
-              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed overflow-visible"
               onClick={handlePlay}
               disabled={connecting || !username.trim() || !selectedSkinId}
             >
@@ -632,10 +635,12 @@ const Index = () => {
                   </svg>
                 </div>
               ) : (
-                <AnimatedArrow 
-                  className="w-full h-32" 
-                  isClickable={Boolean(username.trim() && selectedSkinId)}
-                />
+                <div className="w-[120%] overflow-visible">
+                  <AnimatedArrow 
+                    className="w-full h-32" 
+                    isClickable={Boolean(username.trim() && selectedSkinId)}
+                  />
+                </div>
               )}
             </button>
           </div>
