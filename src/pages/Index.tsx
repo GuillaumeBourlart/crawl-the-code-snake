@@ -686,6 +686,13 @@ const Index = () => {
             players={gameState.players}
             roomLeaderboard={roomLeaderboard} 
           />
+
+           <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-mono text-green-400">
+     <div>FPS: {fps}</div>
+     <div>Tick: {tickMs.toFixed(1)} ms</div>
+     <div>RTT: {rtt.toFixed(1)} ms</div>
+     <div>Ping: {ping.toFixed(1)} ms</div>
+   </div>
           
           <LeaderboardPanel 
             roomLeaderboard={roomLeaderboard}
@@ -693,23 +700,7 @@ const Index = () => {
           />
 
            {/* ─── Mini‑HUD perf ─── */}
-    <div style={{
-      position: "absolute",
-      top: 8,
-      left: 8,
-      padding: "4px 8px",
-      background: "rgba(0,0,0,0.5)",
-      color: "#0f0",
-      fontFamily: "monospace",
-      zIndex: 50,
-      fontSize: 12,
-      lineHeight: "1.2"
-    }}>
-      <div>FPS  : {fps}</div>
-      <div>Tick : {tickMs.toFixed(1)} ms</div>
-      <div>RTT  : {rtt.toFixed(1)} ms</div>
-      <div>Ping : {ping.toFixed(1)} ms</div>
-    </div>
+    
           
           <GameCanvas
             gameState={{
