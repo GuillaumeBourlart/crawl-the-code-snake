@@ -1,4 +1,3 @@
-
 import React from "react";
 
 interface AnimatedArrowProps {
@@ -6,66 +5,63 @@ interface AnimatedArrowProps {
   isClickable?: boolean;
 }
 
-const AnimatedArrow: React.FC<AnimatedArrowProps> = ({ 
+const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   className = "",
-  isClickable = false
+  isClickable = false,
 }) => {
-  // Base circle properties
-  const baseCircleProps = {
-    r: 3, // Smaller circles (reduced from 4 to 3)
-    fill: isClickable ? "#ffffff" : "#333333", // White when clickable, dark otherwise
-    className: "animate-pulse"
-  };
+  // 1) Rayon des cercles un peu plus gros
+  const r = 5;
+  // 2) Espacement horizontal entre points
+  const STEP = 20;
 
-  // Animation delays based on position
-  const getAnimationDelay = (index: number, total: number) => {
-    return `${(index / total) * 0.5}s`;
-  };
+  // couleur selon clicabilité
+  const fillColor = isClickable ? "#ffffff" : "#555555";
 
-  // Generate the arrow shape using dots (circles)
+  // animation delay
+  const getAnimationDelay = (index: number, total: number) =>
+    `${(index / total) * 0.5}s`;
+
+  // génère la forme de la flèche
   const generateArrowPoints = () => {
-    // Main horizontal line points - with smaller spacing
-    const mainLinePoints: [number, number][] = [
-      [20, 40], [30, 40], [40, 40], [50, 40], [60, 40], 
-      [70, 40], [80, 40], [90, 40], [100, 40], [110, 40],
-      [120, 40], [130, 40], [140, 40], [150, 40], [160, 40]
-    ];
-    
-    // Arrow head points - with smaller spacing
+    // Corps de la flèche : une ligne de points
+    const mainLinePoints: [number, number][] = [];
+    for (let x = 10; x <= 130; x += STEP) {
+      mainLinePoints.push([x, 50]);
+    }
+
+    // Pointe triangulaire
     const arrowHeadPoints: [number, number][] = [
-      [150, 30], [155, 32], [160, 35], [165, 37], [170, 40], // Upper diagonal
-      [165, 43], [160, 45], [155, 48], [150, 50] // Lower diagonal
+      [150, 50], // pointe centrale
+      [140, 40], // haut gauche
+      [140, 60], // bas gauche
+      [130, 50], // base gauche
     ];
-    
-    // All arrow points
+
     const allPoints = [...mainLinePoints, ...arrowHeadPoints];
-    
-    return (
-      <>
-        {allPoints.map((point, index) => (
-          <circle
-            key={`arrow-circle-${index}`}
-            cx={point[0]}
-            cy={point[1]}
-            {...baseCircleProps}
-            style={{ 
-              animationDelay: getAnimationDelay(index, allPoints.length),
-              animationDuration: "1.5s", // Faster animation
-              animationIterationCount: "infinite",
-              filter: isClickable ? "drop-shadow(0px 2px 4px rgba(255, 255, 255, 0.3))" : "none"
-            }}
-          />
-        ))}
-      </>
-    );
+
+    return allPoints.map((point, i) => (
+      <circle
+        key={i}
+        cx={point[0]}
+        cy={point[1]}
+        r={r}
+        fill={fillColor}
+        className="animate-pulse"
+        style={{
+          animationDelay: getAnimationDelay(i, allPoints.length),
+          animationDuration: "1.5s",
+          animationIterationCount: "infinite",
+          filter: isClickable
+            ? "drop-shadow(0px 2px 4px rgba(255,255,255,0.3))"
+            : "none",
+        }}
+      />
+    ));
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center ${className}`}>
-      <svg 
-        viewBox="0 0 200 80" // Smaller viewBox for a more compact arrow
-        className="w-full h-full"
-      >
+    <div className={`flex items-center justify-center ${className}`}>
+      <svg viewBox="0 0 180 100" className="w-full h-full">
         {generateArrowPoints()}
       </svg>
     </div>
