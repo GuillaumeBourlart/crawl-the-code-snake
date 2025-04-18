@@ -50,7 +50,11 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
       [1,1,1,1,1],
     ],
     ".": [
-      [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,1,0]
+      [0,0,0],
+      [0,0,0],
+      [0,0,0],
+      [0,0,0],
+      [0,1,0],
     ],
     I: [
       [1,1,1,1,1],
@@ -71,13 +75,13 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   const colors = ["#1EAEDB", "#F97316", "#8B5CF6", "#FFFFFF"];
   const letters = ["G", "R", "U", "B", "Z", ".", "I", "O"];
 
-  // 4) On calcule la largeur de chaque lettre en px (nombre de colonnes × STEP)
+  // 4) Calcul de la largeur en px de chaque lettre (colonnes × STEP)
   const letterWidths = letters.map((ltr) => {
     const bmp = letterBitmaps[ltr];
     return (bmp?.[0].length || 5) * STEP;
   });
 
-  // 5) On génère les offsets cumulés
+  // 5) Offsets cumulés
   const offsets: number[] = [];
   letterWidths.reduce((acc, w, i) => {
     offsets[i] = acc;
@@ -94,7 +98,6 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
         {bmp.flatMap((row, rowIdx) =>
           row.map((cell, colIdx) => {
             if (cell === 0) return null;
-            // délai progressif selon la ligne (0 → 0.5s)
             const delay = (rowIdx / (rows - 1)) * 0.5;
             return (
               <circle
@@ -118,19 +121,20 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
     );
   };
 
-  // 6) On rend tout
   return (
-    <svg
-      viewBox={`0 0 ${offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1] } ${
-        STEP * 6
-      }`}
-      className={className}
-    >
-      {letters.map((ltr, i) => {
-        const color = colors[i % colors.length];
-        return renderLetter(ltr, color, offsets[i]);
-      })}
-    </svg>
+    <div className={`flex justify-center items-center w-[80%] h-[80%] mx-auto ${className}`}>
+      <svg
+        viewBox={`0 0 ${
+          offsets[offsets.length - 1] + letterWidths[letterWidths.length - 1]
+        } ${STEP * 6}`}
+        className="w-full h-full"
+      >
+        {letters.map((ltr, i) => {
+          const color = colors[i % colors.length];
+          return renderLetter(ltr, color, offsets[i]);
+        })}
+      </svg>
+    </div>
   );
 };
 
