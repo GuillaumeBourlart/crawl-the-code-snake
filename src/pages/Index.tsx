@@ -681,24 +681,11 @@ const Index = () => {
             </div>
           )}
           
-          {/* ─── Mini‑HUD perf en haut à gauche ─── */}
-<div className="absolute top-4 left-4 z-20">
-  {/* wrapper relatif pour que PlayerScore reste dans ce bloc */}
-  <div className="relative">
-    <PlayerScore 
-      playerId={playerId} 
-      players={gameState.players}
-      roomLeaderboard={roomLeaderboard} 
-    />
-  </div>
-  {/* métriques statiques, empilées verticalement */}
-  <div className="mt-2 flex flex-col space-y-1 text-xs sm:text-sm font-mono text-white">
-    <div>FPS: {fps}</div>
-    <div>Tick: {tickMs.toFixed(1)} ms</div>
-    <div>RTT: {rtt.toFixed(1)} ms</div>
-    <div>Ping: {ping.toFixed(1)} ms</div>
-  </div>
-</div>
+          <PlayerScore 
+            playerId={playerId} 
+            players={gameState.players}
+            roomLeaderboard={roomLeaderboard} 
+          />
           
           <LeaderboardPanel 
             roomLeaderboard={roomLeaderboard}
@@ -706,7 +693,23 @@ const Index = () => {
           />
 
            {/* ─── Mini‑HUD perf ─── */}
-    
+    <div style={{
+      position: "absolute",
+      top: 8,
+      left: 8,
+      padding: "4px 8px",
+      background: "rgba(0,0,0,0.5)",
+      color: "#0f0",
+      fontFamily: "monospace",
+      zIndex: 50,
+      fontSize: 12,
+      lineHeight: "1.2"
+    }}>
+      <div>FPS  : {fps}</div>
+      <div>Tick : {tickMs.toFixed(1)} ms</div>
+      <div>RTT  : {rtt.toFixed(1)} ms</div>
+      <div>Ping : {ping.toFixed(1)} ms</div>
+    </div>
           
           <GameCanvas
             gameState={{
