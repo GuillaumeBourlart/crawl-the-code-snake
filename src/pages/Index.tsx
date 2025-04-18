@@ -572,8 +572,7 @@ const Index = () => {
         </div>
       )}
 
-      {!gameStarted && <GlobalLeaderboardButton />}
-
+      
       {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in mt-12 sm:mt-24">
           <div className="flex items-center justify-center mb-6 w-full overflow-visible">
@@ -731,6 +730,7 @@ const Index = () => {
         onQuit={handleQuitGame}
         playerColor={playerId && gameState.players[playerId]?.color}
       />
+{!gameStarted && <GlobalLeaderboardButton />}
 
       {!gameStarted && <Footer />}
     </div>
