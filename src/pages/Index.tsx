@@ -25,8 +25,6 @@ import LanguageSelector from "@/components/LanguageSelector";
 
 const SOCKET_SERVER_URL = "https://api.grubz.io";
 
-
-
 interface ServerPlayer {
   id?: string;
   x: number;
@@ -116,71 +114,62 @@ const Index = () => {
   
   const availableSkinsRef = useRef<any[]>([]);
 
- useEffect(() => {
-  if (!socket) return;
-  // horloge haute‑précision pour le tick
-  let lastPerf = performance.now();
+  useEffect(() => {
+    if (!socket) return;
+    let lastPerf = performance.now();
 
-  const onUpdate = (payload: { serverTs?: number }) => {
-    // 1) tick en ms (delta perf.now)
-    const nowPerf = performance.now();
-    setTickMs(nowPerf - lastPerf);
-    lastPerf = nowPerf;
+    const onUpdate = (payload: { serverTs?: number }) => {
+      const nowPerf = performance.now();
+      setTickMs(nowPerf - lastPerf);
+      lastPerf = nowPerf;
 
-    // 2) RTT en ms (delta Date.now)
-    if (payload.serverTs) {
-      setRtt(Date.now() - payload.serverTs);
-    }
-  };
+      if (payload.serverTs) {
+        setRtt(Date.now() - payload.serverTs);
+      }
+    };
 
-  socket.on("update_entities", onUpdate);
-  return () => {
-    socket.off("update_entities", onUpdate);
-  };
-}, [socket]);
+    socket.on("update_entities", onUpdate);
+    return () => {
+      socket.off("update_entities", onUpdate);
+    };
+  }, [socket]);
 
   useEffect(() => {
-  if (!socket) return;
-  const PING_INTERVAL = 2000; // en ms
+    if (!socket) return;
+    const PING_INTERVAL = 2000;
 
-  const measurePing = () => {
-    const t0 = performance.now();
-    // émet ping_test avec callback ack
-    socket.emit("ping_test", null, () => {
-      const rtt = performance.now() - t0;
-      setPing(rtt);
-    });
-  };
+    const measurePing = () => {
+      const t0 = performance.now();
+      socket.emit("ping_test", null, () => {
+        const rtt = performance.now() - t0;
+        setPing(rtt);
+      });
+    };
 
-  // premier ping tout de suite, puis intervalle
-  measurePing();
-  const id = window.setInterval(measurePing, PING_INTERVAL);
+    measurePing();
+    const id = window.setInterval(measurePing, PING_INTERVAL);
 
-  return () => window.clearInterval(id);
-}, [socket]);
-
-
-
+    return () => window.clearInterval(id);
+  }, [socket]);
 
   useEffect(() => {
-  let frames = 0;
-  let t0 = performance.now();
+    let frames = 0;
+    let t0 = performance.now();
 
-  const loop = (t: number) => {
-    frames++;
-    if (t - t0 >= 1000) {
-      setFps(frames);
-      frames = 0;
-      t0 = t;
-    }
-    requestAnimationFrame(loop);
-  };
+    const loop = (t: number) => {
+      frames++;
+      if (t - t0 >= 1000) {
+        setFps(frames);
+        frames = 0;
+        t0 = t;
+      }
+      requestAnimationFrame(loop);
+    };
 
-  const rafId = requestAnimationFrame(loop);
-  return () => cancelAnimationFrame(rafId);
-}, []);
+    const rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
-  
   useEffect(() => {
     if (!skinLoadAttempted) {
       console.log("[Index] Initial skins refresh");
@@ -586,7 +575,7 @@ const Index = () => {
       {!gameStarted && <GlobalLeaderboardButton />}
 
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in">
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in mt-24">
           <div className="flex items-center mb-8 w-full max-w-[600px] sm:max-w-[800px] lg:max-w-[1000px]">
             <ZigzagTitle className="w-full h-auto sm:h-[120px] lg:h-[180px]" />
           </div>
