@@ -41,14 +41,10 @@ interface GameCanvasProps {
 }
 
 const BASE_SIZE = 20;
-// 4 items pour gagner 1 segment, 10 segments de départ
 const ITEMS_PER_SEGMENT    = 4;
 const INITIAL_SEGMENTS     = 10;
 const DEFAULT_ITEM_EATEN_COUNT = ITEMS_PER_SEGMENT * INITIAL_SEGMENTS;  // 40
-// on ralentit la croissance du radius de la tête (avant c’était 0.05)
 const HEAD_GROWTH_FACTOR   = 0.02;
-
-
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -104,7 +100,6 @@ let _joystickDirection = { x: 0, y: 0 };
 export const handleJoystickDirection = (direction: { x: number; y: number }) => {
   _joystickDirection = direction;
 };
-
 
 const getHeadRadius = (player: Player): number => {
   return BASE_SIZE / 2 + Math.max(0, (player.itemEatenCount || 0) - DEFAULT_ITEM_EATEN_COUNT) * HEAD_GROWTH_FACTOR;
@@ -393,8 +388,6 @@ const GameCanvas = ({
       gridCtx.fillStyle = '#000000';
       gridCtx.fillRect(0, 0, width, height);
       
-      
-      
       const centerGlow = gridCtx.createRadialGradient(
         width/2, height/2, 0,
         width/2, height/2, height * 0.4
@@ -495,8 +488,6 @@ const GameCanvas = ({
       
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
-      
-     
       
       const centerGlow = ctx.createRadialGradient(
         width/2, height/2, 0,

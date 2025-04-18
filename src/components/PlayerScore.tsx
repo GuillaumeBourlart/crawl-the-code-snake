@@ -32,7 +32,6 @@ const PlayerScore = ({ playerId, players, roomLeaderboard = [] }: PlayerScorePro
     const currentScore = player.itemEatenCount || 0;
     setScore(currentScore);
 
-    // Calculate player rank from leaderboard
     if (roomLeaderboard.length > 0) {
       const playerIndex = roomLeaderboard.findIndex(p => p.id === playerId);
       if (playerIndex !== -1) {
@@ -48,16 +47,24 @@ const PlayerScore = ({ playerId, players, roomLeaderboard = [] }: PlayerScorePro
   if (!playerId || !players[playerId]) return null;
   
   return (
-    <div className="absolute top-4 left-4 z-20 flex items-center bg-gray-900/80 border border-indigo-500/30 text-white rounded-lg px-3 py-2 shadow-xl">
-      <Trophy className="h-5 w-5 mr-2 text-yellow-400" />
-      <div className="flex flex-col">
-        <div className="text-xs text-gray-300">Votre score</div>
-        <div className="text-lg font-bold">{score - 40}</div>
-        {rank !== null && (
-          <div className="text-xs text-indigo-300 mt-0.5">
-            Rang #{rank} sur {roomLeaderboard.length}
-          </div>
-        )}
+    <div className="absolute top-4 left-4 z-20 flex flex-col gap-1">
+      <div className="flex items-center bg-gray-900/80 border border-indigo-500/30 text-white rounded-lg px-3 py-2 shadow-xl">
+        <Trophy className="h-5 w-5 mr-2 text-yellow-400" />
+        <div className="flex flex-col">
+          <div className="text-xs text-gray-300">Votre score</div>
+          <div className="text-lg font-bold">{score - 40}</div>
+          {rank !== null && (
+            <div className="text-xs text-indigo-300 mt-0.5">
+              Rang #{rank} sur {roomLeaderboard.length}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="text-xs text-white font-mono">
+        <div>FPS : {(window as any).fps || 0}</div>
+        <div>Tick: {((window as any).tickMs || 0).toFixed(1)} ms</div>
+        <div>RTT : {((window as any).rtt || 0).toFixed(1)} ms</div>
+        <div>Ping: {((window as any).ping || 0).toFixed(1)} ms</div>
       </div>
     </div>
   );

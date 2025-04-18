@@ -26,7 +26,7 @@ const LeaderboardPanel = ({
   };
 
   return (
-    <div className="absolute top-16 right-4 z-10 w-52 transition-all duration-300 ease-in-out">
+    <div className="absolute top-16 right-4 z-10 w-40 sm:w-52 transition-all duration-300 ease-in-out">
       <div className="bg-transparent border border-gray-700/20 text-white shadow-md rounded-lg overflow-hidden">
         <Table>
           <TableBody>
@@ -36,12 +36,12 @@ const LeaderboardPanel = ({
                   key={player.id}
                   className={`border-gray-700/20 ${player.id === currentPlayerId ? "text-green-400" : ""}`}
                 >
-                  <TableCell className="px-2 py-1 text-xs font-medium w-8 bg-transparent">
+                  <TableCell className="px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium w-6 sm:w-8 bg-transparent">
                     {getMedalIcon(index) || index + 1}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs flex items-center bg-transparent">
+                  <TableCell className="px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs flex items-center bg-transparent">
                     <span 
-                      className="h-2 w-2 rounded-full mr-1.5" 
+                      className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full mr-1 sm:mr-1.5" 
                       style={{ backgroundColor: player.color }}
                     />
                     {player.id === currentPlayerId ? (
@@ -50,14 +50,14 @@ const LeaderboardPanel = ({
                       player.pseudo || `J${player.id.substring(0, 3)}`
                     )}
                   </TableCell>
-                  <TableCell className="text-right px-2 py-1 text-xs font-medium bg-transparent">
+                  <TableCell className="text-right px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium bg-transparent">
                     {player.score}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-xs py-2 text-gray-400 bg-transparent">
+                <TableCell colSpan={3} className="text-center text-[10px] sm:text-xs py-2 text-gray-400 bg-transparent">
                   Aucun joueur
                 </TableCell>
               </TableRow>
