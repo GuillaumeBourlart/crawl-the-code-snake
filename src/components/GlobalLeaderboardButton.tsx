@@ -1,26 +1,29 @@
-import { useState, useEffect } from "react";
+// GlobalLeaderboardButton.tsx
+import { useState, useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Trophy } from "lucide-react";
 import GlobalLeaderboardDialog from "./GlobalLeaderboardDialog";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useLanguage } from "@/contexts/LanguageContext";
 
-const GlobalLeaderboardButton = () => {
-  const { t } = useLanguage();
-  const isMobile = useIsMobile();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+export default function GlobalLeaderboardButton() {
   const [footerHeight, setFooterHeight] = useState(0);
+  const footerRef = useRef<HTMLElement | null>(null);
+  const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    const updateFooterHeight = () => {
-      const footer = document.querySelector("footer");
-      if (footer) {
-        setFooterHeight(footer.clientHeight);
+  useLayoutEffect(() => {
+    footerRef.current = document.querySelector("footer");
+    if (!footerRef.current) return;
+
+    // mesure initiale
+    setFooterHeight(footerRef.current.getBoundingClientRect().height);
+
+    // observe tout changement de hauteur
+    const ro = new ResizeObserver(entries => {
+      for (let e of entries) {
+        setFooterHeight(e.contentRect.height);
       }
-    };
-    updateFooterHeight();
-    window.addEventListener("resize", updateFooterHeight);
-    return () => window.removeEventListener("resize", updateFooterHeight);
+    });
+    ro.observe(footerRef.current);
+    return () => ro.disconnect();
   }, []);
 
   return (
@@ -28,19 +31,14 @@ const GlobalLeaderboardButton = () => {
       <Button
         variant="pill"
         size="pill"
-        onClick={() => setIsDialogOpen(true)}
-        className="absolute left-4 z-50 p-2.5 h-auto w-auto"
-        style={{ bottom: `${footerHeight + 8}px` }} // 8px de marge au‑dessus du footer
+        onClick={() => setOpen(true)}
+        className="fixed left-4 z-50 p-2.5"
+        style={{ bottom: footerHeight + 8 }} // 8px de marge
       >
         <Trophy className="h-5 w-5 text-yellow-400" />
       </Button>
 
-      <GlobalLeaderboardDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-      />
+      <GlobalLeaderboardDialog isOpen={open} onClose={() => setOpen(false)} />
     </>
   );
-};
-
-export default GlobalLeaderboardButton;
+}
