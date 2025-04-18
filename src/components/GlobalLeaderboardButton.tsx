@@ -16,7 +16,7 @@ const GlobalLeaderboardButton = () => {
       <Button
         variant="pill"
         size="pill"
-        className="fixed left-2.5 bottom-[calc(var(--footer-height)+10px)] z-50 p-2.5 h-auto w-auto"
+        className="fixed left-[10px] bottom-[calc(var(--footer-height)+10px)] z-50 p-2.5 h-auto w-auto"
         onClick={() => setIsDialogOpen(true)}
       >
         <Trophy className="h-5 w-5 text-yellow-400" />

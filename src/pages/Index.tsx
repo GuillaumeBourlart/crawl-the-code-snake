@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -692,24 +691,12 @@ const Index = () => {
             currentPlayerId={playerId}
           />
 
-           {/* ─── Mini‑HUD perf ─── */}
-    <div style={{
-      position: "absolute",
-      top: 8,
-      left: 8,
-      padding: "4px 8px",
-      background: "rgba(0,0,0,0.5)",
-      color: "#0f0",
-      fontFamily: "monospace",
-      zIndex: 50,
-      fontSize: 12,
-      lineHeight: "1.2"
-    }}>
-      <div>FPS  : {fps}</div>
-      <div>Tick : {tickMs.toFixed(1)} ms</div>
-      <div>RTT  : {rtt.toFixed(1)} ms</div>
-      <div>Ping : {ping.toFixed(1)} ms</div>
-    </div>
+          <div className="absolute top-[90px] left-4 z-20 text-xs font-mono text-white/90">
+            <div>FPS: {fps}</div>
+            <div>Tick: {tickMs.toFixed(1)} ms</div>
+            <div>RTT: {rtt.toFixed(1)} ms</div>
+            <div>Ping: {ping.toFixed(1)} ms</div>
+          </div>
           
           <GameCanvas
             gameState={{

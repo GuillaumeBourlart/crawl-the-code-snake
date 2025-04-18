@@ -60,12 +60,6 @@ const PlayerScore = ({ playerId, players, roomLeaderboard = [] }: PlayerScorePro
           )}
         </div>
       </div>
-      <div className="text-xs text-white font-mono">
-        <div>FPS : {(window as any).fps || 0}</div>
-        <div>Tick: {((window as any).tickMs || 0).toFixed(1)} ms</div>
-        <div>RTT : {((window as any).rtt || 0).toFixed(1)} ms</div>
-        <div>Ping: {((window as any).ping || 0).toFixed(1)} ms</div>
-      </div>
     </div>
   );
 };
