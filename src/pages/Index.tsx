@@ -636,12 +636,15 @@ const Index = () => {
                   </svg>
                 </div>
               ) : (
-                <div className="w-[120%] overflow-visible">
-                  <AnimatedArrow 
-                    className="w-full h-32" 
-                    isClickable={Boolean(username.trim() && selectedSkinId)}
-                  />
-                </div>
+                <div className="flex items-center justify-center mb-6 w-full overflow-visible">
+  <div className="w-2/3 sm:w-1/2">
+    <AnimatedArrow
+      className="w-full h-auto"
+      isClickable={Boolean(username.trim() && selectedSkinId)}
+    />
+  </div>
+</div>
+
               )}
             </button>
           </div>
