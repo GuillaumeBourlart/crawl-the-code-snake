@@ -577,11 +577,12 @@ const Index = () => {
 
       {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in mt-12 sm:mt-24">
-          <div className="flex items-center justify-center mb-8 w-full overflow-visible">
-            <div className="w-[120%] sm:w-[110%] max-w-[1200px] overflow-visible">
-              <ZigzagTitle className="w-full h-auto" />
+          <div className="flex items-center justify-center mb-6 w-full overflow-visible">
+            <div className="w-full max-w-[1000px]">
+            <ZigzagTitle className="w-full h-auto" />
             </div>
-          </div>
+        </div>
+
           
           <div className="w-full max-w-sm mb-8">
             <div className="relative">
