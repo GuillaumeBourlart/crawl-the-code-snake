@@ -687,7 +687,7 @@ const Index = () => {
             roomLeaderboard={roomLeaderboard} 
           />
 
-           <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-mono text-green-400">
+           <div className="mt-4 flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-mono text-white">
      <div>FPS: {fps}</div>
      <div>Tick: {tickMs.toFixed(1)} ms</div>
      <div>RTT: {rtt.toFixed(1)} ms</div>
