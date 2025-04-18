@@ -9,34 +9,27 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   className = "",
   isClickable = false,
 }) => {
-  // 1) Rayon des cercles
-  const r = 18;
-  // 2) Pas centre‑à‑centre (20% de chevauchement)
-  const STEP = r * 1.5; // ajustez pour modifier l'espacement
+  // Rayon des cercles
+  const r = 15;
+  // Pas centre‑à‑centre (20% de chevauchement)
+  const STEP = r * 1.5;
 
-  // 3) Matrice 5×7 représentant la flèche "→"
-  // 1 = point dessiné, 0 = rien
+  // Matrice 5×7 représentant la flèche "→"
   const arrowMatrix: number[][] = [
-    [0,0,0,0,1,0,0],
-    [0,0,0,0,0,1,0],
-    [1,1,1,1,1,1,1],
-    [0,0,0,0,0,1,0],
-    [0,0,0,0,1,0,0],
+    [0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1],
   ];
 
   const rows = arrowMatrix.length;
   const cols = arrowMatrix[0].length;
 
-  // couleurs selon clicabilité
   const fillColor = isClickable ? "#ffffff" : "#555555";
-
-  // génération du délai d'animation
-  const getAnimationDelay = (index: number, total: number) =>
-    `${(index / total) * 0.5}s`;
-
-  // on aplatit la matrice et on crée les <circle>
-  const totalDots = arrowMatrix.flat().filter(v => v === 1).length;
+  const totalDots = arrowMatrix.flat().filter((v) => v === 1).length;
   let dotIndex = 0;
+  const getDelay = (idx: number) => `${(idx / totalDots) * 0.5}s`;
 
   return (
     <div className={`flex items-center justify-center ${className}`}>
@@ -44,34 +37,43 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
         viewBox={`0 0 ${cols * STEP} ${rows * STEP}`}
         className="w-full h-full"
       >
-        {arrowMatrix.map((row, rowIdx) =>
-          row.map((cell, colIdx) => {
-            if (!cell) return null;
-            const delay = getAnimationDelay(dotIndex, totalDots);
-            const cx = colIdx * STEP + r;
-            const cy = rowIdx * STEP + r;
-            const key = `dot-${rowIdx}-${colIdx}`;
-            dotIndex++;
-            return (
-              <circle
-                key={key}
-                cx={cx}
-                cy={cy}
-                r={r}
-                fill={fillColor}
-                className="animate-pulse"
-                style={{
-                  animationDelay: delay,
-                  animationDuration: "1.5s",
-                  animationIterationCount: "infinite",
-                  filter: isClickable
-                    ? "drop-shadow(0px 2px 4px rgba(255,255,255,0.3))"
-                    : "none",
-                }}
-              />
-            );
-          })
-        )}
+        {/* Groupe animé pour osciller */}
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,0;10,0;0,0"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+          {arrowMatrix.map((row, y) =>
+            row.map((cell, x) => {
+              if (cell === 0) return null;
+              const cx = x * STEP + r;
+              const cy = y * STEP + r;
+              const key = `dot-${y}-${x}`;
+              const delay = getDelay(dotIndex++);
+              return (
+                <circle
+                  key={key}
+                  cx={cx}
+                  cy={cy}
+                  r={r}
+                  fill={fillColor}
+                  className="animate-pulse"
+                  style={{
+                    animationDelay: delay,
+                    animationDuration: "1.5s",
+                    animationIterationCount: "infinite",
+                    filter: isClickable
+                      ? "drop-shadow(0 2px 4px rgba(255,255,255,0.3))"
+                      : "none",
+                  }}
+                />
+              );
+            })
+          )}
+        </g>
       </svg>
     </div>
   );
