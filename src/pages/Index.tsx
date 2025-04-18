@@ -681,18 +681,22 @@ const Index = () => {
             </div>
           )}
           
-          {/* ─── HUD en haut à gauche ─── */}
-<div className="absolute top-4 left-4 z-20 flex flex-col items-start space-y-2">
-  <PlayerScore 
-    playerId={playerId} 
-    players={gameState.players}
-    roomLeaderboard={roomLeaderboard} 
-  />
-  <div className="flex flex-col space-y-1 text-xs sm:text-sm font-mono text-white">
+          {/* ─── Mini‑HUD perf en haut à gauche ─── */}
+<div className="absolute top-4 left-4 z-20">
+  {/* wrapper relatif pour que PlayerScore reste dans ce bloc */}
+  <div className="relative">
+    <PlayerScore 
+      playerId={playerId} 
+      players={gameState.players}
+      roomLeaderboard={roomLeaderboard} 
+    />
+  </div>
+  {/* métriques statiques, empilées verticalement */}
+  <div className="mt-2 flex flex-col space-y-1 text-xs sm:text-sm font-mono text-white">
     <div>FPS: {fps}</div>
-    <div>Tick: {tickMs.toFixed(1)} ms</div>
-    <div>RTT: {rtt.toFixed(1)} ms</div>
-    <div>Ping: {ping.toFixed(1)} ms</div>
+    <div>Tick: {tickMs.toFixed(1)} ms</div>
+    <div>RTT: {rtt.toFixed(1)} ms</div>
+    <div>Ping: {ping.toFixed(1)} ms</div>
   </div>
 </div>
           
