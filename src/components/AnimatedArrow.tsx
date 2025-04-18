@@ -12,10 +12,9 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   // 1) Rayon des cercles
   const r = 18;
   // 2) Pas centre‑à‑centre (20% de chevauchement)
-  const STEP = r * 1.5; // ajustez pour modifier l'espacement
+  const STEP = r * 1.5;
 
   // 3) Matrice 5×7 représentant la flèche "→"
-  // 1 = point dessiné, 0 = rien
   const arrowMatrix: number[][] = [
     [0,0,0,0,1,0,0],
     [0,0,0,0,0,1,0],
@@ -26,37 +25,28 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
 
   const rows = arrowMatrix.length;
   const cols = arrowMatrix[0].length;
-
-  // couleurs selon clicabilité
   const fillColor = isClickable ? "#ffffff" : "#555555";
 
-  // génération du délai d'animation
-  const getAnimationDelay = (index: number, total: number) =>
-    `${(index / total) * 0.5}s`;
-
-  // on aplatit la matrice et on crée les <circle>
-  const totalDots = arrowMatrix.flat().filter(v => v === 1).length;
+  // calcul du délai d'animation pour chaque point
+  const totalDots = arrowMatrix.flat().filter((v) => v === 1).length;
   let dotIndex = 0;
+  const getAnimationDelay = (idx: number) => `${(idx / totalDots) * 0.5}s`;
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
+    <div className={`flex justify-center items-center w-[80%] h-[80%] mx-auto ${className}`}>
       <svg
         viewBox={`0 0 ${cols * STEP} ${rows * STEP}`}
         className="w-full h-full"
       >
         {arrowMatrix.map((row, rowIdx) =>
           row.map((cell, colIdx) => {
-            if (!cell) return null;
-            const delay = getAnimationDelay(dotIndex, totalDots);
-            const cx = colIdx * STEP + r;
-            const cy = rowIdx * STEP + r;
-            const key = `dot-${rowIdx}-${colIdx}`;
-            dotIndex++;
+            if (cell === 0) return null;
+            const delay = getAnimationDelay(dotIndex++);
             return (
               <circle
-                key={key}
-                cx={cx}
-                cy={cy}
+                key={`dot-${rowIdx}-${colIdx}`}
+                cx={colIdx * STEP + r}
+                cy={rowIdx * STEP + r}
                 r={r}
                 fill={fillColor}
                 className="animate-pulse"
