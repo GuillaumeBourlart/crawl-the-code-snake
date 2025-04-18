@@ -687,12 +687,13 @@ const Index = () => {
             roomLeaderboard={roomLeaderboard} 
           />
 
-           <div className="mt-4 flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-mono text-white">
-     <div>FPS: {fps}</div>
-     <div>Tick: {tickMs.toFixed(1)} ms</div>
-     <div>RTT: {rtt.toFixed(1)} ms</div>
-     <div>Ping: {ping.toFixed(1)} ms</div>
-   </div>
+          {/* ─── Métriques ─── */}
+<div className="relative z-20 mt-4 flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-mono text-white">
+  <div>FPS: {fps}</div>
+  <div>Tick: {tickMs.toFixed(1)} ms</div>
+  <div>RTT: {rtt.toFixed(1)} ms</div>
+  <div>Ping: {ping.toFixed(1)} ms</div>
+</div>
           
           <LeaderboardPanel 
             roomLeaderboard={roomLeaderboard}
