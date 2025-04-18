@@ -691,7 +691,7 @@ const Index = () => {
             currentPlayerId={playerId}
           />
 
-          <div className="absolute top-[90px] left-4 z-20 text-xs font-mono text-white/90">
+          <div className="absolute top-[110px] left-4 z-20 text-xs font-mono text-white/90">
             <div>FPS: {fps}</div>
             <div>Tick: {tickMs.toFixed(1)} ms</div>
             <div>RTT: {rtt.toFixed(1)} ms</div>
