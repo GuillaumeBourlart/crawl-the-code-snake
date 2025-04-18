@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -167,4 +166,21 @@ canvas {
 .skin-preview-wrapper {
   margin: 8px;
   overflow: visible;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Ajustement du conteneur du ZigzagTitle pour le responsive */
+@media (max-width: 640px) {
+  .zigzag-container {
+    transform: scale(0.8);
+  }
+}
+
+@media (max-width: 480px) {
+  .zigzag-container {
+    transform: scale(0.6);
+  }
 }

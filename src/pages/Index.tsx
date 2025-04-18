@@ -75,8 +75,8 @@ const Index = () => {
   const { t } = useLanguage();
   const [socket, setSocket] = useState<any>(null);
   const [tickMs, setTickMs] = useState(0);
-const [rtt,    setRtt]    = useState(0);
-const [fps,    setFps]    = useState(0);
+  const [rtt,    setRtt]    = useState(0);
+  const [fps,    setFps]    = useState(0);
   const [ping, setPing] = useState(0);
 
   const [connected, setConnected] = useState(false);
@@ -586,12 +586,12 @@ const [fps,    setFps]    = useState(0);
       {!gameStarted && <GlobalLeaderboardButton />}
 
       {!gameStarted && (
-        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-md animate-fade-in">
-          <div className="flex items-center mb-6">
-            <ZigzagTitle className="w-full" />
+        <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in">
+          <div className="flex items-center mb-8 w-full max-w-[600px] sm:max-w-[800px] lg:max-w-[1000px]">
+            <ZigzagTitle className="w-full h-auto sm:h-[120px] lg:h-[180px]" />
           </div>
           
-          <div className="w-full max-w-sm mb-6">
+          <div className="w-full max-w-sm mb-8">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
                 <User className="h-5 w-5" />
@@ -608,7 +608,7 @@ const [fps,    setFps]    = useState(0);
             </div>
           </div>
           
-          <div className="w-full mb-6">
+          <div className="w-full max-w-sm mb-8">
             <Link to="/skins" className="block bg-gray-800/40 rounded-full p-4 border border-gray-700/50 hover:bg-gray-700/50 transition-colors">
               {false ? (
                 <div className="flex justify-center py-2">
@@ -629,7 +629,7 @@ const [fps,    setFps]    = useState(0);
             </Link>
           </div>
           
-          <div className="flex flex-col w-full gap-3">
+          <div className="flex flex-col w-full max-w-sm gap-3">
             <button
               className="relative w-full flex flex-col items-center justify-center mx-auto transition-all duration-300 h-32 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handlePlay}
