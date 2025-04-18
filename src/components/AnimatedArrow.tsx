@@ -10,7 +10,7 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   isClickable = false,
 }) => {
   // 1) Rayon des cercles
-  const r = 5;
+  const r = 15;
   // 2) Pas centre‑à‑centre (20% de chevauchement)
   const STEP = r * 4; // ajustez pour modifier l'espacement
 
