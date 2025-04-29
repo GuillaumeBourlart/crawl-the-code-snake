@@ -73,8 +73,8 @@ const Index = () => {
   const { t } = useLanguage();
   const [socket, setSocket] = useState<any>(null);
   const [tickMs, setTickMs] = useState(0);
-  const [rtt,    setRtt]    = useState(0);
-  const [fps,    setFps]    = useState(0);
+  const [rtt, setRtt] = useState(0);
+  const [fps, setFps] = useState(0);
   const [ping, setPing] = useState(0);
 
   const [connected, setConnected] = useState(false);
@@ -102,6 +102,8 @@ const Index = () => {
   const moveThrottleRef = useRef(false);
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
+  const metricsIntervalRef = useRef<number | null>(null);
+  const fpsAnimationFrameRef = useRef<number | null>(null);
   
   const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
   const { 
@@ -115,29 +117,27 @@ const Index = () => {
   const availableSkinsRef = useRef<any[]>([]);
 
   useEffect(() => {
-    if (!socket) return;
-    let lastPerf = performance.now();
+    // Ne créer les mesures que lorsque le jeu est actif
+    if (!gameStarted || !socket) return;
 
+    console.log("Starting performance metrics");
+    
+    // Pour le tick time
+    let lastTickPerf = performance.now();
     const onUpdate = (payload: { serverTs?: number }) => {
       const nowPerf = performance.now();
-      setTickMs(nowPerf - lastPerf);
-      lastPerf = nowPerf;
+      setTickMs(nowPerf - lastTickPerf);
+      lastTickPerf = nowPerf;
 
       if (payload.serverTs) {
         setRtt(Date.now() - payload.serverTs);
       }
     };
-
+    
     socket.on("update_entities", onUpdate);
-    return () => {
-      socket.off("update_entities", onUpdate);
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    if (!socket) return;
-    const PING_INTERVAL = 2000;
-
+    
+    // Pour le ping
+    const pingInterval = 2000;
     const measurePing = () => {
       const t0 = performance.now();
       socket.emit("ping_test", null, () => {
@@ -147,28 +147,41 @@ const Index = () => {
     };
 
     measurePing();
-    const id = window.setInterval(measurePing, PING_INTERVAL);
-
-    return () => window.clearInterval(id);
-  }, [socket]);
-
-  useEffect(() => {
+    metricsIntervalRef.current = window.setInterval(measurePing, pingInterval);
+    
+    // Pour le FPS
     let frames = 0;
     let t0 = performance.now();
 
-    const loop = (t: number) => {
+    const measureFps = (t: number) => {
       frames++;
       if (t - t0 >= 1000) {
         setFps(frames);
         frames = 0;
         t0 = t;
       }
-      requestAnimationFrame(loop);
+      fpsAnimationFrameRef.current = requestAnimationFrame(measureFps);
     };
 
-    const rafId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafId);
-  }, []);
+    fpsAnimationFrameRef.current = requestAnimationFrame(measureFps);
+    
+    return () => {
+      // Nettoyage de tous les écouteurs et intervalles
+      socket.off("update_entities", onUpdate);
+      
+      if (metricsIntervalRef.current) {
+        clearInterval(metricsIntervalRef.current);
+        metricsIntervalRef.current = null;
+      }
+      
+      if (fpsAnimationFrameRef.current) {
+        cancelAnimationFrame(fpsAnimationFrameRef.current);
+        fpsAnimationFrameRef.current = null;
+      }
+      
+      console.log("Stopping performance metrics");
+    };
+  }, [gameStarted, socket]);
 
   useEffect(() => {
     if (!skinLoadAttempted) {
@@ -207,6 +220,8 @@ const Index = () => {
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
       if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
+      if (metricsIntervalRef.current) window.clearInterval(metricsIntervalRef.current);
+      if (fpsAnimationFrameRef.current) cancelAnimationFrame(fpsAnimationFrameRef.current);
 
       document.body.classList.remove('game-active');
     };
