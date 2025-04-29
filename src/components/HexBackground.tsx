@@ -7,6 +7,10 @@ interface HexBackgroundProps {
 
 const HexBackground = ({ className = "" }: HexBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastRenderTimeRef = useRef<number>(0);
+  const targetFPS = 15; // Réduit à 15 FPS pour économiser les ressources
+  const frameInterval = 1000 / targetFPS;
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -14,32 +18,31 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
 
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
+    
+    // Création du canvas off-screen
+    offscreenCanvasRef.current = document.createElement('canvas');
+    const offscreenCanvas = offscreenCanvasRef.current;
+    const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: true });
+    if (!offscreenCtx) return;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      drawHexagons();
+      
+      // Redimensionner également le canvas off-screen
+      offscreenCanvas.width = canvas.width;
+      offscreenCanvas.height = canvas.height;
+      
+      // Pré-rendre la grille hexagonale de base (partie statique)
+      drawStaticHexGrid(offscreenCtx, offscreenCanvas.width, offscreenCanvas.height);
     };
 
-    const drawHexagons = () => {
-      const width = canvas.width;
-      const height = canvas.height;
-      
+    // Dessiner la grille hexagonale statique une seule fois
+    const drawStaticHexGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
       ctx.clearRect(0, 0, width, height);
       
       // Draw background
       ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, width, height);
-     
-      // Draw center glow
-      const centerGlow = ctx.createRadialGradient(
-        width/2, height/2, 0,
-        width/2, height/2, height * 0.4
-      );
-      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
-      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      ctx.fillStyle = centerGlow;
       ctx.fillRect(0, 0, width, height);
       
       // Draw hexagons
@@ -60,10 +63,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           
           const hexId = row * 10000 + col;
           const random = Math.sin(hexId) * 0.5 + 0.5;
-          const time = Date.now() * 0.001;
-          const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
           
-          // Matching the game's hexagon style
           const baseHue = 210 + (random * 40 - 20);
           
           ctx.beginPath();
@@ -80,7 +80,6 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           }
           ctx.closePath();
           
-          // Using the same fill style as in GameCanvas
           const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
           ctx.fillStyle = fillColor;
           ctx.fill();
@@ -91,17 +90,42 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       }
     };
 
+    const drawAnimatedOverlay = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+      // Draw center glow (partie animée)
+      const centerGlow = ctx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, height * 0.4
+      );
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
+      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.fillStyle = centerGlow;
+      ctx.fillRect(0, 0, width, height);
+    };
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Animation loop
+    // Animation loop avec throttling
     let animationFrameId: number;
-    const animate = () => {
-      drawHexagons();
+    const animate = (timestamp: number) => {
+      // Throttle le rendu pour économiser les ressources
+      const elapsed = timestamp - lastRenderTimeRef.current;
+      
+      if (elapsed > frameInterval) {
+        lastRenderTimeRef.current = timestamp - (elapsed % frameInterval);
+        
+        // Dessiner d'abord la grille statique prérendue
+        ctx.drawImage(offscreenCanvas, 0, 0);
+        
+        // Ajouter ensuite les effets animés
+        drawAnimatedOverlay(ctx, canvas.width, canvas.height);
+      }
+      
       animationFrameId = requestAnimationFrame(animate);
     };
     
-    animate();
+    animationFrameId = requestAnimationFrame(animate);
     
     return () => {
       window.removeEventListener('resize', resizeCanvas);
