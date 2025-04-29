@@ -45,8 +45,6 @@ const ITEMS_PER_SEGMENT    = 4;
 const INITIAL_SEGMENTS     = 10;
 const DEFAULT_ITEM_EATEN_COUNT = ITEMS_PER_SEGMENT * INITIAL_SEGMENTS;  // 40
 const HEAD_GROWTH_FACTOR   = 0.02;
-const TARGET_FPS = 60; // Limite de FPS maximale
-const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -142,9 +140,6 @@ const GameCanvas = ({
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
   const lastRenderTimeRef = useRef<number>(0);
-  // Cache pour les gradients
-  const gradientCacheRef = useRef<Map<string, CanvasGradient>>(new Map());
-  
   const rendererStateRef = useRef({
     players: {} as Record<string, Player>,
     items: [] as GameItem[],
@@ -172,14 +167,6 @@ const GameCanvas = ({
     }[]
   });
   const gridCacheCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  
-  // Fonction pour obtenir ou créer un gradient et le mettre en cache
-  const getOrCreateGradient = (ctx: CanvasRenderingContext2D, key: string, createGradient: () => CanvasGradient) => {
-    if (!gradientCacheRef.current.has(key)) {
-      gradientCacheRef.current.set(key, createGradient());
-    }
-    return gradientCacheRef.current.get(key)!;
-  };
   
   useEffect(() => {
     if (window) {
@@ -383,9 +370,6 @@ const GameCanvas = ({
       }
       
       rendererStateRef.current.gridNeedsUpdate = true;
-      
-      // Vider le cache de gradients quand la taille change
-      gradientCacheRef.current.clear();
     };
     
     resizeCanvas();
@@ -436,6 +420,9 @@ const GameCanvas = ({
           
           const hexId = row * 10000 + col;
           const random = Math.sin(hexId) * 0.5 + 0.5;
+          const time = Date.now() * 0.001;
+          const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
+          
           const baseHue = 210 + (random * 40 - 20);
           
           gridCtx.beginPath();
@@ -492,139 +479,117 @@ const GameCanvas = ({
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
       
-      // Throttle le rendu pour économiser les ressources
-      const elapsed = timestamp - lastRenderTimeRef.current;
-      
-      if (elapsed > FRAME_INTERVAL) {
-        lastRenderTimeRef.current = timestamp - (elapsed % FRAME_INTERVAL);
-        
-        if (!previousTimeRef.current) {
-          console.log("Rendering first frame with camera zoom:", camera.zoom, "isMobile:", isMobile);
-        }
-        
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
-        
-        // Utiliser un gradient mis en cache pour le centre lumineux
-        const centerGlowKey = `centerGlow-${width}-${height}`;
-        const centerGlow = getOrCreateGradient(ctx, centerGlowKey, () => {
-          const gradient = ctx.createRadialGradient(
-            width/2, height/2, 0,
-            width/2, height/2, height * 0.4
-          );
-          gradient.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
-          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          return gradient;
-        });
-        
-        ctx.fillStyle = centerGlow;
-        ctx.fillRect(0, 0, width, height);
-        
-        if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
-          updateGridCache();
-        }
-        
-        if (gridCacheCanvasRef.current) {
-          ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
-        }
-        
-        ctx.save();
-        
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.scale(camera.zoom, camera.zoom);
-        ctx.translate(-camera.x, -camera.y);
-        
-        const allSegments = [...rendererStateRef.current.detachedSegments];
-        
-        allSegments.sort((a, b) => a.zIndex - b.zIndex);
-        
-        allSegments.forEach(segment => {
-          if (!segment.color) return;
-          
-          // Utiliser un gradient mis en cache pour chaque segment
-          const segmentGradientKey = `segment-${segment.color}-${segment.radius.toFixed(1)}`;
-          const segmentGradient = getOrCreateGradient(ctx, segmentGradientKey, () => {
-            const gradient = ctx.createRadialGradient(
-              segment.x, segment.y, 0,
-              segment.x, segment.y, segment.radius
-            );
-            gradient.addColorStop(0, segment.color);
-            gradient.addColorStop(1, shadeColor(segment.color, -15));
-            return gradient;
-          });
-          
-          ctx.fillStyle = segmentGradient;
-          ctx.beginPath();
-          ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.strokeStyle = shadeColor(segment.color, -30);
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
-          ctx.stroke();
-        });
-        
-        rendererStateRef.current.items.forEach(item => {
-          const animation = rendererStateRef.current.itemAnimations[item.id];
-          if (!animation || !item.color) return;
-          
-          const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius * 1.15;
-          const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius * 1.15;
-          
-          animation.rotationAngle += animation.rotationSpeed * 0.01;
-          
-          const itemRadius = item.radius || 5;
-          
-          // Utiliser un gradient mis en cache pour chaque item
-          const itemGradientKey = `item-${item.color}-${itemRadius.toFixed(1)}`;
-          const itemGradient = getOrCreateGradient(ctx, itemGradientKey, () => {
-            const gradient = ctx.createRadialGradient(
-              itemX, itemY, 0,
-              itemX, itemY, itemRadius
-            );
-            gradient.addColorStop(0, item.color);
-            gradient.addColorStop(1, shadeColor(item.color, -20));
-            return gradient;
-          });
-          
-          ctx.fillStyle = itemGradient;
-          ctx.beginPath();
-          ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Le gradient de lueur est très dynamique donc difficile à mettre en cache
-          const glowGradient = ctx.createRadialGradient(
-            itemX, itemY, itemRadius * 0.5,
-            itemX, itemY, itemRadius * 3
-          );
-          glowGradient.addColorStop(0, `${item.color}80`);
-          glowGradient.addColorStop(0.6, `${item.color}40`);
-          glowGradient.addColorStop(1, `${item.color}00`);
-          
-          ctx.fillStyle = glowGradient;
-          ctx.beginPath();
-          ctx.arc(itemX, itemY, itemRadius * 3, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.strokeStyle = shadeColor(item.color, 30);
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
-          ctx.stroke();
-        });
-        
-        Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
-          if (player && player.color) {
-            drawPlayerHead(player, id === playerId);
-          }
-        });
-        
-        ctx.restore();
+      if (!previousTimeRef.current) {
+        console.log("Rendering first frame with camera zoom:", camera.zoom, "isMobile:", isMobile);
       }
+      
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+      
+      const centerGlow = ctx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, height * 0.4
+      );
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
+      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      
+      ctx.fillStyle = centerGlow;
+      ctx.fillRect(0, 0, width, height);
+      
+      if (rendererStateRef.current.gridNeedsUpdate && gridCacheCanvasRef.current) {
+        updateGridCache();
+      }
+      
+      if (gridCacheCanvasRef.current) {
+        ctx.drawImage(gridCacheCanvasRef.current, 0, 0);
+      }
+      
+      ctx.save();
+      
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+      
+      const allSegments = [...rendererStateRef.current.detachedSegments];
+      
+      allSegments.sort((a, b) => a.zIndex - b.zIndex);
+      
+      allSegments.forEach(segment => {
+        if (!segment.color) return;
+        
+        const gradient = ctx.createRadialGradient(
+          segment.x, segment.y, 0,
+          segment.x, segment.y, segment.radius
+        );
+        gradient.addColorStop(0, segment.color);
+        gradient.addColorStop(1, shadeColor(segment.color, -15));
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(segment.color, -30);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, segment.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
+      rendererStateRef.current.items.forEach(item => {
+        const animation = rendererStateRef.current.itemAnimations[item.id];
+        if (!animation || !item.color) return;
+        
+        const itemX = item.x + Math.sin(Date.now() * 0.001 * animation.speedX + animation.phaseX) * animation.radius * 1.15;
+        const itemY = item.y + Math.cos(Date.now() * 0.001 * animation.speedY + animation.phaseY) * animation.radius * 1.15;
+        
+        animation.rotationAngle += animation.rotationSpeed * 0.01;
+        
+        const itemRadius = item.radius || 5;
+        
+        const itemGradient = ctx.createRadialGradient(
+          itemX, itemY, 0,
+          itemX, itemY, itemRadius
+        );
+        
+        itemGradient.addColorStop(0, item.color);
+        itemGradient.addColorStop(1, shadeColor(item.color, -20));
+        
+        ctx.fillStyle = itemGradient;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        const glowGradient = ctx.createRadialGradient(
+          itemX, itemY, itemRadius * 0.5,
+          itemX, itemY, itemRadius * 3
+        );
+        glowGradient.addColorStop(0, `${item.color}80`);
+        glowGradient.addColorStop(0.6, `${item.color}40`);
+        glowGradient.addColorStop(1, `${item.color}00`);
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, itemRadius * 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = shadeColor(item.color, 30);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      
+      Object.entries(rendererStateRef.current.players).forEach(([id, player]) => {
+        if (player && player.color) {
+          drawPlayerHead(player, id === playerId);
+        }
+      });
+      
+      ctx.restore();
       
       previousTimeRef.current = timestamp;
       requestRef.current = requestAnimationFrame(renderFrame);
@@ -677,19 +642,14 @@ const GameCanvas = ({
     
     ctx.save();
     
-    // Utiliser un gradient mis en cache pour la tête du joueur
-    const headGradientKey = `head-${playerColor}-${headRadius.toFixed(1)}-${player.x.toFixed(0)}-${player.y.toFixed(0)}`;
-    const headGradient = getOrCreateGradient(ctx, headGradientKey, () => {
-      const gradient = ctx.createRadialGradient(
-        player.x, player.y, 0,
-        player.x, player.y, headRadius
-      );
-      gradient.addColorStop(0, playerColor);
-      gradient.addColorStop(1, shadeColor(playerColor, -15));
-      return gradient;
-    });
+    const gradient = ctx.createRadialGradient(
+      player.x, player.y, 0,
+      player.x, player.y, headRadius
+    );
+    gradient.addColorStop(0, playerColor);
+    gradient.addColorStop(1, shadeColor(playerColor, -15));
     
-    ctx.fillStyle = headGradient;
+    ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(player.x, player.y, headRadius, 0, Math.PI * 2);
     ctx.fill();
@@ -813,7 +773,6 @@ const GameCanvas = ({
     if (player.boosting) {
       const glowColor = playerColor;
       
-      // La lueur du boost est dynamique, donc difficile à mettre en cache
       const glowRadius = headRadius * 1.5;
       const boostGradient = ctx.createRadialGradient(
         player.x, player.y, headRadius,

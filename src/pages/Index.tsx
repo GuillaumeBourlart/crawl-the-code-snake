@@ -24,8 +24,6 @@ import GlobalLeaderboardButton from "@/components/GlobalLeaderboardButton";
 import LanguageSelector from "@/components/LanguageSelector";
 
 const SOCKET_SERVER_URL = "https://api.grubz.io";
-const PERFORMANCE_UPDATE_INTERVAL = 1000; // 1 seconde pour les mises à jour de performance
-const PING_INTERVAL = 2000; // 2 secondes pour la mesure du ping
 
 interface ServerPlayer {
   id?: string;
@@ -105,13 +103,6 @@ const Index = () => {
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
   
-  // Refs pour les mesures de performance
-  const perfTimerRef = useRef<number | null>(null);
-  const pingTimerRef = useRef<number | null>(null);
-  const fpsFramesRef = useRef(0);
-  const fpsStartTimeRef = useRef(0);
-  const lastFrameTimeRef = useRef(0);
-  
   const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
   const { 
     selectedSkin, 
@@ -122,63 +113,6 @@ const Index = () => {
   } = useSkins();
   
   const availableSkinsRef = useRef<any[]>([]);
-
-  // Regroupement des mesures de performance dans un seul useEffect
-  useEffect(() => {
-    if (!gameStarted) return;
-    
-    // Initialisation des timers pour FPS
-    fpsFramesRef.current = 0;
-    fpsStartTimeRef.current = performance.now();
-    
-    // Fonction de calcul du FPS
-    const updateFPS = () => {
-      const now = performance.now();
-      fpsFramesRef.current++;
-      
-      if (now - fpsStartTimeRef.current >= PERFORMANCE_UPDATE_INTERVAL) {
-        const elapsedSec = (now - fpsStartTimeRef.current) / 1000;
-        setFps(Math.round(fpsFramesRef.current / elapsedSec));
-        fpsFramesRef.current = 0;
-        fpsStartTimeRef.current = now;
-      }
-      
-      // Calcul du temps entre frames
-      if (lastFrameTimeRef.current > 0) {
-        setTickMs(now - lastFrameTimeRef.current);
-      }
-      lastFrameTimeRef.current = now;
-      
-      if (gameStarted) {
-        requestAnimationFrame(updateFPS);
-      }
-    };
-    
-    // Démarrer la mesure de FPS
-    const animationFrameId = requestAnimationFrame(updateFPS);
-    
-    // Mesure du ping au serveur toutes les 2 secondes
-    const pingIntervalId = window.setInterval(() => {
-      if (socket && socket.connected) {
-        const startTime = performance.now();
-        socket.emit("ping_test", null, () => {
-          const pingTime = performance.now() - startTime;
-          setPing(pingTime);
-        });
-      }
-    }, PING_INTERVAL);
-    
-    pingTimerRef.current = pingIntervalId;
-    
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      if (pingTimerRef.current) {
-        clearInterval(pingTimerRef.current);
-        pingTimerRef.current = null;
-      }
-      lastFrameTimeRef.current = 0;
-    };
-  }, [gameStarted, socket]);
 
   useEffect(() => {
     if (!socket) return;
@@ -273,7 +207,6 @@ const Index = () => {
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
       if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
-      if (pingTimerRef.current) window.clearInterval(pingTimerRef.current);
 
       document.body.classList.remove('game-active');
     };
@@ -757,7 +690,7 @@ const Index = () => {
             currentPlayerId={playerId}
           />
 
-          <div className="absolute top-[110px] left-4 z-20 text-xs font-mono text-white/90 bg-black/30 px-2 py-1 rounded shadow-md">
+          <div className="absolute top-[110px] left-4 z-20 text-xs font-mono text-white/90">
             <div>FPS: {fps}</div>
             <div>Tick: {tickMs.toFixed(1)} ms</div>
             <div>RTT: {rtt.toFixed(1)} ms</div>
