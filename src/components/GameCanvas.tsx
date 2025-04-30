@@ -399,103 +399,61 @@ const GameCanvas = ({
     };
     
     const updateGridCache = () => {
-      const gridCanvas = gridCacheCanvasRef.current;
-      if (!gridCanvas) return;
-      
-      const gridCtx = gridCanvas.getContext('2d', { alpha: false });
-      if (!gridCtx) return;
-      
-      const width = gridCanvas.width;
-      const height = gridCanvas.height;
-      
-      gridCtx.fillStyle = '#000000';
-      gridCtx.fillRect(0, 0, width, height);
-      
-      const centerGlow = gridCtx.createRadialGradient(
-        width/2, height/2, 0,
-        width/2, height/2, height * 0.4
-      );
-      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.2)');
-      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      gridCtx.fillStyle = centerGlow;
-      gridCtx.fillRect(0, 0, width, height);
-      
-      gridCtx.save();
-      
-      gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
-      gridCtx.scale(camera.zoom, camera.zoom);
-      gridCtx.translate(-camera.x, -camera.y);
-      
-      const hexSize = 140;
-      const hexHeight = hexSize * Math.sqrt(3);
-      const hexWidth = hexSize * 2;
-      
-      const worldRows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
-      const worldCols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
-      
-      gridCtx.lineWidth = 40;
-      
-      for (let row = -2; row < worldRows; row++) {
-        for (let col = -2; col < worldCols; col++) {
-          const centerX = col * hexWidth * 0.75;
-          const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
-          
-          const hexId = row * 10000 + col;
-          const random = Math.sin(hexId) * 0.5 + 0.5;
-          const time = Date.now() * 0.001;
-          const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
-          
-          const baseHue = 210 + (random * 40 - 20);
-          
-          gridCtx.beginPath();
-          for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3;
-            const x = centerX + hexSize * Math.cos(angle);
-            const y = centerY + hexSize * Math.sin(angle);
-            
-            if (i === 0) {
-              gridCtx.moveTo(x, y);
-            } else {
-              gridCtx.lineTo(x, y);
-            }
-          }
-          gridCtx.closePath();
-          
-          const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
-          gridCtx.fillStyle = fillColor;
-          gridCtx.fill();
-          
-          gridCtx.strokeStyle = '#000000';
-          gridCtx.stroke();
-        }
+  const gridCanvas = gridCacheCanvasRef.current;
+  if (!gridCanvas) return;
+
+  const gridCtx = gridCanvas.getContext('2d', { alpha: false });
+  if (!gridCtx) return;
+
+  const width = gridCanvas.width;
+  const height = gridCanvas.height;
+
+  // Fond noir
+  gridCtx.fillStyle = '#000000';
+  gridCtx.fillRect(0, 0, width, height);
+
+  // Passage dans l’espace monde
+  gridCtx.save();
+  gridCtx.translate(gridCanvas.width / 2, gridCanvas.height / 2);
+  gridCtx.scale(camera.zoom, camera.zoom);
+  gridCtx.translate(-camera.x, -camera.y);
+
+  const hexSize = 140;
+  const hexHeight = hexSize * Math.sqrt(3);
+  const hexWidth = hexSize * 2;
+
+  const rows = Math.ceil(gameState.worldSize.height / (hexHeight * 0.75)) + 2;
+  const cols = Math.ceil(gameState.worldSize.width / (hexWidth * 0.75)) + 2;
+
+  // traits bien épais pour un look sombre et marqué
+  gridCtx.lineWidth = 40;
+  gridCtx.strokeStyle = '#000000';
+  gridCtx.fillStyle = '#222222';
+
+  for (let row = -2; row < rows; row++) {
+    for (let col = -2; col < cols; col++) {
+      const centerX = col * hexWidth * 0.75;
+      const centerY = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+
+      gridCtx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        const x = centerX + hexSize * Math.cos(angle);
+        const y = centerY + hexSize * Math.sin(angle);
+        if (i === 0) gridCtx.moveTo(x, y);
+        else        gridCtx.lineTo(x, y);
       }
-      
-      const borderWidth = 4;
-      const borderGlow = 15;
-      
-      gridCtx.shadowColor = 'rgba(0, 255, 255, 0.8)';
-      gridCtx.shadowBlur = borderGlow;
-      gridCtx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
-      gridCtx.lineWidth = borderWidth + borderGlow;
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      gridCtx.shadowBlur = 0;
-      gridCtx.strokeStyle = '#00ffff';
-      gridCtx.lineWidth = borderWidth;
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      const time = Date.now() * 0.001;
-      const pulseIntensity = 0.5 + 0.5 * Math.sin(time);
-      
-      gridCtx.strokeStyle = `rgba(0, 255, 255, ${0.3 * pulseIntensity})`;
-      gridCtx.lineWidth = borderWidth + 10;
-      gridCtx.strokeRect(0, 0, gameState.worldSize.width, gameState.worldSize.height);
-      
-      gridCtx.restore();
-      
-      rendererStateRef.current.gridNeedsUpdate = false;
-    };
+      gridCtx.closePath();
+
+      gridCtx.fill();
+      gridCtx.stroke();
+    }
+  }
+
+  gridCtx.restore();
+  rendererStateRef.current.gridNeedsUpdate = false;
+};
+
     
     const renderFrame = (timestamp: number) => {
       const canvas = canvasRef.current;
