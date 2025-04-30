@@ -804,4 +804,4 @@ const GameCanvas = ({
   );
 };
 
-export default Game
+export default GameCanvas;
