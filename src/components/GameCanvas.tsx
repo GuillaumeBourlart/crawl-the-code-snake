@@ -409,16 +409,21 @@ const GameCanvas = ({
       const height = canvas.height;
       
       // Fond noir de base
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
       
-      // Appliquer le pattern d'image de fond si disponible
-      if (backgroundPatternRef.current) {
-        ctx.save();
-        ctx.fillStyle = backgroundPatternRef.current;
-        ctx.fillRect(0, 0, width, height);
-        ctx.restore();
-      }
+
+      // Réinitialise la matrice de transformation :
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+// 1) Fond noir de base
+ctx.fillStyle = '#000000';
+ctx.fillRect(0, 0, width, height);
+
+// 2) Tiling de l’image
+if (backgroundPatternRef.current) {
+  ctx.fillStyle = backgroundPatternRef.current;
+  ctx.fillRect(0, 0, width, height);
+}
+
       
       // Effet de lumière centrale subtil
       const centerGlowKey = 'centerGlow';
