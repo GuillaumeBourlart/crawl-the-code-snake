@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +22,15 @@ import ZigzagTitle from "@/components/ZigzagTitle";
 import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 import GlobalLeaderboardButton from "@/components/GlobalLeaderboardButton";
-import LanguageSelector from "@/components/LanguageSelector";
 import HexBackground from "@/components/HexBackground";
 
 // Constants
 const SOCKET_SERVER_URL = "https://api.grubz.io";
 const MAX_RECONNECTION_ATTEMPTS = 5;
 const RECONNECTION_DELAY = 300;
+const MIN_ITEM_RADIUS = 4;
+const MAX_ITEM_RADIUS = 10;
+const DEFAULT_ITEM_EATEN_COUNT = 40;
 
 // Types
 interface ServerPlayer {
