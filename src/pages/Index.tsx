@@ -73,8 +73,8 @@ const Index = () => {
   const { t } = useLanguage();
   const [socket, setSocket] = useState<any>(null);
   const [tickMs, setTickMs] = useState(0);
-  const [rtt, setRtt] = useState(0);
-  const [fps, setFps] = useState(0);
+  const [rtt,    setRtt]    = useState(0);
+  const [fps,    setFps]    = useState(0);
   const [ping, setPing] = useState(0);
 
   const [connected, setConnected] = useState(false);
@@ -102,8 +102,6 @@ const Index = () => {
   const moveThrottleRef = useRef(false);
   const lastDirectionRef = useRef({ x: 0, y: 0 });
   const directionIntervalRef = useRef<number | null>(null);
-  const metricsIntervalRef = useRef<number | null>(null);
-  const fpsAnimationFrameRef = useRef<number | null>(null);
   
   const { user, profile, loading: authLoading, updateProfile, refreshSession } = useAuth();
   const { 
@@ -117,27 +115,29 @@ const Index = () => {
   const availableSkinsRef = useRef<any[]>([]);
 
   useEffect(() => {
-    // Only start performance metrics when game is active
-    if (!gameStarted || !socket) return;
+    if (!socket) return;
+    let lastPerf = performance.now();
 
-    console.log("Starting performance metrics");
-    
-    // For tick time
-    let lastTickPerf = performance.now();
     const onUpdate = (payload: { serverTs?: number }) => {
       const nowPerf = performance.now();
-      setTickMs(nowPerf - lastTickPerf);
-      lastTickPerf = nowPerf;
+      setTickMs(nowPerf - lastPerf);
+      lastPerf = nowPerf;
 
       if (payload.serverTs) {
         setRtt(Date.now() - payload.serverTs);
       }
     };
-    
+
     socket.on("update_entities", onUpdate);
-    
-    // For ping
-    const pingInterval = 2000;
+    return () => {
+      socket.off("update_entities", onUpdate);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const PING_INTERVAL = 2000;
+
     const measurePing = () => {
       const t0 = performance.now();
       socket.emit("ping_test", null, () => {
@@ -147,40 +147,28 @@ const Index = () => {
     };
 
     measurePing();
-    metricsIntervalRef.current = window.setInterval(measurePing, pingInterval);
-    
-    // For FPS
+    const id = window.setInterval(measurePing, PING_INTERVAL);
+
+    return () => window.clearInterval(id);
+  }, [socket]);
+
+  useEffect(() => {
     let frames = 0;
     let t0 = performance.now();
 
-    const measureFps = (t: number) => {
+    const loop = (t: number) => {
       frames++;
       if (t - t0 >= 1000) {
         setFps(frames);
         frames = 0;
         t0 = t;
       }
-      fpsAnimationFrameRef.current = requestAnimationFrame(measureFps);
+      requestAnimationFrame(loop);
     };
 
-    fpsAnimationFrameRef.current = requestAnimationFrame(measureFps);
-    
-    return () => {
-      socket.off("update_entities", onUpdate);
-      
-      if (metricsIntervalRef.current) {
-        clearInterval(metricsIntervalRef.current);
-        metricsIntervalRef.current = null;
-      }
-      
-      if (fpsAnimationFrameRef.current) {
-        cancelAnimationFrame(fpsAnimationFrameRef.current);
-        fpsAnimationFrameRef.current = null;
-      }
-      
-      console.log("Stopping performance metrics");
-    };
-  }, [gameStarted, socket]);
+    const rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   useEffect(() => {
     if (!skinLoadAttempted) {
@@ -207,6 +195,7 @@ const Index = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (socket) {
+        socket.emit("clean_disconnect");
         socket.disconnect();
       }
     };
@@ -218,8 +207,6 @@ const Index = () => {
       if (socket) socket.disconnect();
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
       if (directionIntervalRef.current) window.clearInterval(directionIntervalRef.current);
-      if (metricsIntervalRef.current) window.clearInterval(metricsIntervalRef.current);
-      if (fpsAnimationFrameRef.current) cancelAnimationFrame(fpsAnimationFrameRef.current);
 
       document.body.classList.remove('game-active');
     };
@@ -263,6 +250,26 @@ const Index = () => {
     }
   }, [reconnectAttempts]);
   
+  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
+    const items: Record<string, GameItem> = {};
+    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#33A8FF', '#33FFF5', '#FFD133', '#8F33FF'];
+    
+    const randomItemRadius = () => Math.floor(Math.random() * (MAX_ITEM_RADIUS - MIN_ITEM_RADIUS + 1)) + MIN_ITEM_RADIUS;
+    
+    for (let i = 0; i < count; i++) {
+      const id = `item-${i}`;
+      items[id] = {
+        id,
+        x: Math.random() * worldSize.width,
+        y: Math.random() * worldSize.height,
+        value: Math.floor(Math.random() * 5) + 1,
+        color: itemColors[Math.floor(Math.random() * itemColors.length)],
+        radius: randomItemRadius()
+      };
+    }
+    return items;
+  };
+  
   const handlePlay = () => {
     if (!username.trim()) {
       toast.error("Please enter a pseudo before playing");
@@ -285,6 +292,7 @@ const Index = () => {
     setIsSpectator(false);
     
     if (socket) {
+      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
@@ -350,16 +358,31 @@ const Index = () => {
       document.body.classList.add('game-active');
       
       console.log("Sending player info to server with skin:", selectedSkinId);
+      console.log("Is Mobile: ", isMobile);
       
       newSocket.emit("setPlayerInfo", { 
         pseudo: username,
         skin_id: selectedSkinId
       });
       
+      const worldSize = { width: 4000, height: 4000 };
+      const randomItems = generateRandomItems(50, worldSize);
+      
+      setGameState(prevState => ({
+        ...prevState,
+        items: randomItems,
+        worldSize
+      }));
+      
       toast.success("You have joined the game");
     });
     
-    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[]; worldSize?: { width: number; height: number } }) => {
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
+      console.log("Received update_entities with", 
+        Object.keys(data.players).length, "players and", 
+        data.items.length, "items and",
+        data.leaderboard?.length || 0, "leaderboard entries");
+      
       const itemsObject: Record<string, GameItem> = {};
       data.items.forEach(item => {
         itemsObject[item.id] = item;
@@ -368,8 +391,7 @@ const Index = () => {
       setGameState(prevState => ({
         ...prevState,
         players: data.players,
-        items: itemsObject,
-        worldSize: data.worldSize || prevState.worldSize
+        items: itemsObject
       }));
       
       if (data.leaderboard) {
@@ -382,6 +404,46 @@ const Index = () => {
       toast.error("You were eliminated!");
       setIsSpectator(true);
       setShowGameOverDialog(true);
+    });
+    
+    newSocket.on("set_spectator", (isSpectator: boolean) => {
+      console.log("Set spectator mode:", isSpectator);
+      setIsSpectator(isSpectator);
+    });
+    
+    newSocket.on("player_grew", (data: { growth: number }) => {
+      console.log("You ate another player! Growing by:", data.growth);
+      toast.success(`You ate another player! +${data.growth} points`);
+      if (playerId) {
+        setGameState(prevState => {
+          const currentPlayer = prevState.players[playerId];
+          if (!currentPlayer) return prevState;
+          
+          const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
+          
+          const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
+          const currentQueueLength = currentPlayer.queue?.length || 0;
+          const segmentsToAdd = targetQueueLength - currentQueueLength;
+          
+          let newQueue = [...(currentPlayer.queue || [])];
+          
+          for (let i = 0; i < segmentsToAdd; i++) {
+            newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
+          }
+          
+          return {
+            ...prevState,
+            players: {
+              ...prevState.players,
+              [playerId]: {
+                ...currentPlayer,
+                queue: newQueue,
+                itemEatenCount: newItemEatenCount
+              }
+            }
+          };
+        });
+      }
     });
     
     newSocket.on("no_room_available", () => {
@@ -414,8 +476,39 @@ const Index = () => {
     }
   };
   
+  const handlePlayerCollision = (otherPlayerId: string) => {
+    if (socket && gameStarted && playerId && !isSpectator) {
+      const currentPlayer = gameState.players[playerId];
+      const otherPlayer = gameState.players[otherPlayerId];
+      if (!currentPlayer || !otherPlayer) return;
+      const dx = currentPlayer.x - otherPlayer.x;
+      const dy = currentPlayer.y - otherPlayer.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
+      const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
+      if (distance < (currentSize + otherSize) / 2) {
+        const currentQueueLength = currentPlayer.queue?.length || 0;
+        const otherQueueLength = otherPlayer.queue?.length || 0;
+        if (currentQueueLength <= otherQueueLength) {
+          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+          toast.error("You were eliminated!");
+          setIsSpectator(true);
+          setShowGameOverDialog(true);
+        } else {
+          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
+        }
+      } else {
+        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
+        toast.error("You were eliminated by the queue of another player!");
+        setIsSpectator(true);
+        setShowGameOverDialog(true);
+      }
+    }
+  };
+
   const handleQuitGame = () => {
     if (socket) {
+      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     setGameStarted(false);
@@ -429,6 +522,7 @@ const Index = () => {
 
   const handleRetry = () => {
     if (socket) {
+      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
@@ -463,12 +557,6 @@ const Index = () => {
       document.body.classList.remove('game-active');
     };
   }, [gameStarted]);
-
-  const handlePlayerCollision = (otherPlayerId: string) => {
-    console.log("Player collision with:", otherPlayerId);
-    // This function is just a placeholder since it's referenced but not implemented
-    // It will be called when the current player collides with another player
-  };
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">

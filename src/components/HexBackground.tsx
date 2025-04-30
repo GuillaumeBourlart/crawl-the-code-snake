@@ -7,7 +7,6 @@ interface HexBackgroundProps {
 
 const HexBackground = ({ className = "" }: HexBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -15,34 +14,35 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
 
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
-    
-    // Create offscreen canvas for caching
-    offscreenCanvasRef.current = document.createElement('canvas');
-    const offscreenCanvas = offscreenCanvasRef.current;
-    const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: true });
-    if (!offscreenCtx) return;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      
-      // Resize offscreen canvas too
-      offscreenCanvas.width = window.innerWidth;
-      offscreenCanvas.height = window.innerHeight;
-      
-      // Draw the hexagon grid once on the offscreen canvas
-      drawHexagonGrid(offscreenCtx, offscreenCanvas.width, offscreenCanvas.height);
+      drawHexagons();
     };
-    
-    // Function to draw static hexagon grid on offscreen canvas
-    const drawHexagonGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+
+    const drawHexagons = () => {
+      const width = canvas.width;
+      const height = canvas.height;
+      
       ctx.clearRect(0, 0, width, height);
       
-      // Black background
+      // Draw background
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
+     
+      // Draw center glow
+      const centerGlow = ctx.createRadialGradient(
+        width/2, height/2, 0,
+        width/2, height/2, height * 0.4
+      );
+      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
+      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
-      // Hexagons
+      ctx.fillStyle = centerGlow;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw hexagons
       const hexSize = 140;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
@@ -50,7 +50,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       const rows = Math.ceil(height / (hexHeight * 0.75)) + 2;
       const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
       
-      // Increased border width to match canvas style
+      // Increased border width to match the canvas style
       ctx.lineWidth = 40;
       
       for (let row = -2; row < rows; row++) {
@@ -60,8 +60,10 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           
           const hexId = row * 10000 + col;
           const random = Math.sin(hexId) * 0.5 + 0.5;
+          const time = Date.now() * 0.001;
+          const pulseMagnitude = 0.2 + 0.8 * Math.sin((time + hexId * 0.1) * 0.2);
           
-          // Style matching the game
+          // Matching the game's hexagon style
           const baseHue = 210 + (random * 40 - 20);
           
           ctx.beginPath();
@@ -78,7 +80,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           }
           ctx.closePath();
           
-          // Fill style matching GameCanvas
+          // Using the same fill style as in GameCanvas
           const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
           ctx.fillStyle = fillColor;
           ctx.fill();
@@ -89,37 +91,13 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       }
     };
 
-    const drawAnimatedElements = () => {
-      const width = canvas.width;
-      const height = canvas.height;
-      
-      // Clear main canvas
-      ctx.clearRect(0, 0, width, height);
-      
-      // Draw background from cache
-      if (offscreenCanvas) {
-        ctx.drawImage(offscreenCanvas, 0, 0);
-      }
-      
-      // Draw only animated elements (central glow)
-      const centerGlow = ctx.createRadialGradient(
-        width/2, height/2, 0,
-        width/2, height/2, height * 0.4
-      );
-      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
-      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      ctx.fillStyle = centerGlow;
-      ctx.fillRect(0, 0, width, height);
-    };
-
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Animation loop for animated elements only
+    // Animation loop
     let animationFrameId: number;
     const animate = () => {
-      drawAnimatedElements();
+      drawHexagons();
       animationFrameId = requestAnimationFrame(animate);
     };
     
@@ -128,11 +106,6 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       cancelAnimationFrame(animationFrameId);
-      
-      // Clean up offscreen canvas
-      if (offscreenCanvasRef.current) {
-        offscreenCanvasRef.current = null;
-      }
     };
   }, []);
 
