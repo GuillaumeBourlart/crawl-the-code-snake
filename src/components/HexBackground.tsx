@@ -16,7 +16,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
     
-    // Créer le canvas offscreen pour le cache
+    // Create offscreen canvas for caching
     offscreenCanvasRef.current = document.createElement('canvas');
     const offscreenCanvas = offscreenCanvasRef.current;
     const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: true });
@@ -26,23 +26,23 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       
-      // Redimensionner également le canvas offscreen
+      // Resize offscreen canvas too
       offscreenCanvas.width = window.innerWidth;
       offscreenCanvas.height = window.innerHeight;
       
-      // Dessiner la grille d'hexagones une seule fois dans le canvas offscreen
+      // Draw the hexagon grid once on the offscreen canvas
       drawHexagonGrid(offscreenCtx, offscreenCanvas.width, offscreenCanvas.height);
     };
     
-    // Fonction pour dessiner la grille d'hexagones statique sur le canvas offscreen
+    // Function to draw static hexagon grid on offscreen canvas
     const drawHexagonGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
       ctx.clearRect(0, 0, width, height);
       
-      // Fond noir
+      // Black background
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
       
-      // Hexagones
+      // Hexagons
       const hexSize = 140;
       const hexHeight = hexSize * Math.sqrt(3);
       const hexWidth = hexSize * 2;
@@ -50,7 +50,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       const rows = Math.ceil(height / (hexHeight * 0.75)) + 2;
       const cols = Math.ceil(width / (hexWidth * 0.75)) + 2;
       
-      // Largeur de bordure augmentée pour correspondre au style du canvas
+      // Increased border width to match canvas style
       ctx.lineWidth = 40;
       
       for (let row = -2; row < rows; row++) {
@@ -61,7 +61,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           const hexId = row * 10000 + col;
           const random = Math.sin(hexId) * 0.5 + 0.5;
           
-          // Style correspondant au jeu
+          // Style matching the game
           const baseHue = 210 + (random * 40 - 20);
           
           ctx.beginPath();
@@ -78,7 +78,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
           }
           ctx.closePath();
           
-          // Style de remplissage identique à GameCanvas
+          // Fill style matching GameCanvas
           const fillColor = `hsla(${baseHue}, 30%, 20%, 0.05)`;
           ctx.fillStyle = fillColor;
           ctx.fill();
@@ -93,15 +93,15 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       const width = canvas.width;
       const height = canvas.height;
       
-      // Effacer le canvas principal
+      // Clear main canvas
       ctx.clearRect(0, 0, width, height);
       
-      // Dessiner le fond depuis le cache
+      // Draw background from cache
       if (offscreenCanvas) {
         ctx.drawImage(offscreenCanvas, 0, 0);
       }
       
-      // Dessiner seulement les éléments animés (le glow central)
+      // Draw only animated elements (central glow)
       const centerGlow = ctx.createRadialGradient(
         width/2, height/2, 0,
         width/2, height/2, height * 0.4
@@ -116,7 +116,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Boucle d'animation pour les éléments animés uniquement
+    // Animation loop for animated elements only
     let animationFrameId: number;
     const animate = () => {
       drawAnimatedElements();
@@ -129,7 +129,7 @@ const HexBackground = ({ className = "" }: HexBackgroundProps) => {
       window.removeEventListener('resize', resizeCanvas);
       cancelAnimationFrame(animationFrameId);
       
-      // Nettoyer le canvas offscreen
+      // Clean up offscreen canvas
       if (offscreenCanvasRef.current) {
         offscreenCanvasRef.current = null;
       }

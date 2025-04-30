@@ -117,12 +117,12 @@ const Index = () => {
   const availableSkinsRef = useRef<any[]>([]);
 
   useEffect(() => {
-    // Ne créer les mesures que lorsque le jeu est actif
+    // Only start performance metrics when game is active
     if (!gameStarted || !socket) return;
 
     console.log("Starting performance metrics");
     
-    // Pour le tick time
+    // For tick time
     let lastTickPerf = performance.now();
     const onUpdate = (payload: { serverTs?: number }) => {
       const nowPerf = performance.now();
@@ -136,7 +136,7 @@ const Index = () => {
     
     socket.on("update_entities", onUpdate);
     
-    // Pour le ping
+    // For ping
     const pingInterval = 2000;
     const measurePing = () => {
       const t0 = performance.now();
@@ -149,7 +149,7 @@ const Index = () => {
     measurePing();
     metricsIntervalRef.current = window.setInterval(measurePing, pingInterval);
     
-    // Pour le FPS
+    // For FPS
     let frames = 0;
     let t0 = performance.now();
 
@@ -166,7 +166,6 @@ const Index = () => {
     fpsAnimationFrameRef.current = requestAnimationFrame(measureFps);
     
     return () => {
-      // Nettoyage de tous les écouteurs et intervalles
       socket.off("update_entities", onUpdate);
       
       if (metricsIntervalRef.current) {
@@ -208,7 +207,6 @@ const Index = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (socket) {
-        socket.emit("clean_disconnect");
         socket.disconnect();
       }
     };
@@ -265,26 +263,6 @@ const Index = () => {
     }
   }, [reconnectAttempts]);
   
-  const generateRandomItems = (count: number, worldSize: { width: number; height: number }) => {
-    const items: Record<string, GameItem> = {};
-    const itemColors = ['#FF5733', '#33FF57', '#3357FF', '#33A8FF', '#33FFF5', '#FFD133', '#8F33FF'];
-    
-    const randomItemRadius = () => Math.floor(Math.random() * (MAX_ITEM_RADIUS - MIN_ITEM_RADIUS + 1)) + MIN_ITEM_RADIUS;
-    
-    for (let i = 0; i < count; i++) {
-      const id = `item-${i}`;
-      items[id] = {
-        id,
-        x: Math.random() * worldSize.width,
-        y: Math.random() * worldSize.height,
-        value: Math.floor(Math.random() * 5) + 1,
-        color: itemColors[Math.floor(Math.random() * itemColors.length)],
-        radius: randomItemRadius()
-      };
-    }
-    return items;
-  };
-  
   const handlePlay = () => {
     if (!username.trim()) {
       toast.error("Please enter a pseudo before playing");
@@ -307,7 +285,6 @@ const Index = () => {
     setIsSpectator(false);
     
     if (socket) {
-      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
@@ -373,31 +350,16 @@ const Index = () => {
       document.body.classList.add('game-active');
       
       console.log("Sending player info to server with skin:", selectedSkinId);
-      console.log("Is Mobile: ", isMobile);
       
       newSocket.emit("setPlayerInfo", { 
         pseudo: username,
         skin_id: selectedSkinId
       });
       
-      const worldSize = { width: 4000, height: 4000 };
-      const randomItems = generateRandomItems(50, worldSize);
-      
-      setGameState(prevState => ({
-        ...prevState,
-        items: randomItems,
-        worldSize
-      }));
-      
       toast.success("You have joined the game");
     });
     
-    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
-      console.log("Received update_entities with", 
-        Object.keys(data.players).length, "players and", 
-        data.items.length, "items and",
-        data.leaderboard?.length || 0, "leaderboard entries");
-      
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[]; worldSize?: { width: number; height: number } }) => {
       const itemsObject: Record<string, GameItem> = {};
       data.items.forEach(item => {
         itemsObject[item.id] = item;
@@ -406,7 +368,8 @@ const Index = () => {
       setGameState(prevState => ({
         ...prevState,
         players: data.players,
-        items: itemsObject
+        items: itemsObject,
+        worldSize: data.worldSize || prevState.worldSize
       }));
       
       if (data.leaderboard) {
@@ -419,46 +382,6 @@ const Index = () => {
       toast.error("You were eliminated!");
       setIsSpectator(true);
       setShowGameOverDialog(true);
-    });
-    
-    newSocket.on("set_spectator", (isSpectator: boolean) => {
-      console.log("Set spectator mode:", isSpectator);
-      setIsSpectator(isSpectator);
-    });
-    
-    newSocket.on("player_grew", (data: { growth: number }) => {
-      console.log("You ate another player! Growing by:", data.growth);
-      toast.success(`You ate another player! +${data.growth} points`);
-      if (playerId) {
-        setGameState(prevState => {
-          const currentPlayer = prevState.players[playerId];
-          if (!currentPlayer) return prevState;
-          
-          const newItemEatenCount = (currentPlayer.itemEatenCount || DEFAULT_ITEM_EATEN_COUNT) + data.growth;
-          
-          const targetQueueLength = Math.max(6, Math.floor(newItemEatenCount / 3));
-          const currentQueueLength = currentPlayer.queue?.length || 0;
-          const segmentsToAdd = targetQueueLength - currentQueueLength;
-          
-          let newQueue = [...(currentPlayer.queue || [])];
-          
-          for (let i = 0; i < segmentsToAdd; i++) {
-            newQueue.push({ x: currentPlayer.x, y: currentPlayer.y });
-          }
-          
-          return {
-            ...prevState,
-            players: {
-              ...prevState.players,
-              [playerId]: {
-                ...currentPlayer,
-                queue: newQueue,
-                itemEatenCount: newItemEatenCount
-              }
-            }
-          };
-        });
-      }
     });
     
     newSocket.on("no_room_available", () => {
@@ -491,39 +414,8 @@ const Index = () => {
     }
   };
   
-  const handlePlayerCollision = (otherPlayerId: string) => {
-    if (socket && gameStarted && playerId && !isSpectator) {
-      const currentPlayer = gameState.players[playerId];
-      const otherPlayer = gameState.players[otherPlayerId];
-      if (!currentPlayer || !otherPlayer) return;
-      const dx = currentPlayer.x - otherPlayer.x;
-      const dy = currentPlayer.y - otherPlayer.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
-      const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
-      if (distance < (currentSize + otherSize) / 2) {
-        const currentQueueLength = currentPlayer.queue?.length || 0;
-        const otherQueueLength = otherPlayer.queue?.length || 0;
-        if (currentQueueLength <= otherQueueLength) {
-          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-          toast.error("You were eliminated!");
-          setIsSpectator(true);
-          setShowGameOverDialog(true);
-        } else {
-          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
-        }
-      } else {
-        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-        toast.error("You were eliminated by the queue of another player!");
-        setIsSpectator(true);
-        setShowGameOverDialog(true);
-      }
-    }
-  };
-
   const handleQuitGame = () => {
     if (socket) {
-      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     setGameStarted(false);
@@ -537,7 +429,6 @@ const Index = () => {
 
   const handleRetry = () => {
     if (socket) {
-      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     

@@ -251,47 +251,6 @@ const GameCanvas = ({
   }, [gameState, playerId, onMove, onBoostStart, onBoostStop, camera, isSpectator]);
   
   useEffect(() => {
-    if (!playerId || !gameState.players[playerId] || !onPlayerCollision || isSpectator) return;
-    
-    const currentPlayer = gameState.players[playerId];
-    const currentHeadRadius = getHeadRadius(currentPlayer);
-    
-    Object.entries(gameState.players).forEach(([otherId, otherPlayer]) => {
-      if (otherId === playerId) return;
-      
-      const otherHeadRadius = getHeadRadius(otherPlayer);
-      const dx = currentPlayer.x - otherPlayer.x;
-      const dy = currentPlayer.y - otherPlayer.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < (currentHeadRadius + otherHeadRadius)) {
-        const currentQueueLength = currentPlayer.queue?.length || 0;
-        const otherQueueLength = otherPlayer.queue?.length || 0;
-        
-        if (currentQueueLength <= otherQueueLength) {
-          onPlayerCollision(otherId);
-          return;
-        }
-      }
-      
-      if (otherPlayer.queue && otherPlayer.queue.length > 0) {
-        const segmentRadius = getSegmentRadius(otherPlayer);
-        
-        for (const segment of otherPlayer.queue) {
-          const segDx = currentPlayer.x - segment.x;
-          const segDy = currentPlayer.y - segment.y;
-          const segDistance = Math.sqrt(segDx * segDx + segDy * segDy);
-          
-          if (segDistance < (currentHeadRadius + segmentRadius)) {
-            onPlayerCollision(otherId);
-            return;
-          }
-        }
-      }
-    });
-  }, [gameState, playerId, onPlayerCollision, isSpectator]);
-  
-  useEffect(() => {
     if (!gameState.items) return;
     
     const currentItemsById = rendererStateRef.current.items.reduce((acc, item) => {
@@ -377,7 +336,7 @@ const GameCanvas = ({
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Fonction pour créer et mettre en cache un gradient radial
+    // Function to create and cache radial gradients
     const getOrCreateRadialGradient = (
       key: string,
       x0: number,
@@ -512,7 +471,7 @@ const GameCanvas = ({
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      // Utilisation de getOrCreateRadialGradient pour le glow central
+      // Use getOrCreateRadialGradient for central glow
       const centerGlowKey = 'centerGlow';
       const centerGlow = getOrCreateRadialGradient(
         centerGlowKey,
@@ -548,7 +507,7 @@ const GameCanvas = ({
       allSegments.forEach(segment => {
         if (!segment.color) return;
         
-        // Création et cache du gradient pour le segment
+        // Create and cache gradient for segment
         const segmentGradientKey = `segment-${segment.color}-${segment.radius}`;
         const gradient = getOrCreateRadialGradient(
           segmentGradientKey,
@@ -583,7 +542,7 @@ const GameCanvas = ({
         
         const itemRadius = item.radius || 5;
         
-        // Création et mise en cache des gradients pour les items
+        // Create and cache gradients for items
         const itemGradientKey = `item-${item.color}-${itemRadius}`;
         const itemGradient = getOrCreateRadialGradient(
           itemGradientKey,
@@ -600,7 +559,7 @@ const GameCanvas = ({
         ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Création et mise en cache des gradients pour le glow des items
+        // Create and cache gradients for item glow
         const glowGradientKey = `glow-${item.color}-${itemRadius}`;
         const glowGradient = getOrCreateRadialGradient(
           glowGradientKey,
@@ -645,7 +604,7 @@ const GameCanvas = ({
       }
       window.removeEventListener('resize', resizeCanvas);
       
-      // Nettoyer le cache des gradients
+      // Clean gradient cache
       gradientCacheRef.current = {};
     };
   }, [gameState, camera, playerId, isMobile]);
@@ -845,4 +804,4 @@ const GameCanvas = ({
   );
 };
 
-export default GameCanvas;
+export default Game
