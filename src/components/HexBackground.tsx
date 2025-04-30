@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 
 interface HexBackgroundProps {
@@ -5,11 +6,11 @@ interface HexBackgroundProps {
   paused?: boolean;
 }
 
-const BG_SRC = '/image/background.png';
+// Utiliser l'image téléchargée comme motif d'arrière-plan
+const BG_SRC = '/lovable-uploads/5f6bfbbf-3d4c-4583-b25e-7da5106d819b.png';
 
 const HexBackground = ({ className = "", paused = false }: HexBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -17,54 +18,56 @@ const HexBackground = ({ className = "", paused = false }: HexBackgroundProps) =
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    // Créer l'offscreen-canvas
-    offscreenCanvasRef.current = document.createElement('canvas');
-    const offscreenCanvas = offscreenCanvasRef.current;
-    const offCtx = offscreenCanvas.getContext('2d');
-    if (!offCtx) return;
-
-    // Charger l'image une fois
+    // Créer un pattern à partir de l'image
     const img = new Image();
     img.src = BG_SRC;
-    let pattern: CanvasPattern | null = null;
-    img.onload = () => {
-      pattern = ctx.createPattern(img, 'repeat');
-      resize();
-    };
-
-    // Ajuste les deux canvas et dessine le pattern dans l'offscreen
+    
     const resize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
       canvas.width = w;
       canvas.height = h;
-      offscreenCanvas.width = w;
-      offscreenCanvas.height = h;
-
-      if (pattern) {
-        offCtx.clearRect(0, 0, w, h);
-        offCtx.fillStyle = pattern;
-        offCtx.fillRect(0, 0, w, h);
+      
+      // Redessiner le pattern quand l'image est chargée
+      if (img.complete) {
+        drawPattern();
       }
     };
+
+    const drawPattern = () => {
+      if (!ctx || paused) return;
+      
+      // Créer un pattern répété
+      const pattern = ctx.createPattern(img, 'repeat');
+      if (pattern) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+    
+    // Dessiner l'image quand elle est chargée
+    img.onload = () => {
+      drawPattern();
+    };
+
+    // Ajuster le canvas quand la fenêtre change de taille
     window.addEventListener('resize', resize);
     resize();
 
-    // Boucle d’animation (simple copy du cache)
+    // Animation loop
     let raf: number;
-    const draw = () => {
-      if (!paused && offscreenCanvas) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(offscreenCanvas, 0, 0);
+    const animate = () => {
+      if (!paused) {
+        drawPattern();
       }
-      raf = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(animate);
     };
-    draw();
+    raf = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
-      offscreenCanvasRef.current = null;
     };
   }, [paused]);
 
