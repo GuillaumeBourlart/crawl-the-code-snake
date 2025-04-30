@@ -1,14 +1,11 @@
+
 import React from "react";
 
 interface ZigzagTitleProps {
   className?: string;
-  paused?: boolean;  // Ajout prop pour désactiver l'animation
 }
 
-const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ 
-  className = "",
-  paused = false
-}) => {
+const ZigzagTitle: React.FC<ZigzagTitleProps> = ({ className = "" }) => {
   // 1) Rayon des cercles (gros titre)
   const r = 300;
   // 2) Pas centre‑à‑centre ×1.6 (20% de chevauchement)
@@ -115,13 +112,11 @@ const ZigzagTitle: React.FC<ZigzagTitleProps> = ({
                 cy={y * STEP}
                 r={r}
                 fill={color}
-                className={!paused ? "animate-pulse" : ""}
-                style={!paused ? {
+                className="animate-pulse"
+                style={{
                   animationDelay: `${delay}s`,
                   animationDuration: "2s",
                   animationIterationCount: "infinite",
-                  filter: "drop-shadow(0px 27px 45px rgba(0,0,0,0.7))",
-                } : {
                   filter: "drop-shadow(0px 27px 45px rgba(0,0,0,0.7))",
                 }}
               />

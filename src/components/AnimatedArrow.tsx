@@ -4,13 +4,11 @@ import React from "react";
 interface AnimatedArrowProps {
   className?: string;
   isClickable?: boolean;
-  paused?: boolean;  // Ajout prop pour désactiver l'animation
 }
 
 const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
   className = "",
   isClickable = false,
-  paused = false,
 }) => {
   // 1) Rayon des cercles
   const r = 18;
@@ -56,15 +54,11 @@ const AnimatedArrow: React.FC<AnimatedArrowProps> = ({
                 cy={rowIdx * STEP + r}
                 r={r}
                 fill={fillColor}
-                className={!paused ? "animate-pulse" : ""}
-                style={!paused ? {
+                className="animate-pulse"
+                style={{
                   animationDelay: delay,
                   animationDuration: "1.5s",
                   animationIterationCount: "infinite",
-                  filter: isClickable
-                    ? "drop-shadow(0px 2px 4px rgba(255,255,255,0.3))"
-                    : "none",
-                } : {
                   filter: isClickable
                     ? "drop-shadow(0px 2px 4px rgba(255,255,255,0.3))"
                     : "none",
