@@ -140,6 +140,8 @@ const GameCanvas = ({
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>(0);
   const lastRenderTimeRef = useRef<number>(0);
+  const gradientCacheRef = useRef<Record<string, CanvasGradient>>({});
+  
   const rendererStateRef = useRef({
     players: {} as Record<string, Player>,
     items: [] as GameItem[],
@@ -375,6 +377,27 @@ const GameCanvas = ({
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
+    // Fonction pour créer et mettre en cache un gradient radial
+    const getOrCreateRadialGradient = (
+      key: string,
+      x0: number,
+      y0: number,
+      r0: number,
+      x1: number,
+      y1: number,
+      r1: number,
+      colorStops: Array<{ offset: number, color: string }>
+    ): CanvasGradient => {
+      if (!gradientCacheRef.current[key]) {
+        const gradient = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
+        colorStops.forEach(stop => {
+          gradient.addColorStop(stop.offset, stop.color);
+        });
+        gradientCacheRef.current[key] = gradient;
+      }
+      return gradientCacheRef.current[key];
+    };
+    
     const updateGridCache = () => {
       const gridCanvas = gridCacheCanvasRef.current;
       if (!gridCanvas) return;
@@ -489,12 +512,17 @@ const GameCanvas = ({
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
       
-      const centerGlow = ctx.createRadialGradient(
+      // Utilisation de getOrCreateRadialGradient pour le glow central
+      const centerGlowKey = 'centerGlow';
+      const centerGlow = getOrCreateRadialGradient(
+        centerGlowKey,
         width/2, height/2, 0,
-        width/2, height/2, height * 0.4
+        width/2, height/2, height * 0.4,
+        [
+          { offset: 0, color: 'rgba(30, 30, 50, 0.15)' },
+          { offset: 1, color: 'rgba(0, 0, 0, 0)' }
+        ]
       );
-      centerGlow.addColorStop(0, 'rgba(30, 30, 50, 0.15)');
-      centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
       ctx.fillStyle = centerGlow;
       ctx.fillRect(0, 0, width, height);
@@ -520,12 +548,17 @@ const GameCanvas = ({
       allSegments.forEach(segment => {
         if (!segment.color) return;
         
-        const gradient = ctx.createRadialGradient(
+        // Création et cache du gradient pour le segment
+        const segmentGradientKey = `segment-${segment.color}-${segment.radius}`;
+        const gradient = getOrCreateRadialGradient(
+          segmentGradientKey,
           segment.x, segment.y, 0,
-          segment.x, segment.y, segment.radius
+          segment.x, segment.y, segment.radius,
+          [
+            { offset: 0, color: segment.color },
+            { offset: 1, color: shadeColor(segment.color, -15) }
+          ]
         );
-        gradient.addColorStop(0, segment.color);
-        gradient.addColorStop(1, shadeColor(segment.color, -15));
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -550,26 +583,35 @@ const GameCanvas = ({
         
         const itemRadius = item.radius || 5;
         
-        const itemGradient = ctx.createRadialGradient(
+        // Création et mise en cache des gradients pour les items
+        const itemGradientKey = `item-${item.color}-${itemRadius}`;
+        const itemGradient = getOrCreateRadialGradient(
+          itemGradientKey,
           itemX, itemY, 0,
-          itemX, itemY, itemRadius
+          itemX, itemY, itemRadius,
+          [
+            { offset: 0, color: item.color },
+            { offset: 1, color: shadeColor(item.color, -20) }
+          ]
         );
-        
-        itemGradient.addColorStop(0, item.color);
-        itemGradient.addColorStop(1, shadeColor(item.color, -20));
         
         ctx.fillStyle = itemGradient;
         ctx.beginPath();
         ctx.arc(itemX, itemY, itemRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        const glowGradient = ctx.createRadialGradient(
+        // Création et mise en cache des gradients pour le glow des items
+        const glowGradientKey = `glow-${item.color}-${itemRadius}`;
+        const glowGradient = getOrCreateRadialGradient(
+          glowGradientKey,
           itemX, itemY, itemRadius * 0.5,
-          itemX, itemY, itemRadius * 3
+          itemX, itemY, itemRadius * 3,
+          [
+            { offset: 0, color: `${item.color}80` },
+            { offset: 0.6, color: `${item.color}40` },
+            { offset: 1, color: `${item.color}00` }
+          ]
         );
-        glowGradient.addColorStop(0, `${item.color}80`);
-        glowGradient.addColorStop(0.6, `${item.color}40`);
-        glowGradient.addColorStop(1, `${item.color}00`);
         
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
@@ -602,6 +644,9 @@ const GameCanvas = ({
         cancelAnimationFrame(requestRef.current);
       }
       window.removeEventListener('resize', resizeCanvas);
+      
+      // Nettoyer le cache des gradients
+      gradientCacheRef.current = {};
     };
   }, [gameState, camera, playerId, isMobile]);
   
