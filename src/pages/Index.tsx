@@ -22,9 +22,14 @@ import AnimatedArrow from "@/components/AnimatedArrow";
 import Footer from "@/components/Footer";
 import GlobalLeaderboardButton from "@/components/GlobalLeaderboardButton";
 import LanguageSelector from "@/components/LanguageSelector";
+import HexBackground from "@/components/HexBackground";
 
+// Constants
 const SOCKET_SERVER_URL = "https://api.grubz.io";
+const MAX_RECONNECTION_ATTEMPTS = 5;
+const RECONNECTION_DELAY = 300;
 
+// Types
 interface ServerPlayer {
   id?: string;
   x: number;
@@ -61,13 +66,6 @@ interface PlayerLeaderboardEntry {
   color: string;
   pseudo?: string;
 }
-
-const MAX_RECONNECTION_ATTEMPTS = 5;
-const RECONNECTION_DELAY = 300;
-
-const MIN_ITEM_RADIUS = 4;
-const MAX_ITEM_RADIUS = 10;
-const DEFAULT_ITEM_EATEN_COUNT = 18;
 
 const Index = () => {
   const { t } = useLanguage();
@@ -115,6 +113,9 @@ const Index = () => {
   } = useSkins();
   
   const availableSkinsRef = useRef<any[]>([]);
+
+  // Performance optimization: pause animations when game is active
+  const shouldPauseAnimations = gameStarted;
 
   useEffect(() => {
     // Ne créer les mesures que lorsque le jeu est actif
@@ -208,7 +209,6 @@ const Index = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (socket) {
-        socket.emit("clean_disconnect");
         socket.disconnect();
       }
     };
@@ -307,7 +307,6 @@ const Index = () => {
     setIsSpectator(false);
     
     if (socket) {
-      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
@@ -373,41 +372,27 @@ const Index = () => {
       document.body.classList.add('game-active');
       
       console.log("Sending player info to server with skin:", selectedSkinId);
-      console.log("Is Mobile: ", isMobile);
       
       newSocket.emit("setPlayerInfo", { 
         pseudo: username,
         skin_id: selectedSkinId
       });
-      
-      const worldSize = { width: 4000, height: 4000 };
-      const randomItems = generateRandomItems(50, worldSize);
-      
-      setGameState(prevState => ({
-        ...prevState,
-        items: randomItems,
-        worldSize
-      }));
-      
-      toast.success("You have joined the game");
     });
     
-    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
-      console.log("Received update_entities with", 
-        Object.keys(data.players).length, "players and", 
-        data.items.length, "items and",
-        data.leaderboard?.length || 0, "leaderboard entries");
-      
-      const itemsObject: Record<string, GameItem> = {};
-      data.items.forEach(item => {
-        itemsObject[item.id] = item;
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[]; worldSize?: { width: number; height: number } }) => {
+      setGameState(prevState => {
+        const itemsObject: Record<string, GameItem> = {};
+        data.items.forEach(item => {
+          itemsObject[item.id] = item;
+        });
+        
+        return {
+          ...prevState,
+          players: data.players,
+          items: itemsObject,
+          worldSize: data.worldSize || prevState.worldSize
+        };
       });
-      
-      setGameState(prevState => ({
-        ...prevState,
-        players: data.players,
-        items: itemsObject
-      }));
       
       if (data.leaderboard) {
         setRoomLeaderboard(data.leaderboard);
@@ -492,38 +477,12 @@ const Index = () => {
   };
   
   const handlePlayerCollision = (otherPlayerId: string) => {
-    if (socket && gameStarted && playerId && !isSpectator) {
-      const currentPlayer = gameState.players[playerId];
-      const otherPlayer = gameState.players[otherPlayerId];
-      if (!currentPlayer || !otherPlayer) return;
-      const dx = currentPlayer.x - otherPlayer.x;
-      const dy = currentPlayer.y - otherPlayer.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const currentSize = 20 * (1 + ((currentPlayer.queue?.length || 0) * 0.1));
-      const otherSize = 20 * (1 + ((otherPlayer.queue?.length || 0) * 0.1));
-      if (distance < (currentSize + otherSize) / 2) {
-        const currentQueueLength = currentPlayer.queue?.length || 0;
-        const otherQueueLength = otherPlayer.queue?.length || 0;
-        if (currentQueueLength <= otherQueueLength) {
-          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-          toast.error("You were eliminated!");
-          setIsSpectator(true);
-          setShowGameOverDialog(true);
-        } else {
-          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
-        }
-      } else {
-        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
-        toast.error("You were eliminated by the queue of another player!");
-        setIsSpectator(true);
-        setShowGameOverDialog(true);
-      }
-    }
+    // Cette fonction n'est plus nécessaire car le serveur gère les collisions
+    console.log("Player collision detected with:", otherPlayerId);
   };
 
   const handleQuitGame = () => {
     if (socket) {
-      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     setGameStarted(false);
@@ -537,7 +496,6 @@ const Index = () => {
 
   const handleRetry = () => {
     if (socket) {
-      socket.emit("clean_disconnect");
       socket.disconnect();
     }
     
@@ -575,6 +533,9 @@ const Index = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center text-white overflow-hidden">
+      {/* Background with pause optimization */}
+      <HexBackground paused={shouldPauseAnimations} />
+      
       {!gameStarted && (
         <div className="absolute top-4 left-4 z-50">
           <LanguageSelector />
@@ -587,16 +548,14 @@ const Index = () => {
         </div>
       )}
 
-      
       {!gameStarted && (
         <div className="z-10 flex flex-col items-center justify-center p-8 rounded-2xl w-full max-w-screen-sm mx-auto animate-fade-in mt-12 sm:mt-24">
           <div className="flex items-center justify-center mb-6 w-full overflow-visible">
             <div className="w-full max-w-[1000px]">
-            <ZigzagTitle className="w-full h-auto" />
+              <ZigzagTitle className="w-full h-auto" paused={false} />
             </div>
-        </div>
+          </div>
 
-          
           <div className="w-full max-w-sm mb-8">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
@@ -650,14 +609,14 @@ const Index = () => {
                 </div>
               ) : (
                 <div className="flex items-center justify-center mb-6 w-full overflow-visible">
-  <div className="w-2/3 sm:w-1/2">
-    <AnimatedArrow
-      className="w-full h-auto"
-      isClickable={Boolean(username.trim() && selectedSkinId)}
-    />
-  </div>
-</div>
-
+                  <div className="w-2/3 sm:w-1/2">
+                    <AnimatedArrow
+                      className="w-full h-auto"
+                      isClickable={Boolean(username.trim() && selectedSkinId)}
+                      paused={false}
+                    />
+                  </div>
+                </div>
               )}
             </button>
           </div>

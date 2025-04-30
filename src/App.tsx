@@ -10,15 +10,14 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SkinsPage from "./pages/SkinsPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
-import HexBackground from "./components/HexBackground";
 import LegalNotice from "./pages/LegalNotice";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
 import ProfilePage from "./pages/ProfilePage";
-import { useEffect } from "react";
-import { Helmet } from "react-helmet-async";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 // Add CSS to handle scrolling
 const styles = `
@@ -53,6 +52,35 @@ const styles = `
 const queryClient = new QueryClient();
 
 const App = () => {
+  const location = useLocation();
+  const [isGameActive, setIsGameActive] = useState(false);
+  
+  // Détecter quand le jeu est actif pour optimiser les ressources
+  useEffect(() => {
+    const isGameRoute = location.pathname === "/";
+    const gameActiveCheck = () => {
+      const isActive = document.body.classList.contains('game-active');
+      setIsGameActive(isActive);
+    };
+    
+    // Vérifier immédiatement et ajouter un MutationObserver pour détecter les changements
+    gameActiveCheck();
+    
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          gameActiveCheck();
+        }
+      });
+    });
+    
+    observer.observe(document.body, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [location]);
+  
   // Add styles dynamically
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -71,24 +99,21 @@ const App = () => {
           <AuthProvider>
             <Toaster />
             <Sonner />
-            <HexBackground />
-            <BrowserRouter>
-              <div className="min-h-screen flex flex-col">
-                <CookieConsent />
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/skins" element={<SkinsPage />} />
-                  <Route path="/payment-success" element={<PaymentSuccess />} />
-                  <Route path="/legal-notice" element={<LegalNotice />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/cookie-policy" element={<CookiePolicy />} />
-                  <Route path="/terms-of-sale" element={<TermsOfSale />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
-            </BrowserRouter>
+            <div className="min-h-screen flex flex-col">
+              <CookieConsent />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/skins" element={<SkinsPage />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/legal-notice" element={<LegalNotice />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/terms-of-sale" element={<TermsOfSale />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
           </AuthProvider>
         </LanguageProvider>
       </TooltipProvider>
