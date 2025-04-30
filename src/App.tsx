@@ -50,14 +50,7 @@ const styles = `
   }
 `;
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 30000
-    }
-  }
-});
+const queryClient = new QueryClient();
 
 const App = () => {
   // Add styles dynamically

@@ -116,7 +116,6 @@ const Index = () => {
   
   const availableSkinsRef = useRef<any[]>([]);
 
-  // Regroupement des hooks de timing dans un seul useEffect conditionné à gameStarted
   useEffect(() => {
     // Ne créer les mesures que lorsque le jeu est actif
     if (!gameStarted || !socket) return;
@@ -232,10 +231,7 @@ const Index = () => {
     if (gameStarted && socket && playerId && !isSpectator) {
       directionIntervalRef.current = window.setInterval(() => {
         if (lastDirectionRef.current.x !== 0 || lastDirectionRef.current.y !== 0) {
-          socket.emit("changeDirection", { 
-            direction: lastDirectionRef.current,
-            roomId: roomId
-          });
+          socket.emit("changeDirection", { direction: lastDirectionRef.current });
         }
       }, 50);
 
@@ -253,7 +249,7 @@ const Index = () => {
         directionIntervalRef.current = null;
       }
     };
-  }, [gameStarted, socket, playerId, isSpectator, roomId]);
+  }, [gameStarted, socket, playerId, isSpectator]);
   
   const attemptReconnect = useCallback(() => {
     if (reconnectAttempts < MAX_RECONNECTION_ATTEMPTS) {
@@ -331,9 +327,6 @@ const Index = () => {
       setConnecting(false);
       setReconnectAttempts(0);
       toast.success("Connected to server");
-      
-      // Envoyer une demande de rejoindre une salle après la connexion
-      newSocket.emit("join_room");
     });
     
     newSocket.on("connect_error", (err) => {
@@ -380,12 +373,11 @@ const Index = () => {
       document.body.classList.add('game-active');
       
       console.log("Sending player info to server with skin:", selectedSkinId);
+      console.log("Is Mobile: ", isMobile);
       
-      // Après avoir rejoint une salle, définir les infos du joueur
       newSocket.emit("setPlayerInfo", { 
         pseudo: username,
-        skin_id: selectedSkinId,
-        roomId: data.roomId
+        skin_id: selectedSkinId
       });
       
       const worldSize = { width: 4000, height: 4000 };
@@ -400,11 +392,21 @@ const Index = () => {
       toast.success("You have joined the game");
     });
     
-    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[]; serverTs: number }) => {
+    newSocket.on("update_entities", (data: { players: Record<string, ServerPlayer>; items: GameItem[]; leaderboard: PlayerLeaderboardEntry[] }) => {
+      console.log("Received update_entities with", 
+        Object.keys(data.players).length, "players and", 
+        data.items.length, "items and",
+        data.leaderboard?.length || 0, "leaderboard entries");
+      
+      const itemsObject: Record<string, GameItem> = {};
+      data.items.forEach(item => {
+        itemsObject[item.id] = item;
+      });
+      
       setGameState(prevState => ({
         ...prevState,
         players: data.players,
-        items: data.items
+        items: itemsObject
       }));
       
       if (data.leaderboard) {
@@ -469,6 +471,7 @@ const Index = () => {
       newSocket.emit("pong_response");
     });
     
+    newSocket.emit("join_room");
     setSocket(newSocket);
   };
   
@@ -478,13 +481,13 @@ const Index = () => {
   
   const handleBoostStart = () => {
     if (socket && gameStarted && !isSpectator) {
-      socket.emit("boostStart", { roomId });
+      socket.emit("boostStart");
     }
   };
   
   const handleBoostStop = () => {
     if (socket && gameStarted && !isSpectator) {
-      socket.emit("boostStop", { roomId });
+      socket.emit("boostStop");
     }
   };
   
@@ -502,15 +505,15 @@ const Index = () => {
         const currentQueueLength = currentPlayer.queue?.length || 0;
         const otherQueueLength = otherPlayer.queue?.length || 0;
         if (currentQueueLength <= otherQueueLength) {
-          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId, roomId });
+          socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
           toast.error("You were eliminated!");
           setIsSpectator(true);
           setShowGameOverDialog(true);
         } else {
-          socket.emit("eat_player", { eatenPlayer: otherPlayerId, roomId });
+          socket.emit("eat_player", { eatenPlayer: otherPlayerId });
         }
       } else {
-        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId, roomId });
+        socket.emit("player_eliminated", { eliminatedBy: otherPlayerId });
         toast.error("You were eliminated by the queue of another player!");
         setIsSpectator(true);
         setShowGameOverDialog(true);
