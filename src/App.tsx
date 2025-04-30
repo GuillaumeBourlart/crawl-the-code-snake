@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./hooks/use-auth";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import Index from "./pages/Index";
@@ -17,7 +17,7 @@ import CookiePolicy from "./pages/CookiePolicy";
 import TermsOfSale from "./pages/TermsOfSale";
 import CookieConsent from "./components/CookieConsent";
 import ProfilePage from "./pages/ProfilePage";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 // Add CSS to handle scrolling
@@ -52,7 +52,17 @@ const styles = `
 
 const queryClient = new QueryClient();
 
-const App = () => {
+const AppContent = () => {
+  const location = useLocation();
+  const [isGameActive, setIsGameActive] = useState(false);
+  
+  // Check if we're on the game page and game is active
+  useEffect(() => {
+    const isHomePage = location.pathname === '/';
+    const gameActiveFromBody = document.body.classList.contains('game-active');
+    setIsGameActive(isHomePage && gameActiveFromBody);
+  }, [location.pathname]);
+  
   // Add styles dynamically
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -65,29 +75,37 @@ const App = () => {
   }, []);
   
   return (
+    <>
+      <Toaster />
+      <Sonner />
+      <HexBackground paused={isGameActive} />
+      <div className="min-h-screen flex flex-col">
+        <CookieConsent />
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/skins" element={<SkinsPage />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/legal-notice" element={<LegalNotice />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/terms-of-sale" element={<TermsOfSale />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
+    </>
+  );
+};
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <LanguageProvider>
           <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <HexBackground />
             <BrowserRouter>
-              <div className="min-h-screen flex flex-col">
-                <CookieConsent />
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/skins" element={<SkinsPage />} />
-                  <Route path="/payment-success" element={<PaymentSuccess />} />
-                  <Route path="/legal-notice" element={<LegalNotice />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/cookie-policy" element={<CookiePolicy />} />
-                  <Route path="/terms-of-sale" element={<TermsOfSale />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
+              <AppContent />
             </BrowserRouter>
           </AuthProvider>
         </LanguageProvider>
