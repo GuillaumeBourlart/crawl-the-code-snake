@@ -45,7 +45,7 @@ const ITEMS_PER_SEGMENT    = 4;
 const INITIAL_SEGMENTS     = 10;
 const DEFAULT_ITEM_EATEN_COUNT = ITEMS_PER_SEGMENT * INITIAL_SEGMENTS;  // 40
 const HEAD_GROWTH_FACTOR   = 0.02;
-const BG_SRC = '/lovable-uploads/5f6bfbbf-3d4c-4583-b25e-7da5106d819b.png';
+const BG_SRC = 'https://t4.ftcdn.net/jpg/02/82/16/69/360_F_282166962_G6uiOk6ZMPS7Hn4ztq2YjsLRy2UkuJN1.jpg';
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
